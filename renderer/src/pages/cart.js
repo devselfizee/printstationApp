@@ -56,8 +56,55 @@ export const renderCart = (root) => {
 
       lines.appendChild(row);
       row.querySelectorAll('.key').forEach(btn => {
-        btn.onclick = () => {
+        btn.onclick = async () => {
           const act = btn.dataset.a;
+
+          // 🆕 Synchroniser avec la DB lors des modifications de quantité
+          if (window.photoAPI?.cart && state.sessionId) {
+            try {
+              // Récupérer les items actifs de la session pour trouver l'itemId
+              const items = await window.photoAPI.cart.getActiveSessionItems(state.sessionId);
+              const dbItem = items.find(i => i.photo_id === line.photoId && i.product_id === line.productId);
+
+              if (dbItem) {
+                const product = window.PRODUCTS[line.productId];
+
+                if (act === 'minus') {
+                  const newQty = line.qty - 1;
+                  if (newQty > 0) {
+                    // Diminuer la quantité
+                    const unitPrice = newQty === 1 ? product.first : product.next;
+                    const totalPrice = lineTotal(product, newQty);
+                    await window.photoAPI.cart.updateQuantity(dbItem.id, newQty, totalPrice);
+                    console.log('✅ Quantité diminuée dans DB:', dbItem.id, 'qty:', newQty);
+                  } else {
+                    // Supprimer l'item (quantité = 0)
+                    await window.photoAPI.cart.cancelItem(dbItem.id);
+                    console.log('✅ Item supprimé de la DB:', dbItem.id);
+                  }
+                }
+
+                if (act === 'plus') {
+                  // Augmenter la quantité
+                  const newQty = line.qty + 1;
+                  const unitPrice = newQty === 1 ? product.first : product.next;
+                  const totalPrice = lineTotal(product, newQty);
+                  await window.photoAPI.cart.updateQuantity(dbItem.id, newQty, totalPrice);
+                  console.log('✅ Quantité augmentée dans DB:', dbItem.id, 'qty:', newQty);
+                }
+
+                if (act === 'del') {
+                  // Supprimer complètement l'item
+                  await window.photoAPI.cart.cancelItem(dbItem.id);
+                  console.log('✅ Item supprimé de la DB:', dbItem.id);
+                }
+              }
+            } catch (error) {
+              console.error('❌ Erreur synchronisation DB:', error);
+            }
+          }
+
+          // Mettre à jour l'état local (comme avant)
           if (act === 'minus') state.cart = removeOne(line.photoId, line.productId, state.cart);
           if (act === 'plus') state.cart = addOne(line.photoId, line.productId, state.cart, window.PRODUCTS);
           if (act === 'del') state.cart = state.cart.filter(l => l.key !== line.key);
