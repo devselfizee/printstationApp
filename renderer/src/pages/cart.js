@@ -156,7 +156,7 @@ attachFooterListeners({
         const discountAmount = totalAmount - cartSubtotal(state.cart, window.PRODUCTS);
         const finalAmount = cartSubtotal(state.cart, window.PRODUCTS);
 
-        // 3. Créer la commande avec statut "cancelled"
+        // 3. Créer la commande avec statut "pending" (sera changé à cancelled après)
         const orderResult = await window.photoAPI.orders.create({
           orderId: orderId,
           participantId: state.participantId || state.sessionId,
@@ -171,19 +171,18 @@ attachFooterListeners({
         });
 
         if (orderResult?.status === 'success') {
-          console.log('[Cart] ✅ Commande annulée créée:', orderId);
+          console.log('[Cart] ✅ Commande créée:', orderId);
 
-          // 4. Marquer tous les produits de la session comme annulés
-          const items = await window.photoAPI.cart.getActiveSessionItems(state.sessionId);
+          // 4. ⭐ Associer tous les items de la session à cette commande et les marquer comme annulés
+          // Cela met order_id ET status = 'annulé' en même temps
+          await window.photoAPI.cart.cancelSession(state.sessionId, orderId);
 
-          for (const item of items) {
-            await window.photoAPI.cart.cancelItem(item.id);
-          }
+          console.log('[Cart] ✅ Items annulés et liés à la commande:', orderId);
 
           // 5. Mettre à jour le statut de la commande à "cancelled"
           await window.photoAPI.orders.updateStatus(orderId, 'cancelled', 'Annulée par l\'utilisateur');
 
-          console.log('[Cart] ✅ Tous les produits marqués comme annulés');
+          console.log('[Cart] ✅ Commande marquée comme annulée');
         } else {
           console.error('[Cart] ❌ Erreur création commande annulée:', orderResult?.error);
         }

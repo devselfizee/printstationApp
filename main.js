@@ -714,6 +714,20 @@ ipcMain.handle('cart:validate-session', async (event, sessionId, orderId) => {
   }
 });
 
+ipcMain.handle('cart:cancel-session', async (event, sessionId, orderId) => {
+  if (!photoSystemReady || !photoSystem?.db) {
+    return { status: 'error', error: 'PhotoSystem non disponible' };
+  }
+  try {
+    await photoSystem.db.cancelSessionItems(sessionId, orderId);
+    console.log('[IPC] Session annulée et liée à la commande:', orderId);
+    return { status: 'success' };
+  } catch (error) {
+    console.error('[IPC] Erreur annulation session:', error);
+    return { status: 'error', error: error.message };
+  }
+});
+
 ipcMain.handle('cart:update-quantity', async (event, itemId, quantity, totalPrice) => {
   if (!photoSystemReady || !photoSystem?.db) {
     return { status: 'error', error: 'PhotoSystem non disponible' };

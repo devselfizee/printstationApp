@@ -716,10 +716,25 @@ export async function getSessionCartItems(sessionId) {
  */
 export async function validateSessionItems(sessionId, orderId) {
   return runAsync(
-    `UPDATE order_items 
+    `UPDATE order_items
      SET status = 'validé',
          order_id = ?,
          validated_at = CURRENT_TIMESTAMP,
+         updated_at = CURRENT_TIMESTAMP
+     WHERE session_id = ? AND status IN ('en_cours', 'en_attente')`,
+    [orderId, sessionId]
+  );
+}
+
+/**
+ * Annuler tous les produits d'une session et les lier à une commande annulée
+ */
+export async function cancelSessionItems(sessionId, orderId) {
+  return runAsync(
+    `UPDATE order_items
+     SET status = 'annulé',
+         order_id = ?,
+         cancelled_at = CURRENT_TIMESTAMP,
          updated_at = CURRENT_TIMESTAMP
      WHERE session_id = ? AND status IN ('en_cours', 'en_attente')`,
     [orderId, sessionId]

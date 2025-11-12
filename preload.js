@@ -73,6 +73,7 @@ const photoAPI = {
     getActiveSessionItems: (sessionId) => ipcRenderer.invoke('cart:get-active-session-items', sessionId),
     getSessionStats: (sessionId) => ipcRenderer.invoke('cart:get-session-stats', sessionId),
     validateSession: (sessionId, orderId) => ipcRenderer.invoke('cart:validate-session', sessionId, orderId),
+    cancelSession: (sessionId, orderId) => ipcRenderer.invoke('cart:cancel-session', sessionId, orderId),
     updateQuantity: (itemId, quantity, totalPrice) => ipcRenderer.invoke('cart:update-quantity', itemId, quantity, totalPrice),
   },
 
