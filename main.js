@@ -37,12 +37,13 @@ try {
  */
 
 function createWindow() {
-  // console.log('[Main] preload pathddddddddddddddd:', path.join(__dirname, 'preload.js'));
+  console.log('[Main] preload path:', path.join(__dirname, 'preload.js'));
 
   mainWindow = new BrowserWindow({
     width: 1920,
     height: 1080,
     fullscreen: process.env.NODE_ENV === 'production',
+    icon: path.join(__dirname, 'renderer', 'assets', 'favicon.png'), // Icône de la fenêtre
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,

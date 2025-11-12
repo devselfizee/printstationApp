@@ -47,7 +47,7 @@
           ]
         }
       ],
-      "icon": "renderer/assets/icon.ico"
+      "icon": "renderer/assets/favicon.ico"
     },
     "nsis": {
       "oneClick": false,
