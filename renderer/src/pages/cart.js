@@ -183,6 +183,25 @@ attachFooterListeners({
           await window.photoAPI.orders.updateStatus(orderId, 'cancelled', 'Annulée par l\'utilisateur');
 
           console.log('[Cart] ✅ Commande marquée comme annulée');
+
+          // 6. 🆕 Synchroniser la commande annulée avec l'API distante
+          try {
+            console.log('[Cart] 🔄 Synchronisation de la commande annulée avec l\'API distante...');
+            const syncResult = await window.photoAPI.orders.syncRemote(orderId);
+
+            if (syncResult?.status === 'success') {
+              console.log('[Cart] ✅ Commande annulée synchronisée avec l\'API distante');
+              console.log('[Cart] Détails de la réponse:', syncResult.response);
+            } else if (syncResult?.status === 'skipped') {
+              console.log('[Cart] ⏭️  Synchronisation ignorée:', syncResult.message);
+            } else {
+              console.warn('[Cart] ⚠️  Erreur synchronisation API:', syncResult?.error);
+              // Ne pas bloquer le processus si la synchronisation échoue
+            }
+          } catch (syncError) {
+            console.error('[Cart] ❌ Erreur lors de la synchronisation:', syncError);
+            // Continuer même si la synchronisation échoue
+          }
         } else {
           console.error('[Cart] ❌ Erreur création commande annulée:', orderResult?.error);
         }

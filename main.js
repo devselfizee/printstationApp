@@ -772,6 +772,10 @@ async function syncOrderToRemoteAPI(orderId) {
       throw new Error(`Commande ${orderId} non trouvée`);
     }
 
+    // Mapper le statut de la DB au format API
+    // 'processing' → 'pending', 'cancelled' → 'cancelled', etc.
+    const apiStatus = orderWithItems.status === 'cancelled' ? 'cancelled' : 'pending';
+
     // Transformer les données au format attendu par l'API
     const payload = {
       customer_name: orderWithItems.participant_id || 'Anonymous',
@@ -781,7 +785,7 @@ async function syncOrderToRemoteAPI(orderId) {
       sales_point_id: API_SYNC_CONFIG.salesPointId,
       kiosk_id: API_SYNC_CONFIG.kioskId,
       memory_session_id: orderWithItems.participant_id,
-      status: 'pending',
+      status: apiStatus,
       order_items: (orderWithItems.items || []).map(item => ({
         product_id: item.product_id,
         quantity: item.quantity,
