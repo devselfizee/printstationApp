@@ -20,8 +20,6 @@
   "build": {
     "appId": "com.printstation.app",
     "productName": "PrintStation",
-    "electronRebuild": true,
-    "npmRebuild": true,
     "directories": {
       "buildResources": "renderer/assets"
     },
