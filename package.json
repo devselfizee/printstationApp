@@ -3,6 +3,12 @@
   "version": "1.0.0",
   "main": "main.js",
   "type": "module",
+  "description": "Application Electron pour kiosk d'impression photos avec sélection d'univers graphiques, panier dynamique et paiement",
+  "author": {
+    "name": "Selfizee",
+    "email": "contact@selfizee.fr",
+    "url": "https://selfizee.fr/"
+  },
   "scripts": {
     "start": "electron .",
     "dev": "node build.js && electron .",
