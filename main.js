@@ -37,7 +37,7 @@ try {
  */
 
 function createWindow() {
-  console.log('[Main] preload pathddddddddddddddd:', path.join(__dirname, 'preload.js'));
+  // console.log('[Main] preload pathddddddddddddddd:', path.join(__dirname, 'preload.js'));
 
   mainWindow = new BrowserWindow({
     width: 1920,
