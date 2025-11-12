@@ -161,14 +161,32 @@ attachFooterListeners({
           
           // 6. Mettre à jour le statut de la commande
           await window.photoAPI.orders.updateStatus(
-            orderId, 
-            'processing', 
+            orderId,
+            'processing',
             'Paiement accepté - Commande validée'
           );
-          
-          // 7. Sauvegarder l'ID de commande dans le state
+
+          // 7. 🆕 Synchroniser la commande avec l'API distante
+          try {
+            console.log('[Form] 🔄 Synchronisation de la commande avec l\'API distante...');
+            const syncResult = await window.photoAPI.orders.syncRemote(orderId);
+
+            if (syncResult?.status === 'success') {
+              console.log('[Form] ✅ Commande synchronisée avec l\'API distante');
+            } else if (syncResult?.status === 'skipped') {
+              console.log('[Form] ⏭️  Synchronisation ignorée:', syncResult.message);
+            } else {
+              console.warn('[Form] ⚠️  Erreur synchronisation API:', syncResult?.error);
+              // Ne pas bloquer le processus si la synchronisation échoue
+            }
+          } catch (syncError) {
+            console.error('[Form] ❌ Erreur lors de la synchronisation:', syncError);
+            // Continuer même si la synchronisation échoue
+          }
+
+          // 8. Sauvegarder l'ID de commande dans le state
           state.lastOrderId = orderId;
-          
+
           console.log('✅ Commande complète enregistrée:', orderId);
           toast('Commande enregistrée! ✅', false);
         } else {

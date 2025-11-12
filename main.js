@@ -8,6 +8,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import * as fs from 'fs';
 import * as dotenv from 'dotenv';
+import https from 'https';
 
 // Charger les variables d'environnement
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -16,6 +17,14 @@ if (fs.existsSync(envPath)) {
   dotenv.config({ path: envPath });
   console.log('[Main] Variables d\'env chargées');
 }
+
+// Configuration de synchronisation API distante
+const API_SYNC_CONFIG = {
+  url: 'https://ygetxuvqrknbggplzmvy.supabase.co/functions/v1/manage-orders',
+  salesPointId: process.env.SALES_POINT_ID || 'default-sales-point-uuid',
+  kioskId: process.env.KIOSK_ID || 'default-kiosk-uuid',
+  enabled: process.env.ENABLE_API_SYNC !== 'false' // Activé par défaut
+};
 
 let mainWindow;
 let photoSystemReady = false;
@@ -740,6 +749,114 @@ ipcMain.handle('cart:update-quantity', async (event, itemId, quantity, totalPric
     console.error('[IPC] Erreur mise à jour quantité:', error);
     return { status: 'error', error: error.message };
   }
+});
+
+/**
+ * Synchroniser une commande validée avec l'API distante
+ */
+async function syncOrderToRemoteAPI(orderId) {
+  if (!API_SYNC_CONFIG.enabled) {
+    console.log('[Sync] Synchronisation désactivée');
+    return { status: 'skipped', message: 'Synchronisation désactivée' };
+  }
+
+  if (!photoSystemReady || !photoSystem?.db) {
+    return { status: 'error', error: 'PhotoSystem non disponible' };
+  }
+
+  try {
+    // Récupérer la commande complète avec ses items
+    const orderWithItems = await photoSystem.db.getOrderWithItems(orderId);
+
+    if (!orderWithItems) {
+      throw new Error(`Commande ${orderId} non trouvée`);
+    }
+
+    // Transformer les données au format attendu par l'API
+    const payload = {
+      customer_name: orderWithItems.participant_id || 'Anonymous',
+      customer_email: orderWithItems.email || null,
+      customer_address: null, // Pas disponible dans notre schéma actuel
+      total_amount: Math.round(orderWithItems.final_amount * 100), // Convertir en centimes
+      sales_point_id: API_SYNC_CONFIG.salesPointId,
+      kiosk_id: API_SYNC_CONFIG.kioskId,
+      memory_session_id: orderWithItems.participant_id,
+      status: 'pending',
+      order_items: (orderWithItems.items || []).map(item => ({
+        product_id: item.product_id,
+        quantity: item.quantity,
+        unit_price: Math.round(item.unit_price * 100), // Convertir en centimes
+        total_price: Math.round(item.total_price * 100) // Convertir en centimes
+      }))
+    };
+
+    console.log('[Sync] Envoi commande à l\'API distante:', orderId);
+    console.log('[Sync] Payload:', JSON.stringify(payload, null, 2));
+
+    // Faire l'appel HTTP POST
+    const response = await makeHttpsRequest(API_SYNC_CONFIG.url, payload);
+
+    console.log('[Sync] ✅ Commande synchronisée avec succès:', orderId);
+    return { status: 'success', response };
+
+  } catch (error) {
+    console.error('[Sync] ❌ Erreur synchronisation commande:', error);
+    return { status: 'error', error: error.message };
+  }
+}
+
+/**
+ * Utilitaire pour faire une requête HTTPS POST
+ */
+function makeHttpsRequest(url, data) {
+  return new Promise((resolve, reject) => {
+    const urlObj = new URL(url);
+    const postData = JSON.stringify(data);
+
+    const options = {
+      hostname: urlObj.hostname,
+      port: 443,
+      path: urlObj.pathname + urlObj.search,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(postData)
+      }
+    };
+
+    const req = https.request(options, (res) => {
+      let responseData = '';
+
+      res.on('data', (chunk) => {
+        responseData += chunk;
+      });
+
+      res.on('end', () => {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          try {
+            const parsed = JSON.parse(responseData);
+            resolve(parsed);
+          } catch (e) {
+            resolve(responseData);
+          }
+        } else {
+          reject(new Error(`HTTP ${res.statusCode}: ${responseData}`));
+        }
+      });
+    });
+
+    req.on('error', (error) => {
+      reject(error);
+    });
+
+    req.write(postData);
+    req.end();
+  });
+}
+
+// Handler IPC pour synchroniser une commande
+ipcMain.handle('order:sync-remote', async (event, orderId) => {
+  return await syncOrderToRemoteAPI(orderId);
 });
 
 console.log('[Main] Tous les handlers IPC sont enregistrés');

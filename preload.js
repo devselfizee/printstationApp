@@ -61,6 +61,7 @@ const photoAPI = {
     cancel: (orderId, reason) => ipcRenderer.invoke('order:cancel', orderId, reason),
     search: (searchTerm) => ipcRenderer.invoke('order:search', searchTerm),
     delete: (orderId) => ipcRenderer.invoke('order:delete', orderId),
+    syncRemote: (orderId) => ipcRenderer.invoke('order:sync-remote', orderId),
   },
 
   // Cart (Panier temps réel)
