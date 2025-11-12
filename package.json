@@ -1,0 +1,65 @@
+{
+  "name": "printstation",
+  "version": "1.0.0",
+  "main": "main.js",
+  "type": "module",
+  "scripts": {
+    "start": "electron .",
+    "dev": "node build.js && electron .",
+    "build": "node build.js",
+    "watch": "node build.js --watch",
+    "dist": "npm run build && electron-builder --win",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3",
+    "electron-rebuild": "^3.2.9",
+    "esbuild": "^0.20.0"
+  },
+  "build": {
+    "appId": "com.printstation.app",
+    "productName": "PrintStation",
+    "electronRebuild": true,
+    "npmRebuild": true,
+    "directories": {
+      "buildResources": "renderer/assets"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer/**/*",
+      "!renderer/src",
+      "node_modules/**/*",
+      "renderer/assets/**/*"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "renderer/assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "PrintStation"
+    }
+  },
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "sqlite3": "^5.1.7"
+  }
+}
