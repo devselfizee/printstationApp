@@ -173,6 +173,7 @@ attachFooterListeners({
 
             if (syncResult?.status === 'success') {
               console.log('[Form] ✅ Commande synchronisée avec l\'API distante');
+              console.log('[Form] Détails de la réponse:', syncResult.response);
             } else if (syncResult?.status === 'skipped') {
               console.log('[Form] ⏭️  Synchronisation ignorée:', syncResult.message);
             } else {

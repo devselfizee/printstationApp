@@ -797,6 +797,7 @@ async function syncOrderToRemoteAPI(orderId) {
     const response = await makeHttpsRequest(API_SYNC_CONFIG.url, payload);
 
     console.log('[Sync] ✅ Commande synchronisée avec succès:', orderId);
+    console.log('[Sync] Réponse de l\'API:', JSON.stringify(response, null, 2));
     return { status: 'success', response };
 
   } catch (error) {
@@ -832,20 +833,26 @@ function makeHttpsRequest(url, data) {
       });
 
       res.on('end', () => {
+        console.log(`[Sync] HTTP Status: ${res.statusCode}`);
+        console.log(`[Sync] Réponse brute:`, responseData);
+
         if (res.statusCode >= 200 && res.statusCode < 300) {
           try {
             const parsed = JSON.parse(responseData);
             resolve(parsed);
           } catch (e) {
+            console.warn('[Sync] Réponse non-JSON, retour du texte brut');
             resolve(responseData);
           }
         } else {
+          console.error(`[Sync] ❌ Erreur HTTP ${res.statusCode}:`, responseData);
           reject(new Error(`HTTP ${res.statusCode}: ${responseData}`));
         }
       });
     });
 
     req.on('error', (error) => {
+      console.error('[Sync] ❌ Erreur réseau:', error.message);
       reject(error);
     });
 
