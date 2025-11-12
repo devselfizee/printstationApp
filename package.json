@@ -30,6 +30,7 @@
       "preload.js",
       "renderer/**/*",
       "!renderer/src",
+      "renderer/src/photosystem/**/*",
       "node_modules/**/*",
       "renderer/assets/**/*"
     ],
