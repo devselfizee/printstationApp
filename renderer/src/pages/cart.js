@@ -142,6 +142,64 @@ sum.innerHTML = `
 });
 root.appendChild(footer);
 attachFooterListeners({
+  onCancel: async () => {
+    // 🆕 Enregistrer la commande annulée dans la DB
+    if (state.cart.length > 0 && window.photoAPI?.orders && window.photoAPI?.cart && state.sessionId) {
+      try {
+        console.log('[Cart] Enregistrement de la commande annulée...');
+
+        // 1. Créer l'ID de commande
+        const orderId = `order_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+        // 2. Calculer les montants
+        const totalAmount = cartNominal(state.cart, window.PRODUCTS);
+        const discountAmount = totalAmount - cartSubtotal(state.cart, window.PRODUCTS);
+        const finalAmount = cartSubtotal(state.cart, window.PRODUCTS);
+
+        // 3. Créer la commande avec statut "cancelled"
+        const orderResult = await window.photoAPI.orders.create({
+          orderId: orderId,
+          participantId: state.participantId || state.sessionId,
+          universeId: state.universe?.id || state.universeId || 'universe1',
+          totalAmount: totalAmount,
+          discountAmount: discountAmount,
+          finalAmount: finalAmount,
+          email: null,
+          optin: 0,
+          paymentMethod: null,
+          notes: 'Commande annulée par l\'utilisateur depuis le panier'
+        });
+
+        if (orderResult?.status === 'success') {
+          console.log('[Cart] ✅ Commande annulée créée:', orderId);
+
+          // 4. Marquer tous les produits de la session comme annulés
+          const items = await window.photoAPI.cart.getActiveSessionItems(state.sessionId);
+
+          for (const item of items) {
+            await window.photoAPI.cart.cancelItem(item.id);
+          }
+
+          // 5. Mettre à jour le statut de la commande à "cancelled"
+          await window.photoAPI.orders.updateStatus(orderId, 'cancelled', 'Annulée par l\'utilisateur');
+
+          console.log('[Cart] ✅ Tous les produits marqués comme annulés');
+        } else {
+          console.error('[Cart] ❌ Erreur création commande annulée:', orderResult?.error);
+        }
+      } catch (error) {
+        console.error('[Cart] ❌ Erreur enregistrement commande annulée:', error);
+      }
+    }
+
+    // Réinitialiser l'état et retourner au QR code
+    state.page = 'qr';
+    state.universe = null;
+    state.photos = [];
+    state.cart = [];
+    updateCartCount();
+    window.render();
+  },
   onContinue: () => {
     state.page = 'payment';
     window.render();
