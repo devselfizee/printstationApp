@@ -23,7 +23,9 @@ const API_SYNC_CONFIG = {
   url: 'https://ygetxuvqrknbggplzmvy.supabase.co/functions/v1/manage-orders',
   salesPointId: process.env.SALES_POINT_ID || 'default-sales-point-uuid',
   kioskId: process.env.KIOSK_ID || 'default-kiosk-uuid',
-  enabled: process.env.ENABLE_API_SYNC !== 'false' // Activé par défaut
+  enabled: process.env.ENABLE_API_SYNC !== 'false', // Activé par défaut
+  retryIntervalMs: parseInt(process.env.SYNC_RETRY_INTERVAL_MS) || 60000, // 1 minute par défaut
+  maxAttempts: parseInt(process.env.SYNC_MAX_ATTEMPTS) || 5 // 5 tentatives max
 };
 
 let mainWindow;
@@ -117,6 +119,9 @@ app.on('ready', async () => {
       } else {
         console.log('[Main] ✓ Système de photos prêt');
         photoSystemReady = true;
+
+        // Démarrer le système de retry pour les commandes non synchronisées
+        startSyncRetrySystem();
       }
     } catch (error) {
       console.warn('[Main] Erreur initialisation photos:', error.message);
@@ -765,6 +770,9 @@ async function syncOrderToRemoteAPI(orderId) {
   }
 
   try {
+    // Incrémenter le compteur de tentatives
+    await photoSystem.db.incrementSyncAttempts(orderId);
+
     // Récupérer la commande complète avec ses items
     const orderWithItems = await photoSystem.db.getOrderWithItems(orderId);
 
@@ -799,6 +807,9 @@ async function syncOrderToRemoteAPI(orderId) {
 
     // Faire l'appel HTTP POST
     const response = await makeHttpsRequest(API_SYNC_CONFIG.url, payload);
+
+    // ✅ Marquer la commande comme synchronisée
+    await photoSystem.db.markOrderAsSynced(orderId);
 
     console.log('[Sync] ✅ Commande synchronisée avec succès:', orderId);
     console.log('[Sync] Réponse de l\'API:', JSON.stringify(response, null, 2));
@@ -863,6 +874,72 @@ function makeHttpsRequest(url, data) {
     req.write(postData);
     req.end();
   });
+}
+
+/**
+ * Réessayer la synchronisation des commandes en attente
+ */
+async function retrySyncPendingOrders() {
+  if (!API_SYNC_CONFIG.enabled) {
+    return;
+  }
+
+  if (!photoSystemReady || !photoSystem?.db) {
+    return;
+  }
+
+  try {
+    // Récupérer toutes les commandes non synchronisées
+    const unsyncedOrders = await photoSystem.db.getUnsyncedOrders(API_SYNC_CONFIG.maxAttempts);
+
+    if (unsyncedOrders.length === 0) {
+      return;
+    }
+
+    console.log(`[Sync Retry] ${unsyncedOrders.length} commande(s) en attente de synchronisation`);
+
+    // Tenter de synchroniser chaque commande
+    for (const order of unsyncedOrders) {
+      try {
+        console.log(`[Sync Retry] Tentative ${order.sync_attempts + 1}/${API_SYNC_CONFIG.maxAttempts} pour ${order.id}`);
+        const result = await syncOrderToRemoteAPI(order.id);
+
+        if (result.status === 'success') {
+          console.log(`[Sync Retry] ✅ Commande ${order.id} synchronisée avec succès`);
+        } else {
+          console.warn(`[Sync Retry] ⚠️  Échec synchronisation ${order.id}:`, result.error);
+        }
+      } catch (error) {
+        console.error(`[Sync Retry] ❌ Erreur lors du retry ${order.id}:`, error);
+      }
+    }
+  } catch (error) {
+    console.error('[Sync Retry] ❌ Erreur lors du retry global:', error);
+  }
+}
+
+// Démarrer le système de retry automatique quand le photoSystem est prêt
+let syncRetryInterval = null;
+
+function startSyncRetrySystem() {
+  if (!API_SYNC_CONFIG.enabled) {
+    console.log('[Sync Retry] Système de retry désactivé (ENABLE_API_SYNC=false)');
+    return;
+  }
+
+  if (syncRetryInterval) {
+    clearInterval(syncRetryInterval);
+  }
+
+  console.log(`[Sync Retry] Système de retry activé (intervalle: ${API_SYNC_CONFIG.retryIntervalMs}ms)`);
+
+  // Premier essai immédiat
+  setTimeout(() => retrySyncPendingOrders(), 5000); // Attendre 5s après le démarrage
+
+  // Puis réessayer à intervalle régulier
+  syncRetryInterval = setInterval(() => {
+    retrySyncPendingOrders();
+  }, API_SYNC_CONFIG.retryIntervalMs);
 }
 
 // Handler IPC pour synchroniser une commande

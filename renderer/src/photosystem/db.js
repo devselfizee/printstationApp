@@ -236,6 +236,10 @@ async function createTables() {
       optin BOOLEAN DEFAULT 0,
       payment_method TEXT,
       notes TEXT,
+      synced_to_remote BOOLEAN DEFAULT 0,
+      sync_attempts INTEGER DEFAULT 0,
+      last_sync_attempt DATETIME,
+      synced_at DATETIME,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       completed_at DATETIME,
@@ -308,6 +312,47 @@ async function createTables() {
     } catch (error) {
       console.error('[DB] Erreur création table:', error);
     }
+  }
+
+  // Migration: Ajouter les colonnes de synchronisation si elles n'existent pas
+  await migrateSyncColumns();
+}
+
+/**
+ * Migrer les colonnes de synchronisation pour les bases existantes
+ */
+async function migrateSyncColumns() {
+  try {
+    // Vérifier si les colonnes existent déjà
+    const tableInfo = await allAsync('PRAGMA table_info(orders)');
+    const columnNames = tableInfo.map(col => col.name);
+
+    // Ajouter synced_to_remote si manquant
+    if (!columnNames.includes('synced_to_remote')) {
+      await execAsync('ALTER TABLE orders ADD COLUMN synced_to_remote BOOLEAN DEFAULT 0');
+      console.log('[DB] ✅ Colonne synced_to_remote ajoutée');
+    }
+
+    // Ajouter sync_attempts si manquant
+    if (!columnNames.includes('sync_attempts')) {
+      await execAsync('ALTER TABLE orders ADD COLUMN sync_attempts INTEGER DEFAULT 0');
+      console.log('[DB] ✅ Colonne sync_attempts ajoutée');
+    }
+
+    // Ajouter last_sync_attempt si manquant
+    if (!columnNames.includes('last_sync_attempt')) {
+      await execAsync('ALTER TABLE orders ADD COLUMN last_sync_attempt DATETIME');
+      console.log('[DB] ✅ Colonne last_sync_attempt ajoutée');
+    }
+
+    // Ajouter synced_at si manquant
+    if (!columnNames.includes('synced_at')) {
+      await execAsync('ALTER TABLE orders ADD COLUMN synced_at DATETIME');
+      console.log('[DB] ✅ Colonne synced_at ajoutée');
+    }
+
+  } catch (error) {
+    console.error('[DB] Erreur migration colonnes sync:', error);
   }
 }
 
@@ -1001,6 +1046,52 @@ export async function updateCartItemQuantity(itemId, newQuantity, newTotalPrice)
          updated_at = CURRENT_TIMESTAMP
      WHERE id = ?`,
     [newQuantity, newTotalPrice, itemId]
+  );
+}
+
+/**
+ * ===== SYNCHRONISATION REMOTE API =====
+ */
+
+/**
+ * Récupérer les commandes non synchronisées avec l'API distante
+ */
+export async function getUnsyncedOrders(maxAttempts = 5) {
+  return allAsync(
+    `SELECT * FROM orders
+     WHERE synced_to_remote = 0
+       AND sync_attempts < ?
+       AND status IN ('processing', 'cancelled')
+     ORDER BY created_at ASC`,
+    [maxAttempts]
+  );
+}
+
+/**
+ * Marquer une commande comme synchronisée
+ */
+export async function markOrderAsSynced(orderId) {
+  return runAsync(
+    `UPDATE orders
+     SET synced_to_remote = 1,
+         synced_at = CURRENT_TIMESTAMP,
+         updated_at = CURRENT_TIMESTAMP
+     WHERE id = ?`,
+    [orderId]
+  );
+}
+
+/**
+ * Incrémenter le compteur de tentatives de synchronisation
+ */
+export async function incrementSyncAttempts(orderId) {
+  return runAsync(
+    `UPDATE orders
+     SET sync_attempts = sync_attempts + 1,
+         last_sync_attempt = CURRENT_TIMESTAMP,
+         updated_at = CURRENT_TIMESTAMP
+     WHERE id = ?`,
+    [orderId]
   );
 }
 
