@@ -785,21 +785,24 @@ async function syncOrderToRemoteAPI(orderId) {
     // 'processing' → 'pending', 'cancelled' → 'cancelled', etc.
     const apiStatus = orderWithItems.status === 'cancelled' ? 'cancelled' : 'pending';
 
+    // S'assurer que total_amount est toujours un nombre valide
+    const totalAmount = orderWithItems.final_amount || orderWithItems.total_amount || 0;
+
     // Transformer les données au format attendu par l'API
     const payload = {
       customer_name: orderWithItems.participant_id || 'Anonymous',
-      customer_email: orderWithItems.email || null,
-      customer_address: null, // Pas disponible dans notre schéma actuel
-      total_amount: Math.round(orderWithItems.final_amount * 100), // Convertir en centimes
+      customer_email: orderWithItems.email || '', // Chaîne vide au lieu de null
+      customer_address: null,
+      total_amount: Math.round(totalAmount * 100), // Convertir en centimes
       sales_point_id: API_SYNC_CONFIG.salesPointId,
       kiosk_id: API_SYNC_CONFIG.kioskId,
-      memory_session_id: orderWithItems.participant_id,
+      memory_session_id: orderWithItems.participant_id || 'unknown',
       status: apiStatus,
       order_items: (orderWithItems.items || []).map(item => ({
         product_id: item.product_id,
         quantity: item.quantity,
-        unit_price: Math.round(item.unit_price * 100), // Convertir en centimes
-        total_price: Math.round(item.total_price * 100) // Convertir en centimes
+        unit_price: Math.round((item.unit_price || 0) * 100), // Convertir en centimes
+        total_price: Math.round((item.total_price || 0) * 100) // Convertir en centimes
       }))
     };
 
