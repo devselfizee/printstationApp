@@ -21,6 +21,7 @@ if (fs.existsSync(envPath)) {
 // Configuration de synchronisation API distante
 const API_SYNC_CONFIG = {
   url: 'https://ygetxuvqrknbggplzmvy.supabase.co/functions/v1/manage-orders',
+  authToken: process.env.API_AUTH_TOKEN || null, // Token d'authentification
   salesPointId: process.env.SALES_POINT_ID || 'default-sales-point-uuid',
   kioskId: process.env.KIOSK_ID || 'default-kiosk-uuid',
   enabled: process.env.ENABLE_API_SYNC !== 'false', // Activé par défaut
@@ -829,15 +830,22 @@ function makeHttpsRequest(url, data) {
     const urlObj = new URL(url);
     const postData = JSON.stringify(data);
 
+    const headers = {
+      'Content-Type': 'application/json',
+      'Content-Length': Buffer.byteLength(postData)
+    };
+
+    // Ajouter le token d'authentification si disponible
+    if (API_SYNC_CONFIG.authToken) {
+      headers['Authorization'] = `Bearer ${API_SYNC_CONFIG.authToken}`;
+    }
+
     const options = {
       hostname: urlObj.hostname,
       port: 443,
       path: urlObj.pathname + urlObj.search,
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(postData)
-      }
+      headers: headers
     };
 
     const req = https.request(options, (res) => {
