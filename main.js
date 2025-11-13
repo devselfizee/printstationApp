@@ -791,7 +791,7 @@ async function syncOrderToRemoteAPI(orderId) {
     // Transformer les données au format attendu par l'API
     const payload = {
       customer_name: orderWithItems.participant_id || 'Anonymous',
-      customer_email: orderWithItems.email || '', // Chaîne vide au lieu de null
+      customer_email: orderWithItems.email || 'no-email@cancelled.order', // Email par défaut pour commandes annulées
       customer_address: null,
       total_amount: Math.round(totalAmount * 100), // Convertir en centimes
       sales_point_id: API_SYNC_CONFIG.salesPointId,
