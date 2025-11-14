@@ -862,7 +862,7 @@ async function syncOrderToRemoteAPI(orderId) {
       total_amount: Math.round(totalAmount * 100), // Convertir en centimes
       sales_point_id: API_SYNC_CONFIG.salesPointId,
       kiosk_id: API_SYNC_CONFIG.kioskId,
-      memory_session_id: orderWithItems.participant_id || 'unknown',
+      memory_session_id: null, // null car le participant_id local n'existe pas dans Supabase
       status: apiStatus,
       order_items: (orderWithItems.items || []).map(item => ({
         product_id: item.product_id,
