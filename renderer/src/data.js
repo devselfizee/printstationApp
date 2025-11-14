@@ -14,8 +14,26 @@ export const PRODUCTS = {
 };
 
 export const UNIVERSES = {
-  universe1: {
-    id: 'universe1',
+  A: {
+    id: 'A',
+    name: "L'horizon de kheops",
+    banner: './assets/banniere-kheops.jpg',
+    photos: [
+      { id: 'p4', title: 'Devant la pyramide', src: './assets/kheops1.jpg' },
+      { id: 'p5', title: 'En haut de la pyramide', src: './assets/kheops2.jpg' },
+      { id: 'p6', title: 'Vue du ciel', src: './assets/kheops3.jpg' }
+    ],
+    productVisuals: {
+      print: {
+        image: './assets/chevalet-kheops.png'
+      },
+      magnet: {
+        image: './assets/porte-cle-kheops.png'
+      }
+    }
+  },
+  B: {
+    id: 'B',
     name: 'Mondes Disparus',
     banner: './assets/banniere-monde-perdu.jpg',
     photos: [
@@ -32,24 +50,6 @@ export const UNIVERSES = {
       }
     }
   },
-  universe2: {
-    id: 'universe2',
-    name: "L'horizon de khepos",
-    banner: './assets/banniere-kheops.jpg',
-    photos: [
-      { id: 'p4', title: 'Devant la pyramide', src: './assets/kheops1.jpg' },
-      { id: 'p5', title: 'En haut de la pyramide', src: './assets/kheops2.jpg' },
-      { id: 'p6', title: 'Vue du ciel', src: './assets/kheops3.jpg' }
-    ],
-    productVisuals: {
-      print: {
-        image: './assets/chevalet-kheops.png'
-      },
-      magnet: {
-        image: './assets/porte-cle-kheops.png'
-      }
-    }
-  }
 };
 
 // Helper pour récupérer les visuels d'un produit selon l'univers
