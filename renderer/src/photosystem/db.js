@@ -119,8 +119,8 @@ async function seedDefaultData() {
       console.log('[DB] 📦 Création univers par défaut...');
       
       // Créer les 2 univers
-      await addUniverse('universe1', 'Mondes Disparus', '/assets/banniere-monde-perdu.jpg');
-      await addUniverse('universe2', "L'horizon de khepos", '/assets/banniere-kheops.jpg');
+      await addUniverse('A', "L'horizon de kheops", '/assets/banniere-kheops.jpg');
+      await addUniverse('B', 'Monde Disparus', '/assets/banniere-monde-perdu.jpg');
       
       console.log('[DB] ✅ 2 univers créés (universe1: Mondes Disparus, universe2: L\'horizon de khepos)');
     } else {
