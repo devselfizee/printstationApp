@@ -5,99 +5,68 @@ import { t } from '../i18n.js';
  * Affichée au premier lancement pour configurer kiosk_id et sales_point_id
  */
 export const showSetupModal = () => {
-  // Créer le backdrop (fond noir semi-transparent)
-  const backdrop = document.createElement('div');
-  backdrop.id = 'setup-backdrop';
-  backdrop.style.cssText = `
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.7);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 9999;
-  `;
-
-  // Créer le modal
   const modal = document.createElement('div');
+  modal.id = 'setup-modal';
   modal.className = 'setup-modal';
-  modal.style.cssText = `
-    background: white;
-    border-radius: 12px;
-    padding: 40px;
-    max-width: 500px;
-    width: 90%;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-  `;
 
   modal.innerHTML = `
-    <div style="text-align: center; margin-bottom: 30px;">
-      <h2 style="color: #1e293b; margin-bottom: 10px; font-size: 24px;">⚙️ Configuration Machine</h2>
-      <p style="color: #64748b; font-size: 15px;">
-        Configuration requise pour le premier lancement
-      </p>
-    </div>
+    <div class="setup-container">
+      <div class="setup-box">
+        <h2>⚙️ Configuration Machine</h2>
 
-    <div class="setup-form">
-      <div class="form-group" style="margin-bottom: 20px;">
-        <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #334155; font-size: 14px;">
-          ID du Kiosque *
-        </label>
-        <input
-          type="text"
-          id="modal-kiosk-id"
-          placeholder="Ex: kiosk-001"
-          required
-          style="width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 15px; box-sizing: border-box;"
-        />
+        <div class="setup-description">
+          Configuration requise pour le premier lancement
+        </div>
+
+        <div class="setup-form">
+          <div class="setup-form-group">
+            <label>ID du Kiosque *</label>
+            <input
+              type="text"
+              id="modal-kiosk-id"
+              placeholder="Ex: kiosk-001"
+              required
+            />
+          </div>
+
+          <div class="setup-form-group">
+            <label>ID du Point de Vente *</label>
+            <input
+              type="text"
+              id="modal-sales-point-id"
+              placeholder="Ex: store-001"
+              required
+            />
+          </div>
+
+          <div class="setup-form-group">
+            <label>Nom de la Machine (optionnel)</label>
+            <input
+              type="text"
+              id="modal-machine-name"
+              placeholder="Ex: Kiosque Principal"
+            />
+          </div>
+
+          <div id="modal-error-message" class="setup-error"></div>
+
+          <div class="setup-info">
+            ℹ️ Ces informations seront utilisées pour identifier cette machine lors des synchronisations avec l'API
+          </div>
+
+          <button id="modal-save-config" class="setup-btn-save">
+            💾 Enregistrer la configuration
+          </button>
+
+          <div class="setup-required-note">
+            * Champs obligatoires
+          </div>
+        </div>
       </div>
-
-      <div class="form-group" style="margin-bottom: 20px;">
-        <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #334155; font-size: 14px;">
-          ID du Point de Vente *
-        </label>
-        <input
-          type="text"
-          id="modal-sales-point-id"
-          placeholder="Ex: store-001"
-          required
-          style="width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 15px; box-sizing: border-box;"
-        />
-      </div>
-
-      <div class="form-group" style="margin-bottom: 25px;">
-        <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #334155; font-size: 14px;">
-          Nom de la Machine (optionnel)
-        </label>
-        <input
-          type="text"
-          id="modal-machine-name"
-          placeholder="Ex: Kiosque Principal"
-          style="width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 15px; box-sizing: border-box;"
-        />
-      </div>
-
-      <div id="modal-error-message" style="display: none; padding: 12px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; color: #991b1b; margin-bottom: 20px; font-size: 14px;">
-      </div>
-
-      <button
-        id="modal-save-config"
-        style="width: 100%; padding: 14px; background: #3b82f6; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: background 0.2s;"
-      >
-        💾 Enregistrer la configuration
-      </button>
-
-      <p style="text-align: center; color: #94a3b8; font-size: 13px; margin-top: 15px; margin-bottom: 0;">
-        * Champs obligatoires
-      </p>
     </div>
   `;
 
-  backdrop.appendChild(modal);
-  document.body.appendChild(backdrop);
+  document.body.appendChild(modal);
 
   // Gestion de la sauvegarde
   const saveButton = document.getElementById('modal-save-config');
@@ -105,10 +74,6 @@ export const showSetupModal = () => {
   const salesPointIdInput = document.getElementById('modal-sales-point-id');
   const machineNameInput = document.getElementById('modal-machine-name');
   const errorMessage = document.getElementById('modal-error-message');
-
-  // Effet hover pour le bouton
-  saveButton.onmouseover = () => saveButton.style.background = '#2563eb';
-  saveButton.onmouseout = () => saveButton.style.background = '#3b82f6';
 
   saveButton.onclick = async () => {
     const kioskId = kioskIdInput.value.trim();
@@ -134,10 +99,9 @@ export const showSetupModal = () => {
 
       // Fermer le modal
       saveButton.textContent = '✅ Configuration enregistrée !';
-      saveButton.style.background = '#10b981';
 
       setTimeout(() => {
-        backdrop.remove();
+        modal.remove();
         // Recharger la page pour appliquer la config
         window.location.reload();
       }, 1000);
@@ -151,5 +115,8 @@ export const showSetupModal = () => {
       saveButton.style.opacity = '1';
     }
   };
+
+  // Focus sur le premier input
+  setTimeout(() => kioskIdInput.focus(), 100);
 };
 
