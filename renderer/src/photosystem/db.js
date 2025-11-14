@@ -304,6 +304,16 @@ async function createTables() {
     );`,
 
     `CREATE INDEX IF NOT EXISTS idx_sync_log_participant ON sync_log(participant_id);`,
+
+    `CREATE TABLE IF NOT EXISTS machine_config (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      kiosk_id TEXT NOT NULL,
+      sales_point_id TEXT NOT NULL,
+      machine_name TEXT,
+      setup_completed BOOLEAN DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );`,
   ];
 
   for (const stmt of statements) {
@@ -1046,6 +1056,51 @@ export async function updateCartItemQuantity(itemId, newQuantity, newTotalPrice)
          updated_at = CURRENT_TIMESTAMP
      WHERE id = ?`,
     [newQuantity, newTotalPrice, itemId]
+  );
+}
+
+/**
+ * ===== CONFIGURATION MACHINE =====
+ */
+
+/**
+ * Récupérer la configuration de la machine
+ */
+export async function getMachineConfig() {
+  return getAsync('SELECT * FROM machine_config WHERE id = 1');
+}
+
+/**
+ * Vérifier si la configuration initiale est complète
+ */
+export async function isSetupCompleted() {
+  const config = await getMachineConfig();
+  return config !== undefined && config !== null;
+}
+
+/**
+ * Sauvegarder la configuration de la machine
+ */
+export async function saveMachineConfig(kioskId, salesPointId, machineName = null) {
+  return runAsync(
+    `INSERT OR REPLACE INTO machine_config (id, kiosk_id, sales_point_id, machine_name, setup_completed, updated_at)
+     VALUES (1, ?, ?, ?, 1, CURRENT_TIMESTAMP)`,
+    [kioskId, salesPointId, machineName]
+  );
+}
+
+/**
+ * Mettre à jour la configuration de la machine
+ */
+export async function updateMachineConfig(kioskId, salesPointId, machineName = null) {
+  return runAsync(
+    `UPDATE machine_config
+     SET kiosk_id = ?,
+         sales_point_id = ?,
+         machine_name = ?,
+         updated_at = CURRENT_TIMESTAMP
+     WHERE id = 1`,
+    [kioskId, salesPointId, machineName]
   );
 }
 

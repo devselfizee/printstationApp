@@ -121,6 +121,9 @@ app.on('ready', async () => {
         console.log('[Main] ✓ Système de photos prêt');
         photoSystemReady = true;
 
+        // Charger la configuration machine depuis la DB
+        await loadMachineConfig();
+
         // Démarrer le système de retry pour les commandes non synchronisées
         startSyncRetrySystem();
       }
@@ -929,6 +932,38 @@ async function retrySyncPendingOrders() {
   }
 }
 
+/**
+ * Charger la configuration machine depuis la base de données
+ */
+async function loadMachineConfig() {
+  if (!photoSystemReady || !photoSystem?.db) {
+    console.log('[Config] PhotoSystem non disponible - Utilisation du .env');
+    return;
+  }
+
+  try {
+    const config = await photoSystem.db.getMachineConfig();
+
+    if (config) {
+      // Charger la config depuis la DB
+      API_SYNC_CONFIG.kioskId = config.kiosk_id;
+      API_SYNC_CONFIG.salesPointId = config.sales_point_id;
+
+      console.log('[Config] ✅ Configuration chargée depuis la DB:', {
+        kioskId: config.kiosk_id,
+        salesPointId: config.sales_point_id,
+        machineName: config.machine_name || 'Non défini'
+      });
+    } else {
+      console.log('[Config] ⚠️  Aucune configuration trouvée - Utilisation du .env (fallback)');
+      // Utiliser les valeurs du .env comme fallback
+    }
+  } catch (error) {
+    console.error('[Config] ❌ Erreur chargement config:', error);
+    console.log('[Config] Utilisation du .env comme fallback');
+  }
+}
+
 // Démarrer le système de retry automatique quand le photoSystem est prêt
 let syncRetryInterval = null;
 
@@ -956,6 +991,54 @@ function startSyncRetrySystem() {
 // Handler IPC pour synchroniser une commande
 ipcMain.handle('order:sync-remote', async (event, orderId) => {
   return await syncOrderToRemoteAPI(orderId);
+});
+
+/**
+ * ===== HANDLERS IPC CONFIGURATION MACHINE =====
+ */
+ipcMain.handle('machine:get-config', async (event) => {
+  if (!photoSystemReady || !photoSystem?.db) {
+    return { status: 'error', error: 'PhotoSystem non disponible' };
+  }
+  try {
+    const config = await photoSystem.db.getMachineConfig();
+    return { status: 'success', config };
+  } catch (error) {
+    console.error('[IPC] Erreur récupération config machine:', error);
+    return { status: 'error', error: error.message };
+  }
+});
+
+ipcMain.handle('machine:is-setup-completed', async (event) => {
+  if (!photoSystemReady || !photoSystem?.db) {
+    return { status: 'error', error: 'PhotoSystem non disponible', completed: false };
+  }
+  try {
+    const completed = await photoSystem.db.isSetupCompleted();
+    return { status: 'success', completed };
+  } catch (error) {
+    console.error('[IPC] Erreur vérification setup:', error);
+    return { status: 'error', error: error.message, completed: false };
+  }
+});
+
+ipcMain.handle('machine:save-config', async (event, kioskId, salesPointId, machineName) => {
+  if (!photoSystemReady || !photoSystem?.db) {
+    return { status: 'error', error: 'PhotoSystem non disponible' };
+  }
+  try {
+    await photoSystem.db.saveMachineConfig(kioskId, salesPointId, machineName);
+
+    // Mettre à jour la configuration globale
+    API_SYNC_CONFIG.kioskId = kioskId;
+    API_SYNC_CONFIG.salesPointId = salesPointId;
+
+    console.log('[IPC] ✅ Configuration machine enregistrée:', { kioskId, salesPointId, machineName });
+    return { status: 'success' };
+  } catch (error) {
+    console.error('[IPC] Erreur sauvegarde config machine:', error);
+    return { status: 'error', error: error.message };
+  }
 });
 
 console.log('[Main] Tous les handlers IPC sont enregistrés');
