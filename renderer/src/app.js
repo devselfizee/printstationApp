@@ -5,7 +5,7 @@ import { renderListing } from './src/pages/listing.js';
 import { renderCart } from './src/pages/cart.js';
 import { renderForm } from './src/pages/form.js';
 import { renderThanks } from './src/pages/thanks.js';
-import { renderSetup } from './src/pages/setup.js';
+import { showSetupModal } from './src/pages/setup.js';
 
 console.log('[App] 🚀 Démarrage de l\'application');
 
@@ -16,8 +16,7 @@ const routes = {
   'listing': renderListing,
   'cart': renderCart,
   'form': renderForm,
-  'thanks': renderThanks,
-  'setup': renderSetup
+  'thanks': renderThanks
 };
 
 // Navigation
@@ -74,12 +73,15 @@ async function checkSetup() {
     const result = await window.photoAPI.machine.isSetupCompleted();
     console.log('[App] Résultat isSetupCompleted:', result);
 
+    // Toujours démarrer sur home
+    navigate('home');
+
+    // Si pas de config, afficher le modal par-dessus
     if (!result.completed) {
-      console.log('[App] ⚙️  Configuration initiale requise');
-      navigate('setup');
+      console.log('[App] ⚙️  Configuration initiale requise - Affichage du modal');
+      setTimeout(() => showSetupModal(), 500); // Petit délai pour que la page home soit chargée
     } else {
       console.log('[App] ✅ Configuration machine OK');
-      navigate('home');
     }
   } catch (error) {
     console.error('[App] ❌ Erreur vérification setup:', error);
