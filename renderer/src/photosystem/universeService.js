@@ -22,7 +22,7 @@ const LOCAL_UNIVERSES = {
     id: 'B',
     name: 'Mondes Disparus',
     description: 'Collection archéologique avec thèmes anciens',
-    
+
     theme: {
       primaryColor: '#8B4513',
       secondaryColor: '#D2691E',
@@ -49,8 +49,8 @@ const LOCAL_UNIVERSES = {
     },
 
     assets: {
-      logo: '/assets/universe1/logo.png',
-      background: '/assets/universe1/bg.jpg',
+      logo: '/assets/B/logo.png',
+      background: '/assets/B/bg.jpg',
     },
   },
 
@@ -58,7 +58,7 @@ const LOCAL_UNIVERSES = {
     id: 'A',
     name: 'L\'horizon de Khéops',
     description: 'Thème égyptien avec couleurs dorées et bleues',
-    
+
     theme: {
       primaryColor: '#1e3a8a',
       secondaryColor: '#1e40af',
@@ -85,8 +85,8 @@ const LOCAL_UNIVERSES = {
     },
 
     assets: {
-      logo: '/assets/universe2/logo.png',
-      background: '/assets/universe2/bg.jpg',
+      logo: '/assets/A/logo.png',
+      background: '/assets/A/bg.jpg',
     },
   },
 };

@@ -134,7 +134,7 @@ attachFooterListeners({
         const orderResult = await window.photoAPI.orders.create({
           orderId: orderId,
           participantId: state.participantId || state.sessionId,  // Utiliser participantId ou sessionId comme fallback
-          universeId: state.universe?.id || state.universeId || 'universe1',
+          universeId: state.universe?.id || state.universeId || 'B',
           totalAmount: totalAmount,
           discountAmount: discountAmount,
           finalAmount: finalAmount,

@@ -62,7 +62,7 @@ function render() {
 }
 
 function scanQR() {
-  loadUniverse('universe1');
+  loadUniverse('B');
 }
 
 function loadUniverse(id) {

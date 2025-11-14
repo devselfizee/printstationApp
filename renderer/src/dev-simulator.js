@@ -93,7 +93,7 @@ async function showSimulatorPopup() {
 
   const universesList = universes.length > 0
     ? universes.map(u => `<option value="${u.id}">${u.name}</option>`).join('')
-    : '<option value="universe1">Universe 1 (défaut)</option>';
+    : '<option value="B">Mondes Disparus (défaut)</option>';
 
   modal.innerHTML = `
     <div class="dev-simulator-container">

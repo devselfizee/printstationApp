@@ -1,15 +1,15 @@
 export const PRODUCTS = {
-  print: { 
-    id: 'print', 
-    title: 'Photo papier (chevalet)', 
-    first: 10, 
-    next: 8 
+  print: {
+    id: 'print',
+    title: 'Photo papier (chevalet)',
+    first: 10,
+    next: 8
   },
-  magnet: { 
-    id: 'magnet', 
-    title: 'Porte-clé magnétique', 
-    first: 15, 
-    next: 12 
+  magnet: {
+    id: 'magnet',
+    title: 'Porte-clé magnétique',
+    first: 15,
+    next: 12
   }
 };
 
@@ -49,7 +49,7 @@ export const UNIVERSES = {
         image: './assets/porte-cle-disparu.png'
       }
     }
-  },
+  }
 };
 
 // Helper pour récupérer les visuels d'un produit selon l'univers

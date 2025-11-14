@@ -20,7 +20,7 @@ export const renderCart = (root) => {
   lines.className = 'lines';
   
   // Récupérer les données de l'univers pour les titres
-  const universeId = state.universeId || state.universe?.id || 'universe1';
+  const universeId = state.universeId || state.universe?.id || 'B';
   const universeData = UNIVERSES[universeId];
   
   // Message si panier vide
@@ -160,7 +160,7 @@ attachFooterListeners({
         const orderResult = await window.photoAPI.orders.create({
           orderId: orderId,
           participantId: state.participantId || state.sessionId,
-          universeId: state.universe?.id || state.universeId || 'universe1',
+          universeId: state.universe?.id || state.universeId || 'B',
           totalAmount: totalAmount,
           discountAmount: discountAmount,
           finalAmount: finalAmount,
