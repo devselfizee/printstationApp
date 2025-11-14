@@ -18,8 +18,8 @@ const universeCache = new Map();
  * Alternative à l'API externe si elle n'est pas disponible
  */
 const LOCAL_UNIVERSES = {
-  universe1: {
-    id: 'universe1',
+  B: {
+    id: 'B',
     name: 'Mondes Disparus',
     description: 'Collection archéologique avec thèmes anciens',
     
@@ -54,8 +54,8 @@ const LOCAL_UNIVERSES = {
     },
   },
 
-  universe2: {
-    id: 'universe2',
+  A: {
+    id: 'A',
     name: 'L\'horizon de Khéops',
     description: 'Thème égyptien avec couleurs dorées et bleues',
     
