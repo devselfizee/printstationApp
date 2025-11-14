@@ -790,13 +790,15 @@ async function getAuthToken() {
       password: API_SYNC_CONFIG.authPassword
     };
 
+    // Pour Supabase, on a besoin du header apikey ET du header Authorization
     const response = await makeHttpsRequest(
       API_SYNC_CONFIG.authUrl,
       authPayload,
       'POST',
       {
         'Content-Type': 'application/json',
-        'apikey': API_SYNC_CONFIG.supabaseAnonKey
+        'apikey': API_SYNC_CONFIG.supabaseAnonKey,
+        'Authorization': `Bearer ${API_SYNC_CONFIG.supabaseAnonKey}`
       }
     );
 
