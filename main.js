@@ -1010,11 +1010,15 @@ ipcMain.handle('machine:get-config', async (event) => {
 });
 
 ipcMain.handle('machine:is-setup-completed', async (event) => {
+  console.log('[IPC] machine:is-setup-completed appelé, photoSystemReady:', photoSystemReady);
+
   if (!photoSystemReady || !photoSystem?.db) {
+    console.warn('[IPC] PhotoSystem pas encore prêt, retour completed=false');
     return { status: 'error', error: 'PhotoSystem non disponible', completed: false };
   }
   try {
     const completed = await photoSystem.db.isSetupCompleted();
+    console.log('[IPC] machine:is-setup-completed - completed:', completed);
     return { status: 'success', completed };
   } catch (error) {
     console.error('[IPC] Erreur vérification setup:', error);

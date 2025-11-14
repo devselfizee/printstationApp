@@ -1074,8 +1074,19 @@ export async function getMachineConfig() {
  * Vérifier si la configuration initiale est complète
  */
 export async function isSetupCompleted() {
-  const config = await getMachineConfig();
-  return config !== undefined && config !== null;
+  try {
+    const config = await getMachineConfig();
+    console.log('[DB] isSetupCompleted - config récupérée:', config);
+
+    // Vérifier si la config existe et a les champs requis
+    const isCompleted = !!(config && config.kiosk_id && config.sales_point_id);
+    console.log('[DB] isSetupCompleted - résultat:', isCompleted);
+
+    return isCompleted;
+  } catch (error) {
+    console.error('[DB] Erreur isSetupCompleted:', error);
+    return false;
+  }
 }
 
 /**

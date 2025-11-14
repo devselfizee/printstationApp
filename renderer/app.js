@@ -128,7 +128,14 @@ async function checkSetup() {
 
     console.log('[App] 🔍 Vérification de la configuration...');
     const result = await window.photoAPI.machine.isSetupCompleted();
-    console.log('[App] Résultat isSetupCompleted:', result);
+    console.log('[App] Résultat complet isSetupCompleted:', JSON.stringify(result, null, 2));
+
+    // Vérifier d'abord le statut de la réponse
+    if (result.status !== 'success') {
+      console.warn('[App] ⚠️  Erreur lors de la vérification:', result.error);
+      // Ne pas afficher le modal si c'est une erreur système
+      return;
+    }
 
     // Si pas de config, afficher le modal
     if (!result.completed) {
@@ -136,7 +143,7 @@ async function checkSetup() {
       // Petit délai pour que le DOM soit complètement chargé
       setTimeout(() => showSetupModal(), 500);
     } else {
-      console.log('[App] ✅ Configuration machine OK');
+      console.log('[App] ✅ Configuration machine OK - kiosk configuré');
     }
   } catch (error) {
     console.error('[App] ❌ Erreur vérification setup:', error);
