@@ -20,14 +20,22 @@ if (fs.existsSync(envPath)) {
 
 // Configuration de synchronisation API distante
 const API_SYNC_CONFIG = {
-  url: 'https://ygetxuvqrknbggplzmvy.supabase.co/functions/v1/manage-orders',
   url: (process.env.BASE_URL || 'https://ygetxuvqrknbggplzmvy.supabase.co/functions/v1') + '/manage-orders',
-  authToken: process.env.API_AUTH_TOKEN || null, // Token d'authentification
+  authUrl: process.env.API_AUTH_URL || 'https://ygetxuvqrknbggplzmvy.supabase.co/auth/v1/token?grant_type=password',
+  authEmail: process.env.API_AUTH_EMAIL || 'dev@selfizee.fr',
+  authPassword: process.env.API_AUTH_PASSWORD || 'admin123',
+  supabaseAnonKey: process.env.API_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlnZXR4dXZxcmtuYmdncGx6bXZ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ1MzIxODQsImV4cCI6MjA1MDEwODE4NH0.ZRggq8dGNI0QjxP8QOqOaZs73MVGMUyX5xJZfF5X2q8',
   salesPointId: process.env.SALES_POINT_ID || 'default-sales-point-uuid',
   kioskId: process.env.KIOSK_ID || 'default-kiosk-uuid',
   enabled: process.env.ENABLE_API_SYNC !== 'false', // Activé par défaut
   retryIntervalMs: parseInt(process.env.SYNC_RETRY_INTERVAL_MS) || 60000, // 1 minute par défaut
   maxAttempts: parseInt(process.env.SYNC_MAX_ATTEMPTS) || 5 // 5 tentatives max
+};
+
+// Cache pour le token JWT avec expiration
+let authTokenCache = {
+  token: null,
+  expiresAt: 0
 };
 
 let mainWindow;
@@ -762,6 +770,58 @@ ipcMain.handle('cart:update-quantity', async (event, itemId, quantity, totalPric
 });
 
 /**
+ * Récupérer un token d'authentification JWT depuis l'API Supabase
+ * Le token est mis en cache et réutilisé tant qu'il n'est pas expiré
+ */
+async function getAuthToken() {
+  const now = Date.now();
+
+  // Vérifier si le token en cache est encore valide (avec marge de 5 minutes)
+  if (authTokenCache.token && authTokenCache.expiresAt > now + (5 * 60 * 1000)) {
+    console.log('[Auth] Utilisation du token en cache');
+    return authTokenCache.token;
+  }
+
+  console.log('[Auth] Récupération d\'un nouveau token...');
+
+  try {
+    const authPayload = {
+      email: API_SYNC_CONFIG.authEmail,
+      password: API_SYNC_CONFIG.authPassword
+    };
+
+    const response = await makeHttpsRequest(
+      API_SYNC_CONFIG.authUrl,
+      authPayload,
+      'POST',
+      {
+        'Content-Type': 'application/json',
+        'apikey': API_SYNC_CONFIG.supabaseAnonKey
+      }
+    );
+
+    if (!response || !response.access_token) {
+      throw new Error('Réponse d\'authentification invalide');
+    }
+
+    // Extraire les informations du token
+    const token = response.access_token;
+    const expiresIn = response.expires_in || 3600; // Par défaut 1 heure
+
+    // Mettre en cache le token
+    authTokenCache.token = token;
+    authTokenCache.expiresAt = now + (expiresIn * 1000);
+
+    console.log('[Auth] ✅ Nouveau token obtenu (expire dans', expiresIn, 'secondes)');
+    return token;
+
+  } catch (error) {
+    console.error('[Auth] ❌ Erreur récupération token:', error);
+    throw new Error(`Échec authentification: ${error.message}`);
+  }
+}
+
+/**
  * Synchroniser une commande validée avec l'API distante
  */
 async function syncOrderToRemoteAPI(orderId) {
@@ -813,8 +873,12 @@ async function syncOrderToRemoteAPI(orderId) {
     console.log('[Sync] Envoi commande à l\'API distante:', orderId);
     console.log('[Sync] Payload:', JSON.stringify(payload, null, 2));
 
-    // Faire l'appel HTTP POST
-    const response = await makeHttpsRequest(API_SYNC_CONFIG.url, payload);
+    // Récupérer un token d'authentification frais
+    const authToken = await getAuthToken();
+    console.log('[Sync] Token d\'authentification récupéré');
+
+    // Faire l'appel HTTP POST avec le token
+    const response = await makeHttpsRequest(API_SYNC_CONFIG.url, payload, 'POST', {}, authToken);
 
     // ✅ Marquer la commande comme synchronisée
     await photoSystem.db.markOrderAsSynced(orderId);
@@ -830,28 +894,34 @@ async function syncOrderToRemoteAPI(orderId) {
 }
 
 /**
- * Utilitaire pour faire une requête HTTPS POST
+ * Utilitaire pour faire une requête HTTPS
+ * @param {string} url - URL complète
+ * @param {object} data - Données à envoyer (sera converti en JSON)
+ * @param {string} method - Méthode HTTP (GET, POST, etc.) - par défaut POST
+ * @param {object} customHeaders - Headers personnalisés supplémentaires
+ * @param {string} authToken - Token d'authentification (optionnel)
  */
-function makeHttpsRequest(url, data) {
+function makeHttpsRequest(url, data, method = 'POST', customHeaders = {}, authToken = null) {
   return new Promise((resolve, reject) => {
     const urlObj = new URL(url);
     const postData = JSON.stringify(data);
 
     const headers = {
       'Content-Type': 'application/json',
-      'Content-Length': Buffer.byteLength(postData)
+      'Content-Length': Buffer.byteLength(postData),
+      ...customHeaders
     };
 
-    // Ajouter le token d'authentification si disponible
-    if (API_SYNC_CONFIG.authToken) {
-      headers['Authorization'] = `Bearer ${API_SYNC_CONFIG.authToken}`;
+    // Ajouter le token d'authentification si fourni
+    if (authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`;
     }
 
     const options = {
       hostname: urlObj.hostname,
       port: 443,
       path: urlObj.pathname + urlObj.search,
-      method: 'POST',
+      method: method,
       headers: headers
     };
 
