@@ -21,6 +21,7 @@ if (fs.existsSync(envPath)) {
 // Configuration de synchronisation API distante
 const API_SYNC_CONFIG = {
   url: 'https://ygetxuvqrknbggplzmvy.supabase.co/functions/v1/manage-orders',
+  url: (process.env.BASE_URL || 'https://ygetxuvqrknbggplzmvy.supabase.co/functions/v1') + '/manage-orders',
   authToken: process.env.API_AUTH_TOKEN || null, // Token d'authentification
   salesPointId: process.env.SALES_POINT_ID || 'default-sales-point-uuid',
   kioskId: process.env.KIOSK_ID || 'default-kiosk-uuid',
