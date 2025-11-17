@@ -30,20 +30,34 @@ export const renderCart = (root) => {
     state.cart.forEach(line => {
       const product = window.PRODUCTS[line.productId];
       const photo = state.photos.find(x => x.id === line.photoId);
-      const visual = getProductVisual(state.universe.id, line.productId);
-      
+
       // ⭐ Récupérer le title depuis UNIVERSES si incrustationId existe
       let photoTitle = photo?.title || photo?.id || '';
-      
+
       if (photo?.incrustationId && universeData?.photos) {
         const incrustationPhoto = universeData.photos.find(up => up.id === photo.incrustationId);
         if (incrustationPhoto?.title) {
           photoTitle = incrustationPhoto.title;
         }
       }
-      
-      const thumbHTML = visual && visual.image 
-        ? `<img src="${visual.image}" alt="${photoTitle}" style="width:150px;height:150px;object-fit:contain;">`
+
+      // Récupérer l'image du produit
+      // Priorité 1 : thumbnail_url de l'API
+      // Priorité 2 : visuels spécifiques à l'univers
+      // Priorité 3 : placeholder
+      let imageUrl = null;
+
+      if (product.thumbnail) {
+        imageUrl = product.thumbnail;
+      } else {
+        const visual = getProductVisual(state.universe.id, line.productId);
+        if (visual && visual.image) {
+          imageUrl = visual.image;
+        }
+      }
+
+      const thumbHTML = imageUrl
+        ? `<img src="${imageUrl}" alt="${photoTitle}" style="width:150px;height:150px;object-fit:contain;">`
         : `<div style="width:150px;height:150px;background:#f0f0f0;display:grid;place-items:center;color:#999;font-size:12px;">N/A</div>`;
       
       const row = document.createElement('div');
