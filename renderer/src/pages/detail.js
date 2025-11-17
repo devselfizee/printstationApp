@@ -181,14 +181,6 @@ export const renderDetail = (root) => {
   });
   section.appendChild(wrap);
 
-  // Ajouter un espace en bas pour éviter que le footer ne recouvre le contenu
-  const bottomSpacer = document.createElement('div');
-  bottomSpacer.style.height = '120px'; // Espace pour le footer + marge
-  section.appendChild(bottomSpacer);
-
-  // Ajouter un padding-bottom à la section
-  section.style.paddingBottom = '20px';
-
   // === FOOTER ===
 
   const footer = createFooterBar({

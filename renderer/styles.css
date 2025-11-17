@@ -168,10 +168,10 @@ visibility:hidden; opacity:0;
   box-shadow: 0 12px 30px rgba(17, 24, 39, 0.1);
 }*/
 .footer-bar {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  /* Footer dans le flux normal du document */
+  position: relative;
+  width: 100%;
+  margin-top: 20px;
   height: 130px;
   background: var(--e-navy);
   padding: 20px 25px;
@@ -181,6 +181,7 @@ visibility:hidden; opacity:0;
   justify-content: space-between;
   gap: 16px;
   box-shadow: 0 12px 30px rgba(17, 24, 39, 0.1);
+  border-radius: 12px;
 }
 .footer-bar .info {
   flex: 1;
