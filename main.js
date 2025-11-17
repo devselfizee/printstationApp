@@ -884,14 +884,15 @@ async function fetchProductsFromAPI() {
       console.log('[Products] Champs disponibles:', Object.keys(product));
       console.log('[Products] Données brutes:', JSON.stringify(product, null, 2));
 
-      // Convertir les prix de centimes en euros
+      // Les prix sont déjà en euros dans l'API
       // unit_price = prix initial (first)
       // bulk_price = prix en lot (next)
-      const firstPrice = product.unit_price ? (product.unit_price / 100) : 0;
-      const nextPrice = product.bulk_price ? (product.bulk_price / 100) : firstPrice;
+      const firstPrice = product.unit_price || 0;
+      const nextPrice = product.bulk_price || firstPrice;
 
-      console.log('[Products] Prix unitaire (unit_price):', product.unit_price, '→', firstPrice, '€');
-      console.log('[Products] Prix en lot (bulk_price):', product.bulk_price, '→', nextPrice, '€');
+      console.log('[Products] Prix unitaire (unit_price):', product.unit_price, '€');
+      console.log('[Products] Prix en lot (bulk_price):', product.bulk_price, '€');
+      console.log('[Products] Prix formatés - first:', firstPrice, '€, next:', nextPrice, '€');
       console.log('[Products] Thumbnail URL:', product.thumbnail_url);
 
       products[product.id] = {
