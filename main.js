@@ -879,11 +879,20 @@ async function fetchProductsFromAPI() {
     // Transformer les produits de l'API au format attendu par l'application
     const products = {};
     productsArray.forEach(product => {
+      console.log('[Products] ─────────────────────────────────────────────');
       console.log('[Products] 🔍 Traitement du produit:', product.id, '-', product.name);
+      console.log('[Products] Champs disponibles:', Object.keys(product));
+      console.log('[Products] Données brutes:', JSON.stringify(product, null, 2));
 
       // Convertir les prix de centimes en euros
-      const firstPrice = product.base_price ? (product.base_price / 100) : 0;
-      const nextPrice = product.additional_price ? (product.additional_price / 100) : firstPrice;
+      // unit_price = prix initial (first)
+      // bulk_price = prix en lot (next)
+      const firstPrice = product.unit_price ? (product.unit_price / 100) : 0;
+      const nextPrice = product.bulk_price ? (product.bulk_price / 100) : firstPrice;
+
+      console.log('[Products] Prix unitaire (unit_price):', product.unit_price, '→', firstPrice, '€');
+      console.log('[Products] Prix en lot (bulk_price):', product.bulk_price, '→', nextPrice, '€');
+      console.log('[Products] Thumbnail URL:', product.thumbnail_url);
 
       products[product.id] = {
         id: product.id,
@@ -891,7 +900,8 @@ async function fetchProductsFromAPI() {
         first: firstPrice,
         next: nextPrice,
         description: product.description || '',
-        status: product.status || 'active'
+        status: product.status || 'active',
+        thumbnail: product.thumbnail_url || null
       };
     });
 

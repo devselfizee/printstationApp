@@ -12,15 +12,28 @@ export const renderOffer = (photo, product) => {
   const el = document.createElement('div');
   el.className = 'offer';
   
-  
-  // Récupérer les visuels spécifiques à l'univers
-  const visual = getProductVisual(state.universe.id, product.id);
-  const visuHTML = visual && visual.image 
-    ? `<img src="${visual.image}" alt="${product.title}" style="max-width:100%;max-height:190px;object-fit:contain;">`
-    : `<div style="width:100%;height:150px;background:#f0f0f0;display:grid;place-items:center;color:#999;">Image non disponible</div>`;
-  
 
-  
+  // Récupérer l'image du produit
+  // Priorité 1 : thumbnail_url de l'API
+  // Priorité 2 : visuels spécifiques à l'univers
+  // Priorité 3 : placeholder "Image non disponible"
+  let imageUrl = null;
+
+  if (product.thumbnail) {
+    imageUrl = product.thumbnail;
+  } else {
+    const visual = getProductVisual(state.universe.id, product.id);
+    if (visual && visual.image) {
+      imageUrl = visual.image;
+    }
+  }
+
+  const visuHTML = imageUrl
+    ? `<img src="${imageUrl}" alt="${product.title}" style="max-width:100%;max-height:190px;object-fit:contain;">`
+    : `<div style="width:100%;height:150px;background:#f0f0f0;display:grid;place-items:center;color:#999;">Image non disponible</div>`;
+
+
+
 el.innerHTML = `
     <div class="visu" style="display:grid;place-items:center;">${visuHTML}</div>
     <div class="info">
