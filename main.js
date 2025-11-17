@@ -847,6 +847,18 @@ async function syncOrderToRemoteAPI(orderId) {
       throw new Error(`Commande ${orderId} non trouvée`);
     }
 
+    console.log('[Sync] ═══════════════════════════════════════════════════');
+    console.log('[Sync] 📦 DONNÉES RÉCUPÉRÉES DE LA BASE DE DONNÉES LOCALE');
+    console.log('[Sync] ═══════════════════════════════════════════════════');
+    console.log('[Sync] Order ID:', orderWithItems.id);
+    console.log('[Sync] Participant ID:', orderWithItems.participant_id);
+    console.log('[Sync] Email:', orderWithItems.email);
+    console.log('[Sync] Status:', orderWithItems.status);
+    console.log('[Sync] Total Amount:', orderWithItems.total_amount);
+    console.log('[Sync] Final Amount:', orderWithItems.final_amount);
+    console.log('[Sync] Nombre d\'items:', orderWithItems.items?.length || 0);
+    console.log('[Sync] Items détaillés:', JSON.stringify(orderWithItems.items, null, 2));
+
     // Mapper le statut de la DB au format API
     // 'processing' → 'pending', 'cancelled' → 'cancelled', etc.
     const apiStatus = orderWithItems.status === 'cancelled' ? 'cancelled' : 'pending';
@@ -872,8 +884,24 @@ async function syncOrderToRemoteAPI(orderId) {
       }))
     };
 
-    console.log('[Sync] Envoi commande à l\'API distante:', orderId);
-    console.log('[Sync] Payload:', JSON.stringify(payload, null, 2));
+    console.log('[Sync] ═══════════════════════════════════════════════════');
+    console.log('[Sync] 🚀 PAYLOAD QUI SERA ENVOYÉ À L\'API SUPABASE');
+    console.log('[Sync] ═══════════════════════════════════════════════════');
+    console.log('[Sync] URL:', API_SYNC_CONFIG.url);
+    console.log('[Sync] Payload complet:');
+    console.log(JSON.stringify(payload, null, 2));
+    console.log('[Sync] ───────────────────────────────────────────────────');
+    console.log('[Sync] Nombre d\'order_items dans le payload:', payload.order_items.length);
+    console.log('[Sync] Order items détaillés:');
+    payload.order_items.forEach((item, index) => {
+      console.log(`[Sync]   Item ${index + 1}:`, {
+        product_id: item.product_id,
+        quantity: item.quantity,
+        unit_price: `${item.unit_price / 100}€`,
+        total_price: `${item.total_price / 100}€`
+      });
+    });
+    console.log('[Sync] ═══════════════════════════════════════════════════');
 
     // Récupérer un token d'authentification frais
     const authToken = await getAuthToken();
@@ -885,8 +913,13 @@ async function syncOrderToRemoteAPI(orderId) {
     // ✅ Marquer la commande comme synchronisée
     await photoSystem.db.markOrderAsSynced(orderId);
 
-    console.log('[Sync] ✅ Commande synchronisée avec succès:', orderId);
-    console.log('[Sync] Réponse de l\'API:', JSON.stringify(response, null, 2));
+    console.log('[Sync] ═══════════════════════════════════════════════════');
+    console.log('[Sync] ✅ RÉPONSE DE L\'API SUPABASE');
+    console.log('[Sync] ═══════════════════════════════════════════════════');
+    console.log('[Sync] Order ID:', orderId, '→ Synchronisée avec succès!');
+    console.log('[Sync] Réponse complète:');
+    console.log(JSON.stringify(response, null, 2));
+    console.log('[Sync] ═══════════════════════════════════════════════════');
     return { status: 'success', response };
 
   } catch (error) {
