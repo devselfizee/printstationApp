@@ -907,23 +907,98 @@ async function syncOrderToRemoteAPI(orderId) {
     const authToken = await getAuthToken();
     console.log('[Sync] Token d\'authentification récupéré');
 
+    // 🔥 AFFICHER LES DÉTAILS COMPLETS AVANT L'ENVOI
+    console.log('\n\n');
+    console.log('═'.repeat(80));
+    console.log('🚀 POST VERS API SUPABASE - DÉTAILS COMPLETS');
+    console.log('═'.repeat(80));
+    console.log('📅 Timestamp:', new Date().toISOString());
+    console.log('🔗 URL destination:', API_SYNC_CONFIG.url);
+    console.log('📦 Order ID local:', orderId);
+    console.log('🔐 Authentification: Token JWT présent');
+    console.log('─'.repeat(80));
+    console.log('📋 HEADERS HTTP:');
+    console.log('  - Content-Type: application/json');
+    console.log('  - Authorization: Bearer [TOKEN]');
+    console.log('  - apikey: [ANON_KEY]');
+    console.log('─'.repeat(80));
+    console.log('📦 PAYLOAD JSON (ce qui sera posté):');
+    console.log(JSON.stringify(payload, null, 2));
+    console.log('─'.repeat(80));
+    console.log('📊 RÉSUMÉ DU PAYLOAD:');
+    console.log('  • Customer:', payload.customer_name);
+    console.log('  • Email:', payload.customer_email);
+    console.log('  • Montant total:', (payload.total_amount / 100).toFixed(2), '€');
+    console.log('  • Status:', payload.status);
+    console.log('  • Kiosk ID:', payload.kiosk_id);
+    console.log('  • Sales Point ID:', payload.sales_point_id);
+    console.log('  • Nombre d\'articles:', payload.order_items.length);
+    console.log('─'.repeat(80));
+    console.log('🛒 DÉTAILS DES ARTICLES (order_items):');
+    payload.order_items.forEach((item, idx) => {
+      console.log(`  Article ${idx + 1}:`);
+      console.log(`    - Product ID: ${item.product_id}`);
+      console.log(`    - Quantité: ${item.quantity}`);
+      console.log(`    - Prix unitaire: ${(item.unit_price / 100).toFixed(2)} €`);
+      console.log(`    - Prix total: ${(item.total_price / 100).toFixed(2)} €`);
+    });
+    console.log('═'.repeat(80));
+    console.log('⏳ Envoi en cours vers Supabase...');
+    console.log('═'.repeat(80));
+    console.log('\n');
+
     // Faire l'appel HTTP POST avec le token
     const response = await makeHttpsRequest(API_SYNC_CONFIG.url, payload, 'POST', {}, authToken);
 
     // ✅ Marquer la commande comme synchronisée
     await photoSystem.db.markOrderAsSynced(orderId);
 
-    console.log('[Sync] ═══════════════════════════════════════════════════');
-    console.log('[Sync] ✅ RÉPONSE DE L\'API SUPABASE');
-    console.log('[Sync] ═══════════════════════════════════════════════════');
-    console.log('[Sync] Order ID:', orderId, '→ Synchronisée avec succès!');
-    console.log('[Sync] Réponse complète:');
+    // 🔥 AFFICHER LA RÉPONSE DE SUPABASE
+    console.log('\n\n');
+    console.log('═'.repeat(80));
+    console.log('✅ RÉPONSE DE L\'API SUPABASE - SUCCÈS');
+    console.log('═'.repeat(80));
+    console.log('📅 Timestamp réponse:', new Date().toISOString());
+    console.log('📦 Order ID local:', orderId, '→ ✅ SYNCHRONISÉE!');
+    console.log('─'.repeat(80));
+    console.log('📋 RÉPONSE COMPLÈTE (JSON):');
     console.log(JSON.stringify(response, null, 2));
-    console.log('[Sync] ═══════════════════════════════════════════════════');
+    console.log('─'.repeat(80));
+    if (response.order_id) {
+      console.log('📌 INFORMATIONS CLÉS DE LA RÉPONSE:');
+      console.log('  • Order ID Supabase:', response.order_id);
+      console.log('  • Statut:', response.status || 'N/A');
+      if (response.order_items_count) {
+        console.log('  • Nombre d\'items créés:', response.order_items_count);
+      }
+    }
+    console.log('═'.repeat(80));
+    console.log('🎉 Synchronisation terminée avec succès!');
+    console.log('═'.repeat(80));
+    console.log('\n\n');
+
     return { status: 'success', response };
 
   } catch (error) {
-    console.error('[Sync] ❌ Erreur synchronisation commande:', error);
+    // 🔥 AFFICHER L'ERREUR EN DÉTAIL
+    console.log('\n\n');
+    console.log('═'.repeat(80));
+    console.log('❌ ERREUR LORS DE LA SYNCHRONISATION AVEC SUPABASE');
+    console.log('═'.repeat(80));
+    console.log('📅 Timestamp:', new Date().toISOString());
+    console.log('📦 Order ID local:', orderId);
+    console.log('🔗 URL tentée:', API_SYNC_CONFIG.url);
+    console.log('─'.repeat(80));
+    console.log('⚠️  MESSAGE D\'ERREUR:');
+    console.log(error.message);
+    console.log('─'.repeat(80));
+    console.log('📚 STACK TRACE:');
+    console.log(error.stack);
+    console.log('═'.repeat(80));
+    console.log('💡 La commande reste en attente de synchronisation');
+    console.log('═'.repeat(80));
+    console.log('\n\n');
+
     return { status: 'error', error: error.message };
   }
 }
