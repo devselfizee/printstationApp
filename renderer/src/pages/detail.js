@@ -156,9 +156,10 @@ export const renderDetail = (root) => {
   Object.values(window.PRODUCTS).forEach(product => {
     section.appendChild(renderOffer(p, product));
   });
-  
+
+  // Ajouter un séparateur entre les produits et les autres photos
   const sep = document.createElement('div');
-  sep.style.height = '20px';
+  sep.style.height = '40px';
   section.appendChild(sep);
   
   const wrap = document.createElement('div');
@@ -179,7 +180,15 @@ export const renderDetail = (root) => {
     grid.appendChild(card);
   });
   section.appendChild(wrap);
-  
+
+  // Ajouter un espace en bas pour éviter que le footer ne recouvre le contenu
+  const bottomSpacer = document.createElement('div');
+  bottomSpacer.style.height = '120px'; // Espace pour le footer + marge
+  section.appendChild(bottomSpacer);
+
+  // Ajouter un padding-bottom à la section
+  section.style.paddingBottom = '20px';
+
   // === FOOTER ===
 
   const footer = createFooterBar({
