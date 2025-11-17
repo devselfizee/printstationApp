@@ -852,29 +852,58 @@ async function fetchProductsFromAPI() {
       authToken
     );
 
-    console.log('[Products] ✅ Produits récupérés:', response.length || 0, 'produit(s)');
-    console.log('[Products] Détails:', JSON.stringify(response, null, 2));
+    console.log('[Products] ═══════════════════════════════════════════════');
+    console.log('[Products] 📦 RÉPONSE BRUTE DE L\'API');
+    console.log('[Products] ═══════════════════════════════════════════════');
+    console.log('[Products] Type de réponse:', typeof response);
+    console.log('[Products] Est un tableau:', Array.isArray(response));
+    console.log('[Products] Clés disponibles:', Object.keys(response || {}));
+    console.log('[Products] Réponse complète:');
+    console.log(JSON.stringify(response, null, 2));
+    console.log('[Products] ═══════════════════════════════════════════════');
+
+    // Extraire le tableau de produits (peut être dans response.products ou directement response)
+    let productsArray = null;
+
+    if (Array.isArray(response)) {
+      productsArray = response;
+      console.log('[Products] ✅ Réponse directe est un tableau de', response.length, 'produit(s)');
+    } else if (response && Array.isArray(response.products)) {
+      productsArray = response.products;
+      console.log('[Products] ✅ Réponse contient une clé "products" avec', response.products.length, 'produit(s)');
+    } else {
+      console.error('[Products] ❌ Format de réponse non reconnu');
+      throw new Error('Format de réponse API invalide - pas de tableau de produits trouvé');
+    }
 
     // Transformer les produits de l'API au format attendu par l'application
     const products = {};
-    if (Array.isArray(response)) {
-      response.forEach(product => {
-        // Convertir les prix de centimes en euros
-        const firstPrice = product.base_price ? (product.base_price / 100) : 0;
-        const nextPrice = product.additional_price ? (product.additional_price / 100) : firstPrice;
+    productsArray.forEach(product => {
+      console.log('[Products] 🔍 Traitement du produit:', product.id, '-', product.name);
 
-        products[product.id] = {
-          id: product.id,
-          title: product.name || 'Produit sans nom',
-          first: firstPrice,
-          next: nextPrice,
-          description: product.description || '',
-          status: product.status || 'active'
-        };
-      });
-    }
+      // Convertir les prix de centimes en euros
+      const firstPrice = product.base_price ? (product.base_price / 100) : 0;
+      const nextPrice = product.additional_price ? (product.additional_price / 100) : firstPrice;
 
-    console.log('[Products] 🎯 Produits formatés:', JSON.stringify(products, null, 2));
+      products[product.id] = {
+        id: product.id,
+        title: product.name || 'Produit sans nom',
+        first: firstPrice,
+        next: nextPrice,
+        description: product.description || '',
+        status: product.status || 'active'
+      };
+    });
+
+    console.log('[Products] ═══════════════════════════════════════════════');
+    console.log('[Products] 🎯 PRODUITS FORMATÉS POUR L\'APPLICATION');
+    console.log('[Products] ═══════════════════════════════════════════════');
+    console.log('[Products] Nombre de produits:', Object.keys(products).length);
+    console.log('[Products] IDs des produits:', Object.keys(products));
+    console.log('[Products] Détails complets:');
+    console.log(JSON.stringify(products, null, 2));
+    console.log('[Products] ═══════════════════════════════════════════════');
+
     return { status: 'success', products };
 
   } catch (error) {
