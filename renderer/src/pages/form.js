@@ -161,14 +161,91 @@ attachFooterListeners({
           
           // 6. Mettre à jour le statut de la commande
           await window.photoAPI.orders.updateStatus(
-            orderId, 
-            'processing', 
+            orderId,
+            'processing',
             'Paiement accepté - Commande validée'
           );
-          
-          // 7. Sauvegarder l'ID de commande dans le state
+
+          // 7. 🆕 RÉCUPÉRER LA COMMANDE COMPLÈTE AVEC LES ITEMS
+          const orderWithItems = await window.photoAPI.orders.getWithItems(orderId);
+
+          if (orderWithItems && orderWithItems.items && orderWithItems.items.length > 0) {
+            // 8. 🆕 PRÉPARER LES DONNÉES À ENVOYER VERS SUPABASE
+            const supabasePayload = {
+              order: {
+                id: orderWithItems.id,
+                participant_id: orderWithItems.participant_id,
+                universe_id: orderWithItems.universe_id,
+                total_amount: orderWithItems.total_amount,
+                discount_amount: orderWithItems.discount_amount,
+                final_amount: orderWithItems.final_amount,
+                status: orderWithItems.status,
+                email: orderWithItems.email,
+                optin: orderWithItems.optin,
+                payment_method: orderWithItems.payment_method,
+                notes: orderWithItems.notes,
+                created_at: orderWithItems.created_at,
+                updated_at: orderWithItems.updated_at,
+                completed_at: orderWithItems.completed_at
+              },
+              order_items: orderWithItems.items.map(item => ({
+                id: item.id,
+                order_id: item.order_id,
+                photo_id: item.photo_id,
+                product_id: item.product_id,
+                product_name: item.product_name,
+                quantity: item.quantity,
+                unit_price: item.unit_price,
+                total_price: item.total_price,
+                incrustation_id: item.incrustation_id,
+                status: item.status,
+                session_id: item.session_id,
+                created_at: item.created_at,
+                updated_at: item.updated_at,
+                cancelled_at: item.cancelled_at,
+                validated_at: item.validated_at
+              }))
+            };
+
+            // 9. 📋 AFFICHER LES DONNÉES DANS LA CONSOLE
+            console.log('\n' + '='.repeat(80));
+            console.log('📤 DONNÉES À POSTER VERS SUPABASE');
+            console.log('='.repeat(80));
+            console.log('\n🛒 ORDER (Commande):');
+            console.table(supabasePayload.order);
+            console.log('\n📦 ORDER_ITEMS (Articles de la commande):');
+            console.table(supabasePayload.order_items);
+            console.log('\n📊 JSON COMPLET:');
+            console.log(JSON.stringify(supabasePayload, null, 2));
+            console.log('\n' + '='.repeat(80));
+
+            // 10. 🚀 POSTER VERS SUPABASE
+            try {
+              console.log('📡 Envoi vers Supabase...');
+              const supabaseResponse = await fetch('https://ygetxuvqrknbggplzmvy.supabase.co/functions/v1/manage-orders', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlnZXR4dXZxcmtuYmdncGx6bXZ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzA1MzkzODgsImV4cCI6MjA0NjExNTM4OH0.lG0yh0CIkzZMgbpPGT_-sGqF04wgmCHpW04bLzXY_ik'
+                },
+                body: JSON.stringify(supabasePayload)
+              });
+
+              if (supabaseResponse.ok) {
+                const supabaseResult = await supabaseResponse.json();
+                console.log('✅ Commande envoyée à Supabase avec succès:', supabaseResult);
+              } else {
+                const errorText = await supabaseResponse.text();
+                console.error('❌ Erreur Supabase:', supabaseResponse.status, errorText);
+              }
+            } catch (supabaseError) {
+              console.error('❌ Erreur lors de l\'envoi à Supabase:', supabaseError);
+            }
+          }
+
+          // 11. Sauvegarder l'ID de commande dans le state
           state.lastOrderId = orderId;
-          
+
           console.log('✅ Commande complète enregistrée:', orderId);
           toast('Commande enregistrée! ✅', false);
         } else {
