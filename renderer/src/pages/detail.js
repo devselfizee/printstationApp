@@ -138,9 +138,11 @@ export const renderDetail = (root) => {
   main.className = 'main detail-enter';
   const section = document.createElement('section');
   section.innerHTML = `<h2 class="detail-title">${t('photo')}</h2><div class="detail-preview"><img src="${p.source}" alt=""></div>`;
-  
-  section.appendChild(renderOffer(p, window.PRODUCTS.print));
-  section.appendChild(renderOffer(p, window.PRODUCTS.magnet));
+
+  // Afficher tous les produits disponibles dynamiquement
+  Object.values(window.PRODUCTS).forEach(product => {
+    section.appendChild(renderOffer(p, product));
+  });
   
   const sep = document.createElement('div');
   sep.style.height = '20px';

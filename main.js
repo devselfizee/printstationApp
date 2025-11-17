@@ -824,6 +824,66 @@ async function getAuthToken() {
 }
 
 /**
+ * Récupérer la liste des produits actifs depuis l'API Supabase
+ */
+async function fetchProductsFromAPI() {
+  if (!API_SYNC_CONFIG.enabled) {
+    console.log('[Products] API désactivée - utilisation des produits par défaut');
+    return { status: 'skipped', message: 'API désactivée' };
+  }
+
+  try {
+    const productsUrl = (process.env.BASE_URL || 'https://ygetxuvqrknbggplzmvy.supabase.co/functions/v1') + '/manage-products?status=active';
+
+    console.log('[Products] 📦 Récupération des produits depuis l\'API...');
+    console.log('[Products] URL:', productsUrl);
+
+    // Récupérer un token d'authentification
+    const authToken = await getAuthToken();
+
+    // Faire l'appel HTTP GET avec les headers nécessaires pour Supabase
+    const response = await makeHttpsRequest(
+      productsUrl,
+      null,
+      'GET',
+      {
+        'apikey': API_SYNC_CONFIG.supabaseAnonKey
+      },
+      authToken
+    );
+
+    console.log('[Products] ✅ Produits récupérés:', response.length || 0, 'produit(s)');
+    console.log('[Products] Détails:', JSON.stringify(response, null, 2));
+
+    // Transformer les produits de l'API au format attendu par l'application
+    const products = {};
+    if (Array.isArray(response)) {
+      response.forEach(product => {
+        // Convertir les prix de centimes en euros
+        const firstPrice = product.base_price ? (product.base_price / 100) : 0;
+        const nextPrice = product.additional_price ? (product.additional_price / 100) : firstPrice;
+
+        products[product.id] = {
+          id: product.id,
+          title: product.name || 'Produit sans nom',
+          first: firstPrice,
+          next: nextPrice,
+          description: product.description || '',
+          status: product.status || 'active'
+        };
+      });
+    }
+
+    console.log('[Products] 🎯 Produits formatés:', JSON.stringify(products, null, 2));
+    return { status: 'success', products };
+
+  } catch (error) {
+    console.error('[Products] ❌ Erreur récupération produits:', error);
+    return { status: 'error', error: error.message };
+  }
+}
+
+/**
  * Synchroniser une commande validée avec l'API distante
  */
 async function syncOrderToRemoteAPI(orderId) {
@@ -1014,17 +1074,22 @@ async function syncOrderToRemoteAPI(orderId) {
 function makeHttpsRequest(url, data, method = 'POST', customHeaders = {}, authToken = null) {
   return new Promise((resolve, reject) => {
     const urlObj = new URL(url);
-    const postData = JSON.stringify(data);
 
     const headers = {
       'Content-Type': 'application/json',
-      'Content-Length': Buffer.byteLength(postData),
       ...customHeaders
     };
 
     // Ajouter le token d'authentification si fourni
     if (authToken) {
       headers['Authorization'] = `Bearer ${authToken}`;
+    }
+
+    // Préparer les données pour POST/PUT/PATCH
+    let postData = null;
+    if (data && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
+      postData = JSON.stringify(data);
+      headers['Content-Length'] = Buffer.byteLength(postData);
     }
 
     const options = {
@@ -1043,30 +1108,33 @@ function makeHttpsRequest(url, data, method = 'POST', customHeaders = {}, authTo
       });
 
       res.on('end', () => {
-        console.log(`[Sync] HTTP Status: ${res.statusCode}`);
-        console.log(`[Sync] Réponse brute:`, responseData);
+        console.log(`[HTTP] ${method} ${url} - Status: ${res.statusCode}`);
+        console.log(`[HTTP] Réponse brute:`, responseData);
 
         if (res.statusCode >= 200 && res.statusCode < 300) {
           try {
             const parsed = JSON.parse(responseData);
             resolve(parsed);
           } catch (e) {
-            console.warn('[Sync] Réponse non-JSON, retour du texte brut');
+            console.warn('[HTTP] Réponse non-JSON, retour du texte brut');
             resolve(responseData);
           }
         } else {
-          console.error(`[Sync] ❌ Erreur HTTP ${res.statusCode}:`, responseData);
+          console.error(`[HTTP] ❌ Erreur HTTP ${res.statusCode}:`, responseData);
           reject(new Error(`HTTP ${res.statusCode}: ${responseData}`));
         }
       });
     });
 
     req.on('error', (error) => {
-      console.error('[Sync] ❌ Erreur réseau:', error.message);
+      console.error('[HTTP] ❌ Erreur réseau:', error.message);
       reject(error);
     });
 
-    req.write(postData);
+    // Écrire le body seulement si on a des données
+    if (postData) {
+      req.write(postData);
+    }
     req.end();
   });
 }
@@ -1224,6 +1292,14 @@ ipcMain.handle('machine:save-config', async (event, kioskId, salesPointId, machi
     console.error('[IPC] Erreur sauvegarde config machine:', error);
     return { status: 'error', error: error.message };
   }
+});
+
+/**
+ * ===== HANDLERS IPC PRODUITS =====
+ */
+ipcMain.handle('products:fetch', async (event) => {
+  console.log('[IPC] products:fetch appelé');
+  return await fetchProductsFromAPI();
 });
 
 console.log('[Main] Tous les handlers IPC sont enregistrés');

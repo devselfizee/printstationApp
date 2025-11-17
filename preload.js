@@ -85,6 +85,11 @@ const photoAPI = {
     saveConfig: (kioskId, salesPointId, machineName) => ipcRenderer.invoke('machine:save-config', kioskId, salesPointId, machineName),
   },
 
+  // Products
+  products: {
+    fetch: () => ipcRenderer.invoke('products:fetch'),
+  },
+
   // Listeners
   onPhotoProgress: (callback) => ipcRenderer.on('photos:progress', (event, data) => callback(data)),
   onPhotoComplete: (callback) => ipcRenderer.on('photos:complete', (event, data) => callback(data)),

@@ -120,6 +120,35 @@ function waitForPhotoAPI(timeout = 5000) {
   });
 }
 
+// Charger les produits depuis l'API Supabase
+async function loadProducts() {
+  try {
+    // Attendre que photoAPI soit disponible
+    await waitForPhotoAPI();
+
+    console.log('[App] 📦 Chargement des produits depuis l\'API...');
+    const result = await window.photoAPI.products.fetch();
+
+    if (result.status === 'success') {
+      // Remplacer les produits par ceux de l'API
+      window.PRODUCTS = result.products;
+      console.log('[App] ✅ Produits chargés depuis l\'API:', Object.keys(result.products).length, 'produit(s)');
+      console.log('[App] Produits disponibles:', result.products);
+    } else if (result.status === 'skipped') {
+      console.log('[App] ⏭️  Chargement des produits ignoré:', result.message);
+      // Garder les produits par défaut
+    } else {
+      console.warn('[App] ⚠️  Erreur chargement produits:', result.error);
+      console.log('[App] 🔄 Utilisation des produits par défaut');
+      // Garder les produits par défaut de data.js
+    }
+  } catch (error) {
+    console.error('[App] ❌ Erreur chargement produits:', error);
+    console.log('[App] 🔄 Utilisation des produits par défaut');
+    // Garder les produits par défaut de data.js
+  }
+}
+
 // Vérifier la configuration au démarrage
 async function checkSetup() {
   try {
@@ -150,9 +179,13 @@ async function checkSetup() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   console.log('🚀 PrintStation initialized');
   render();
+
+  // Charger les produits depuis l'API en parallèle
+  loadProducts();
+
   // Vérifier la configuration après l'initialisation
   checkSetup();
 });

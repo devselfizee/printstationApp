@@ -58,5 +58,23 @@ export const getProductVisual = (universeId, productId) => {
   if (!universe || !universe.productVisuals) {
     return null;
   }
-  return universe.productVisuals[productId];
+
+  // Support pour les IDs numériques et textuels
+  // Si le productId est numérique, on cherche d'abord par ID exact, puis par les anciennes clés
+  let visual = universe.productVisuals[productId];
+
+  // Si pas trouvé et que c'est un ID numérique, essayer les mappings par défaut
+  if (!visual && typeof productId === 'number') {
+    // Mapping basique : 1 = print, 2 = magnet (ajustable selon votre API)
+    const mapping = {
+      1: 'print',
+      2: 'magnet'
+    };
+    const mappedKey = mapping[productId];
+    if (mappedKey) {
+      visual = universe.productVisuals[mappedKey];
+    }
+  }
+
+  return visual || null;
 };
