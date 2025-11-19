@@ -980,7 +980,9 @@ async function syncOrderToRemoteAPI(orderId) {
         product_id: item.product_id,
         quantity: item.quantity,
         unit_price: Math.round((item.unit_price || 0) * 100), // Convertir en centimes
-        total_price: Math.round((item.total_price || 0) * 100) // Convertir en centimes
+        total_price: Math.round((item.total_price || 0) * 100), // Convertir en centimes
+        photo_id: item.photo_id || null, // ID de la photo
+        photo_url: item.photo_url || item.remote_url || null // URL distante de la photo
       }))
     };
 
@@ -998,7 +1000,9 @@ async function syncOrderToRemoteAPI(orderId) {
         product_id: item.product_id,
         quantity: item.quantity,
         unit_price: `${item.unit_price / 100}€`,
-        total_price: `${item.total_price / 100}€`
+        total_price: `${item.total_price / 100}€`,
+        photo_id: item.photo_id,
+        photo_url: item.photo_url
       });
     });
     console.log('[Sync] ═══════════════════════════════════════════════════');
@@ -1041,6 +1045,8 @@ async function syncOrderToRemoteAPI(orderId) {
       console.log(`    - Quantité: ${item.quantity}`);
       console.log(`    - Prix unitaire: ${(item.unit_price / 100).toFixed(2)} €`);
       console.log(`    - Prix total: ${(item.total_price / 100).toFixed(2)} €`);
+      console.log(`    - Photo ID: ${item.photo_id || 'N/A'}`);
+      console.log(`    - Photo URL: ${item.photo_url || 'N/A'}`);
     });
     console.log('═'.repeat(80));
     console.log('⏳ Envoi en cours vers Supabase...');
