@@ -1039,6 +1039,31 @@ async function syncOrderToRemoteAPI(orderId) {
     const authToken = await getAuthToken();
     console.log('[Sync] Token d\'authentification récupéré');
 
+    // 🔥🔥 CONFIRMATION FINALE DES DONNÉES AVANT POST 🔥🔥
+    console.log('\n\n');
+    console.log('🔥'.repeat(40));
+    console.log('📤 CONFIRMATION FINALE - DONNÉES QUI SERONT POSTÉES');
+    console.log('🔥'.repeat(40));
+    console.log('\n📍 URL de destination:');
+    console.log('   ', API_SYNC_CONFIG.url);
+    console.log('\n📦 Payload JSON complet qui sera envoyé:');
+    console.log(JSON.stringify(payload, null, 2));
+    console.log('\n🔍 VÉRIFICATION DES PHOTO_URL:');
+    payload.order_items.forEach((item, idx) => {
+      console.log(`\n   Article ${idx + 1}:`);
+      console.log(`   ├─ Product ID: ${item.product_id}`);
+      console.log(`   ├─ Photo ID: ${item.photo_id || '❌ MANQUANT'}`);
+      console.log(`   └─ Photo URL: ${item.photo_url || '❌ MANQUANT'}`);
+      if (item.photo_url) {
+        console.log('      ✅ Photo URL est présent!');
+      } else {
+        console.log('      ⚠️  ATTENTION: Photo URL est vide!');
+      }
+    });
+    console.log('\n' + '🔥'.repeat(40));
+    console.log('🚀 ENVOI EN COURS VERS SUPABASE...');
+    console.log('🔥'.repeat(40) + '\n\n');
+
     // 🔥 AFFICHER LES DÉTAILS COMPLETS AVANT L'ENVOI
     console.log('\n\n');
     console.log('═'.repeat(80));
