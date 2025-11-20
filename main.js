@@ -966,6 +966,34 @@ async function syncOrderToRemoteAPI(orderId) {
     // S'assurer que total_amount est toujours un nombre valide
     const totalAmount = orderWithItems.final_amount || orderWithItems.total_amount || 0;
 
+    // Récupérer les informations des photos pour chaque item
+    console.log('[Sync] 📸 Récupération des URLs des photos...');
+    const itemsWithPhotoUrls = await Promise.all(
+      (orderWithItems.items || []).map(async (item) => {
+        let photoUrl = null;
+
+        if (item.photo_id) {
+          try {
+            // Récupérer la photo depuis la base de données
+            const photo = await photoSystem.db.getPhotoById(item.photo_id);
+            if (photo && photo.remote_url) {
+              photoUrl = photo.remote_url;
+              console.log('[Sync]   ✓ Photo ID:', item.photo_id, '→ URL:', photoUrl);
+            } else {
+              console.log('[Sync]   ⚠️  Photo ID:', item.photo_id, '→ Pas de remote_url trouvé');
+            }
+          } catch (err) {
+            console.error('[Sync]   ❌ Erreur récupération photo:', item.photo_id, err.message);
+          }
+        }
+
+        return {
+          ...item,
+          photo_url: photoUrl
+        };
+      })
+    );
+
     // Transformer les données au format attendu par l'API
     const payload = {
       customer_name: orderWithItems.participant_id || 'Anonymous',
@@ -976,13 +1004,13 @@ async function syncOrderToRemoteAPI(orderId) {
       kiosk_id: API_SYNC_CONFIG.kioskId,
       memory_session_id: null, // null car le participant_id local n'existe pas dans Supabase
       status: apiStatus,
-      order_items: (orderWithItems.items || []).map(item => ({
+      order_items: itemsWithPhotoUrls.map(item => ({
         product_id: item.product_id,
         quantity: item.quantity,
         unit_price: Math.round((item.unit_price || 0) * 100), // Convertir en centimes
         total_price: Math.round((item.total_price || 0) * 100), // Convertir en centimes
         photo_id: item.photo_id || null, // ID de la photo
-        photo_url: item.photo_url || item.remote_url || null // URL distante de la photo
+        photo_url: item.photo_url || null // URL distante de la photo depuis la table photos
       }))
     };
 
