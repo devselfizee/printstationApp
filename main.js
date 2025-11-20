@@ -975,16 +975,26 @@ async function syncOrderToRemoteAPI(orderId) {
         if (item.photo_id) {
           try {
             // Récupérer la photo depuis la base de données
-            const photo = await photoSystem.db.getPhotoById(item.photo_id);
-            if (photo && photo.remote_url) {
-              photoUrl = photo.remote_url;
-              console.log('[Sync]   ✓ Photo ID:', item.photo_id, '→ URL:', photoUrl);
+            console.log('[Sync]   🔍 Recherche photo_id:', item.photo_id);
+            const photo = await photoSystem.db.getPhoto(item.photo_id);
+            console.log('[Sync]   📸 Photo trouvée:', photo ? 'OUI' : 'NON');
+            if (photo) {
+              console.log('[Sync]   📋 Champs disponibles:', Object.keys(photo));
+              console.log('[Sync]   📦 Photo complète:', JSON.stringify(photo, null, 2));
+              if (photo.remote_url) {
+                photoUrl = photo.remote_url;
+                console.log('[Sync]   ✅ Photo ID:', item.photo_id, '→ URL:', photoUrl);
+              } else {
+                console.log('[Sync]   ⚠️  Photo ID:', item.photo_id, '→ remote_url est vide ou null');
+              }
             } else {
-              console.log('[Sync]   ⚠️  Photo ID:', item.photo_id, '→ Pas de remote_url trouvé');
+              console.log('[Sync]   ❌ Photo ID:', item.photo_id, '→ Photo non trouvée dans la DB');
             }
           } catch (err) {
-            console.error('[Sync]   ❌ Erreur récupération photo:', item.photo_id, err.message);
+            console.error('[Sync]   ❌ Erreur récupération photo:', item.photo_id, err);
           }
+        } else {
+          console.log('[Sync]   ⚠️  Item sans photo_id');
         }
 
         return {
