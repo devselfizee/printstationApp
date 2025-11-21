@@ -1141,9 +1141,9 @@ async function syncOrderToRemoteAPI(orderId) {
     console.log('📋 RÉPONSE COMPLÈTE (JSON):');
     console.log(JSON.stringify(response, null, 2));
     console.log('─'.repeat(80));
-    if (response.order_id) {
+    if (response.id) {
       console.log('📌 INFORMATIONS CLÉS DE LA RÉPONSE:');
-      console.log('  • Order ID Supabase:', response.order_id);
+      console.log('  • Order ID Supabase:', response.id);
       console.log('  • Statut:', response.status || 'N/A');
       if (response.order_items_count) {
         console.log('  • Nombre d\'items créés:', response.order_items_count);
@@ -1277,12 +1277,12 @@ async function createOrderRemote(orderData) {
 
     console.log('[CreateOrder] ✅ Commande créée sur Supabase');
     console.log('[CreateOrder] Réponse:', JSON.stringify(response, null, 2));
-    console.log('[CreateOrder] Order ID Supabase:', response.order_id);
+    console.log('[CreateOrder] Order ID Supabase:', response.id);
 
     return {
       status: 'success',
       response,
-      supabaseOrderId: response.order_id,
+      supabaseOrderId: response.id,
       debugPayload: payload  // Pour debug dans le renderer
     };
 

@@ -297,12 +297,12 @@ attachFooterListeners({
             console.log('[Cart] ✅ Commande synchronisée avec Supabase');
             console.log('[Cart] Réponse API:', JSON.stringify(syncResult.response, null, 2));
 
-            // Extraire l'ID Supabase de la réponse
-            if (syncResult.response?.order_id) {
-              state.supabaseOrderId = syncResult.response.order_id;
+            // Extraire l'ID Supabase de la réponse (l'API retourne "id" et non "order_id")
+            if (syncResult.response?.id) {
+              state.supabaseOrderId = syncResult.response.id;
               console.log('[Cart] ✅ Order ID Supabase stocké dans state:', state.supabaseOrderId);
             } else {
-              console.warn('[Cart] ⚠️  order_id non trouvé dans response');
+              console.warn('[Cart] ⚠️  id non trouvé dans response');
               console.warn('[Cart] Clés disponibles:', Object.keys(syncResult.response || {}));
             }
           } else {
