@@ -1116,8 +1116,16 @@ async function syncOrderToRemoteAPI(orderId) {
     console.log('═'.repeat(80));
     console.log('\n');
 
-    // Faire l'appel HTTP POST avec le token
-    const response = await makeHttpsRequest(API_SYNC_CONFIG.url, payload, 'POST', {}, authToken);
+    // Faire l'appel HTTP POST avec le token et l'apikey header
+    const response = await makeHttpsRequest(
+      API_SYNC_CONFIG.url,
+      payload,
+      'POST',
+      {
+        'apikey': API_SYNC_CONFIG.supabaseAnonKey
+      },
+      authToken
+    );
 
     // ✅ Marquer la commande comme synchronisée
     await photoSystem.db.markOrderAsSynced(orderId);
@@ -1254,8 +1262,16 @@ async function createOrderRemote(orderData) {
     // Récupérer un token d'authentification
     const authToken = await getAuthToken();
 
-    // Créer la commande sur Supabase avec retry automatique
-    const response = await makeHttpsRequestWithRetry(API_SYNC_CONFIG.url, payload, 'POST', {}, authToken);
+    // Créer la commande sur Supabase avec retry automatique (avec apikey header)
+    const response = await makeHttpsRequestWithRetry(
+      API_SYNC_CONFIG.url,
+      payload,
+      'POST',
+      {
+        'apikey': API_SYNC_CONFIG.supabaseAnonKey
+      },
+      authToken
+    );
 
     console.log('[CreateOrder] ✅ Commande créée sur Supabase');
     console.log('[CreateOrder] Réponse:', JSON.stringify(response, null, 2));
@@ -1308,8 +1324,16 @@ async function updateOrderRemote(supabaseOrderId, email) {
     // Récupérer un token d'authentification
     const authToken = await getAuthToken();
 
-    // Mettre à jour la commande sur Supabase avec retry automatique
-    const response = await makeHttpsRequestWithRetry(updateUrl, payload, 'PATCH', {}, authToken);
+    // Mettre à jour la commande sur Supabase avec retry automatique (avec apikey header)
+    const response = await makeHttpsRequestWithRetry(
+      updateUrl,
+      payload,
+      'PATCH',
+      {
+        'apikey': API_SYNC_CONFIG.supabaseAnonKey
+      },
+      authToken
+    );
 
     console.log('[UpdateOrder] ✅ Commande mise à jour sur Supabase');
     console.log('[UpdateOrder] Réponse:', JSON.stringify(response, null, 2));
