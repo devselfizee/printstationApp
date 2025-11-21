@@ -1327,11 +1327,11 @@ async function updateOrderRemote(supabaseOrderId, email) {
     const authToken = await getAuthToken();
 
     // Mettre à jour la commande sur Supabase avec retry automatique (avec apikey header)
-    // Utiliser PUT au lieu de PATCH car l'API pourrait ne pas supporter PATCH
+    // L'API utilise POST même pour les mises à jour, avec l'ID en paramètre GET
     const response = await makeHttpsRequestWithRetry(
       updateUrl,
       payload,
-      'PUT',
+      'POST',
       {
         'apikey': API_SYNC_CONFIG.supabaseAnonKey
       },
