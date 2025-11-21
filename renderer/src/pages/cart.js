@@ -289,13 +289,21 @@ attachFooterListeners({
           console.log('[Cart] 🔄 Synchronisation avec Supabase...');
           const syncResult = await window.photoAPI.orders.syncRemote(orderId);
 
+          console.log('[Cart] 📋 Résultat de syncRemote:');
+          console.log('[Cart]   - status:', syncResult?.status);
+          console.log('[Cart] Résultat complet:', JSON.stringify(syncResult, null, 2));
+
           if (syncResult?.status === 'success') {
             console.log('[Cart] ✅ Commande synchronisée avec Supabase');
-            console.log('[Cart] Réponse:', syncResult.response);
+            console.log('[Cart] Réponse API:', JSON.stringify(syncResult.response, null, 2));
+
             // Extraire l'ID Supabase de la réponse
             if (syncResult.response?.order_id) {
               state.supabaseOrderId = syncResult.response.order_id;
-              console.log('[Cart] Order ID Supabase:', state.supabaseOrderId);
+              console.log('[Cart] ✅ Order ID Supabase stocké dans state:', state.supabaseOrderId);
+            } else {
+              console.warn('[Cart] ⚠️  order_id non trouvé dans response');
+              console.warn('[Cart] Clés disponibles:', Object.keys(syncResult.response || {}));
             }
           } else {
             console.warn('[Cart] ⚠️  Erreur synchronisation Supabase:', syncResult?.error);

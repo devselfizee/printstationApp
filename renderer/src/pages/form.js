@@ -178,9 +178,15 @@ attachFooterListeners({
         console.log('✅ Commande locale mise à jour:', orderId);
 
         // ÉTAPE 2 : Mettre à jour la commande sur Supabase (status=completed + email)
+        console.log('[Form] 📋 Vérification de state.supabaseOrderId:', state.supabaseOrderId);
+        console.log('[Form] 📋 Email à enregistrer:', email || '(vide)');
+
         try {
           if (state.supabaseOrderId) {
             console.log('[Form] 📝 Mise à jour de la commande sur Supabase (status=completed + email)...');
+            console.log('[Form] Supabase Order ID:', state.supabaseOrderId);
+            console.log('[Form] Email:', email || '(pas d\'email)');
+
             const updateResult = await window.photoAPI.orders.updateRemote(state.supabaseOrderId, email);
 
             if (updateResult?.status === 'success') {
@@ -194,6 +200,8 @@ attachFooterListeners({
             }
           } else {
             console.warn('[Form] ⚠️  Pas d\'ID de commande Supabase - création locale uniquement');
+            console.warn('[Form] state.supabaseOrderId est:', state.supabaseOrderId);
+            console.warn('[Form] state.localOrderId est:', state.localOrderId);
           }
         } catch (updateError) {
           console.error('[Form] ❌ Erreur lors de la mise à jour:', updateError);
