@@ -1215,7 +1215,7 @@ async function createOrderRemote(orderData) {
     // Transformer les données au format attendu par l'API
     const payload = {
       customer_name: orderData.participantId || 'Anonymous',
-      customer_email: null, // Pas d'email à cette étape
+      customer_email: '', // Chaîne vide pour cette étape (pas encore d'email)
       customer_address: null,
       total_amount: Math.round(orderData.totalAmount * 100), // Convertir en centimes
       sales_point_id: API_SYNC_CONFIG.salesPointId,
@@ -1270,7 +1270,7 @@ async function updateOrderRemote(supabaseOrderId, email) {
     console.log('[UpdateOrder] Email:', email);
 
     const payload = {
-      customer_email: email,
+      customer_email: email || '', // Chaîne vide si pas d'email
       status: 'completed'
     };
 

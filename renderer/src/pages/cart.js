@@ -262,9 +262,8 @@ attachFooterListeners({
         const createResult = await window.photoAPI.orders.createRemote({
           participantId: state.participantId || state.sessionId,
           universeId: state.universe?.id || state.universeId || 'B',
-          totalAmount: totalAmount,
+          totalAmount: finalAmount,  // Utiliser finalAmount (après réduction)
           discountAmount: discountAmount,
-          finalAmount: finalAmount,
           items: items
         });
 
