@@ -243,6 +243,13 @@ attachFooterListeners({
         const discountAmount = totalAmount - cartSubtotal(state.cart, window.PRODUCTS);
         const finalAmount = cartSubtotal(state.cart, window.PRODUCTS);
 
+        console.log('[Cart] Montants calculés:');
+        console.log('[Cart]   - totalAmount (nominal):', totalAmount);
+        console.log('[Cart]   - discountAmount:', discountAmount);
+        console.log('[Cart]   - finalAmount (après réduction):', finalAmount);
+        console.log('[Cart] participantId:', state.participantId);
+        console.log('[Cart] sessionId:', state.sessionId);
+
         // Préparer les items de la commande
         const items = state.cart.map(cartItem => {
           const product = window.PRODUCTS[cartItem.productId];
@@ -258,14 +265,19 @@ attachFooterListeners({
           };
         });
 
-        // Créer la commande sur Supabase
-        const createResult = await window.photoAPI.orders.createRemote({
+        const orderDataToSend = {
           participantId: state.participantId || state.sessionId,
           universeId: state.universe?.id || state.universeId || 'B',
           totalAmount: finalAmount,  // Utiliser finalAmount (après réduction)
           discountAmount: discountAmount,
           items: items
-        });
+        };
+
+        console.log('[Cart] Données envoyées à createRemote:');
+        console.log(JSON.stringify(orderDataToSend, null, 2));
+
+        // Créer la commande sur Supabase
+        const createResult = await window.photoAPI.orders.createRemote(orderDataToSend);
 
         if (createResult?.status === 'success' && createResult.supabaseOrderId) {
           // Sauvegarder l'ID de la commande Supabase dans le state

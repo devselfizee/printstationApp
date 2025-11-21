@@ -1190,6 +1190,11 @@ async function createOrderRemote(orderData) {
     console.log('[CreateOrder] ═══════════════════════════════════════════════');
     console.log('[CreateOrder] 📦 CRÉATION DE COMMANDE SUR SUPABASE (status=pending)');
     console.log('[CreateOrder] ═══════════════════════════════════════════════');
+    console.log('[CreateOrder] Données reçues (orderData):');
+    console.log(JSON.stringify(orderData, null, 2));
+    console.log('[CreateOrder]   - participantId:', orderData.participantId);
+    console.log('[CreateOrder]   - totalAmount:', orderData.totalAmount);
+    console.log('[CreateOrder]   - items:', orderData.items?.length, 'item(s)');
 
     // Récupérer les informations des photos pour chaque item
     const itemsWithPhotoUrls = await Promise.all(
@@ -1213,11 +1218,20 @@ async function createOrderRemote(orderData) {
     );
 
     // Transformer les données au format attendu par l'API
+    const customer_name = orderData.participantId || 'Anonymous';
+    const total_amount_raw = orderData.totalAmount;
+    const total_amount = Math.round(orderData.totalAmount * 100); // Convertir en centimes
+
+    console.log('[CreateOrder] Préparation du payload:');
+    console.log('[CreateOrder]   - customer_name (de participantId):', customer_name);
+    console.log('[CreateOrder]   - total_amount_raw (avant conversion):', total_amount_raw);
+    console.log('[CreateOrder]   - total_amount (en centimes):', total_amount);
+
     const payload = {
-      customer_name: orderData.participantId || 'Anonymous',
+      customer_name: customer_name,
       customer_email: '', // Chaîne vide pour cette étape (pas encore d'email)
       customer_address: null,
-      total_amount: Math.round(orderData.totalAmount * 100), // Convertir en centimes
+      total_amount: total_amount, // Convertir en centimes
       sales_point_id: API_SYNC_CONFIG.salesPointId,
       kiosk_id: API_SYNC_CONFIG.kioskId,
       memory_session_id: null,
@@ -1232,7 +1246,10 @@ async function createOrderRemote(orderData) {
       }))
     };
 
-    console.log('[CreateOrder] Payload:', JSON.stringify(payload, null, 2));
+    console.log('[CreateOrder] ═══════════════════════════════════════════════');
+    console.log('[CreateOrder] 📤 PAYLOAD FINAL À ENVOYER:');
+    console.log(JSON.stringify(payload, null, 2));
+    console.log('[CreateOrder] ═══════════════════════════════════════════════');
 
     // Récupérer un token d'authentification
     const authToken = await getAuthToken();
