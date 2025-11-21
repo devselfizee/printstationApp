@@ -233,10 +233,10 @@ attachFooterListeners({
     window.render();
   },
   onContinue: async () => {
-    // 🆕 ÉTAPE 1 : Créer la commande sur Supabase avec status=pending
+    // 🆕 ÉTAPE 1 : Créer la commande locale d'abord, puis synchroniser avec Supabase
     if (state.cart.length > 0 && window.photoAPI?.orders) {
       try {
-        console.log('[Cart] 📦 Création de la commande sur Supabase (status=pending)...');
+        console.log('[Cart] 📦 Création de la commande locale puis synchronisation avec Supabase...');
 
         // Calculer les montants
         const totalAmount = cartNominal(state.cart, window.PRODUCTS);
@@ -247,57 +247,65 @@ attachFooterListeners({
         console.log('[Cart]   - totalAmount (nominal):', totalAmount);
         console.log('[Cart]   - discountAmount:', discountAmount);
         console.log('[Cart]   - finalAmount (après réduction):', finalAmount);
-        console.log('[Cart] participantId:', state.participantId);
-        console.log('[Cart] sessionId:', state.sessionId);
 
-        // Préparer les items de la commande
-        const items = state.cart.map(cartItem => {
-          const product = window.PRODUCTS[cartItem.productId];
-          const unitPrice = cartItem.qty === 1 ? product.first : product.next;
-          const totalPrice = lineTotal(product, cartItem.qty);
+        // 1. Créer l'ID de commande local
+        const orderId = `order_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        console.log('[Cart] ID de commande local:', orderId);
 
-          return {
-            photoId: cartItem.photoId,
-            productId: cartItem.productId,
-            qty: cartItem.qty,
-            unitPrice: unitPrice,
-            totalPrice: totalPrice
-          };
-        });
-
-        const orderDataToSend = {
+        // 2. Créer la commande locale dans la DB
+        const orderResult = await window.photoAPI.orders.create({
+          orderId: orderId,
           participantId: state.participantId || state.sessionId,
           universeId: state.universe?.id || state.universeId || 'B',
-          totalAmount: finalAmount,  // Utiliser finalAmount (après réduction)
+          totalAmount: totalAmount,
           discountAmount: discountAmount,
-          items: items
-        };
+          finalAmount: finalAmount,
+          email: null,  // Pas d'email à cette étape
+          optin: 0,
+          paymentMethod: 'pending',
+          notes: 'Commande en cours de paiement'
+        });
 
-        console.log('[Cart] Données envoyées à createRemote:');
-        console.log(JSON.stringify(orderDataToSend, null, 2));
+        if (orderResult?.status === 'success') {
+          console.log('[Cart] ✅ Commande locale créée:', orderId);
 
-        // Créer la commande sur Supabase
-        const createResult = await window.photoAPI.orders.createRemote(orderDataToSend);
+          // 3. Créer les order_items dans la DB locale
+          for (const cartItem of state.cart) {
+            const product = window.PRODUCTS[cartItem.productId];
+            const unitPrice = cartItem.qty === 1 ? product.first : product.next;
+            const totalPrice = lineTotal(product, cartItem.qty);
 
-        if (createResult?.status === 'success' && createResult.supabaseOrderId) {
-          // Sauvegarder l'ID de la commande Supabase dans le state
-          state.supabaseOrderId = createResult.supabaseOrderId;
-          console.log('[Cart] ✅ Commande créée sur Supabase:', state.supabaseOrderId);
-          console.log('[Cart] Réponse:', createResult.response);
-          if (createResult.debugPayload) {
-            console.log('[Cart] 🔍 Payload envoyé:', createResult.debugPayload);
+            await window.photoAPI.orders.addItem({
+              orderId: orderId,
+              photoId: cartItem.photoId,
+              productId: cartItem.productId,
+              quantity: cartItem.qty,
+              unitPrice: unitPrice,
+              totalPrice: totalPrice
+            });
           }
+
+          // 4. Synchroniser avec Supabase (status=pending)
+          console.log('[Cart] 🔄 Synchronisation avec Supabase...');
+          const syncResult = await window.photoAPI.orders.syncRemote(orderId);
+
+          if (syncResult?.status === 'success') {
+            console.log('[Cart] ✅ Commande synchronisée avec Supabase');
+            console.log('[Cart] Réponse:', syncResult.response);
+            // Extraire l'ID Supabase de la réponse
+            if (syncResult.response?.order_id) {
+              state.supabaseOrderId = syncResult.response.order_id;
+              console.log('[Cart] Order ID Supabase:', state.supabaseOrderId);
+            }
+          } else {
+            console.warn('[Cart] ⚠️  Erreur synchronisation Supabase:', syncResult?.error);
+            // Continuer quand même vers la page de paiement
+          }
+
+          // Sauvegarder l'orderId local pour référence
+          state.localOrderId = orderId;
         } else {
-          console.error('[Cart] ⚠️  Erreur création commande Supabase:', createResult?.error);
-          if (createResult?.debugPayload) {
-            console.error('[Cart] 🔍 Payload qui a été envoyé:');
-            console.error(JSON.stringify(createResult.debugPayload, null, 2));
-          }
-          if (createResult?.debugOrderData) {
-            console.error('[Cart] 🔍 OrderData reçu dans main.js:');
-            console.error(JSON.stringify(createResult.debugOrderData, null, 2));
-          }
-          // Continuer quand même vers la page de paiement
+          console.error('[Cart] ❌ Erreur création commande locale:', orderResult?.error);
         }
       } catch (error) {
         console.error('[Cart] ❌ Erreur lors de la création de la commande:', error);
