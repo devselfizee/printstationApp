@@ -95,9 +95,70 @@ const footer = createFooterBar({
 });
 root.appendChild(footer);
 attachFooterListeners({
-  onCancel: () => {
+  onCancel: async () => {
     clearInterval(state.timer);
     state.email = '';
+
+    // ========================================
+    // 🆕 METTRE À JOUR LA COMMANDE (même processus que "Terminer" mais sans email)
+    // ========================================
+
+    if (state.cart.length > 0 && window.photoAPI?.cart && state.sessionId) {
+      try {
+        let orderId = state.localOrderId;
+
+        // Valider tous les produits de la session
+        const validateResult = await window.photoAPI.cart.validateSession(
+          state.sessionId,
+          orderId
+        );
+
+        if (validateResult?.status === 'success') {
+          console.log('[Form/Passer] ✅ Session validée');
+        }
+
+        // Mettre à jour le statut de la commande locale
+        await window.photoAPI.orders.updateStatus(
+          orderId,
+          'processing',
+          'Paiement accepté - Email passé'
+        );
+
+        console.log('[Form/Passer] ✅ Commande locale mise à jour:', orderId);
+
+        // ÉTAPE 2 : Mettre à jour la commande sur Supabase (status=completed, SANS email)
+        try {
+          if (state.supabaseOrderId) {
+            console.log('[Form/Passer] 📝 Mise à jour de la commande sur Supabase (status=completed, sans email)...');
+            console.log('[Form/Passer] Supabase Order ID:', state.supabaseOrderId);
+
+            const updateResult = await window.photoAPI.orders.updateRemote(state.supabaseOrderId, '', orderId);
+
+            if (updateResult?.status === 'success') {
+              console.log('[Form/Passer] ✅ Commande mise à jour sur Supabase');
+            } else if (updateResult?.status === 'skipped') {
+              console.log('[Form/Passer] ⏭️  Mise à jour ignorée:', updateResult.message);
+            } else {
+              console.warn('[Form/Passer] ⚠️  Erreur mise à jour API:', updateResult?.error);
+            }
+          } else {
+            console.warn('[Form/Passer] ⚠️  Pas d\'ID de commande Supabase');
+          }
+        } catch (updateError) {
+          console.error('[Form/Passer] ❌ Erreur lors de la mise à jour:', updateError);
+        }
+
+        // Sauvegarder l'ID de commande dans le state
+        state.lastOrderId = orderId;
+
+        console.log('[Form/Passer] ✅ Commande complète enregistrée:', orderId);
+        toast('Commande enregistrée! ✅', false);
+
+      } catch (error) {
+        console.error('[Form/Passer] ❌ Erreur système:', error);
+      }
+    }
+
     state.page = 'thanks';
     window.render();
   },
