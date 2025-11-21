@@ -284,8 +284,19 @@ attachFooterListeners({
           state.supabaseOrderId = createResult.supabaseOrderId;
           console.log('[Cart] ✅ Commande créée sur Supabase:', state.supabaseOrderId);
           console.log('[Cart] Réponse:', createResult.response);
+          if (createResult.debugPayload) {
+            console.log('[Cart] 🔍 Payload envoyé:', createResult.debugPayload);
+          }
         } else {
           console.error('[Cart] ⚠️  Erreur création commande Supabase:', createResult?.error);
+          if (createResult?.debugPayload) {
+            console.error('[Cart] 🔍 Payload qui a été envoyé:');
+            console.error(JSON.stringify(createResult.debugPayload, null, 2));
+          }
+          if (createResult?.debugOrderData) {
+            console.error('[Cart] 🔍 OrderData reçu dans main.js:');
+            console.error(JSON.stringify(createResult.debugOrderData, null, 2));
+          }
           // Continuer quand même vers la page de paiement
         }
       } catch (error) {

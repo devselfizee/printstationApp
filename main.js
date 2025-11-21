@@ -1261,11 +1261,21 @@ async function createOrderRemote(orderData) {
     console.log('[CreateOrder] Réponse:', JSON.stringify(response, null, 2));
     console.log('[CreateOrder] Order ID Supabase:', response.order_id);
 
-    return { status: 'success', response, supabaseOrderId: response.order_id };
+    return {
+      status: 'success',
+      response,
+      supabaseOrderId: response.order_id,
+      debugPayload: payload  // Pour debug dans le renderer
+    };
 
   } catch (error) {
     console.error('[CreateOrder] ❌ Erreur création commande:', error);
-    return { status: 'error', error: error.message };
+    return {
+      status: 'error',
+      error: error.message,
+      debugPayload: payload || null,  // Pour debug dans le renderer
+      debugOrderData: orderData  // Pour debug dans le renderer
+    };
   }
 }
 
@@ -1535,7 +1545,13 @@ ipcMain.handle('order:sync-remote', async (event, orderId) => {
 
 // Handler IPC pour créer une commande sur Supabase (status=pending)
 ipcMain.handle('order:create-remote', async (event, orderData) => {
-  return await createOrderRemote(orderData);
+  console.log('[IPC] ═══════════════════════════════════════════════');
+  console.log('[IPC] order:create-remote appelé');
+  console.log('[IPC] orderData reçu:', JSON.stringify(orderData, null, 2));
+  const result = await createOrderRemote(orderData);
+  console.log('[IPC] Résultat de createOrderRemote:', JSON.stringify(result, null, 2));
+  console.log('[IPC] ═══════════════════════════════════════════════');
+  return result;
 });
 
 // Handler IPC pour mettre à jour une commande sur Supabase (status=completed + email)
