@@ -63,7 +63,7 @@ const photoAPI = {
     delete: (orderId) => ipcRenderer.invoke('order:delete', orderId),
     syncRemote: (orderId) => ipcRenderer.invoke('order:sync-remote', orderId),
     createRemote: (orderData) => ipcRenderer.invoke('order:create-remote', orderData),
-    updateRemote: (supabaseOrderId, email) => ipcRenderer.invoke('order:update-remote', supabaseOrderId, email),
+    updateRemote: (supabaseOrderId, email, localOrderId) => ipcRenderer.invoke('order:update-remote', supabaseOrderId, email, localOrderId),
   },
 
   // Cart (Panier temps réel)

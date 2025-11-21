@@ -187,7 +187,7 @@ attachFooterListeners({
             console.log('[Form] Supabase Order ID:', state.supabaseOrderId);
             console.log('[Form] Email:', email || '(pas d\'email)');
 
-            const updateResult = await window.photoAPI.orders.updateRemote(state.supabaseOrderId, email);
+            const updateResult = await window.photoAPI.orders.updateRemote(state.supabaseOrderId, email, orderId);
 
             if (updateResult?.status === 'success') {
               console.log('[Form] ✅ Commande mise à jour sur Supabase');

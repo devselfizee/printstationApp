@@ -1301,10 +1301,14 @@ async function createOrderRemote(orderData) {
  * Mettre à jour une commande sur l'API Supabase (status=completed + email)
  * Appelé depuis form.js lors du clic sur "Terminer"
  */
-async function updateOrderRemote(supabaseOrderId, email) {
+async function updateOrderRemote(supabaseOrderId, email, localOrderId) {
   if (!API_SYNC_CONFIG.enabled) {
     console.log('[UpdateOrder] API désactivée');
     return { status: 'skipped', message: 'API désactivée' };
+  }
+
+  if (!photoSystemReady || !photoSystem?.db) {
+    return { status: 'error', error: 'PhotoSystem non disponible' };
   }
 
   try {
@@ -1312,22 +1316,72 @@ async function updateOrderRemote(supabaseOrderId, email) {
     console.log('[UpdateOrder] 📝 MISE À JOUR DE COMMANDE SUR SUPABASE');
     console.log('[UpdateOrder] ═══════════════════════════════════════════════');
     console.log('[UpdateOrder] Order ID Supabase:', supabaseOrderId);
+    console.log('[UpdateOrder] Order ID Local:', localOrderId);
     console.log('[UpdateOrder] Email:', email);
 
+    // Récupérer la commande complète depuis la DB locale pour obtenir toutes les données
+    const orderWithItems = await photoSystem.db.getOrderWithItems(localOrderId);
+
+    if (!orderWithItems) {
+      throw new Error(`Commande locale ${localOrderId} non trouvée`);
+    }
+
+    console.log('[UpdateOrder] Commande locale récupérée:', localOrderId);
+    console.log('[UpdateOrder] Participant ID:', orderWithItems.participant_id);
+    console.log('[UpdateOrder] Final Amount:', orderWithItems.final_amount);
+
+    // S'assurer que total_amount est toujours un nombre valide
+    const totalAmount = orderWithItems.final_amount || orderWithItems.total_amount || 0;
+
+    // Récupérer les informations des photos pour chaque item
+    const itemsWithPhotoUrls = await Promise.all(
+      (orderWithItems.items || []).map(async (item) => {
+        let photoUrl = null;
+        if (item.photo_id) {
+          try {
+            const photo = await photoSystem.db.getPhoto(item.photo_id);
+            if (photo && photo.remote_url) {
+              photoUrl = photo.remote_url;
+            }
+          } catch (err) {
+            console.error('[UpdateOrder] Erreur récupération photo:', item.photo_id, err);
+          }
+        }
+        return {
+          ...item,
+          photo_url: photoUrl
+        };
+      })
+    );
+
+    // Construire le payload complet avec toutes les données (comme lors de la création)
     const payload = {
-      customer_email: email || '', // Chaîne vide si pas d'email
-      status: 'completed'
+      customer_name: orderWithItems.participant_id || 'Anonymous',
+      customer_email: email || '',
+      customer_address: null,
+      total_amount: Math.round(totalAmount * 100), // Convertir en centimes
+      sales_point_id: API_SYNC_CONFIG.salesPointId,
+      kiosk_id: API_SYNC_CONFIG.kioskId,
+      memory_session_id: null,
+      status: 'completed', // Status complété
+      order_items: itemsWithPhotoUrls.map(item => ({
+        product_id: item.product_id,
+        quantity: item.quantity,
+        unit_price: Math.round((item.unit_price || 0) * 100),
+        total_price: Math.round((item.total_price || 0) * 100),
+        photo_id: item.photo_id || null,
+        photo_url: item.photo_url || null
+      }))
     };
 
     const updateUrl = `${API_SYNC_CONFIG.url}?id=${supabaseOrderId}`;
     console.log('[UpdateOrder] URL:', updateUrl);
-    console.log('[UpdateOrder] Payload:', JSON.stringify(payload, null, 2));
+    console.log('[UpdateOrder] Payload complet:', JSON.stringify(payload, null, 2));
 
     // Récupérer un token d'authentification
     const authToken = await getAuthToken();
 
     // Mettre à jour la commande sur Supabase avec retry automatique (avec apikey header)
-    // L'API utilise POST même pour les mises à jour, avec l'ID en paramètre GET
     const response = await makeHttpsRequestWithRetry(
       updateUrl,
       payload,
@@ -1582,8 +1636,8 @@ ipcMain.handle('order:create-remote', async (event, orderData) => {
 });
 
 // Handler IPC pour mettre à jour une commande sur Supabase (status=completed + email)
-ipcMain.handle('order:update-remote', async (event, supabaseOrderId, email) => {
-  return await updateOrderRemote(supabaseOrderId, email);
+ipcMain.handle('order:update-remote', async (event, supabaseOrderId, email, localOrderId) => {
+  return await updateOrderRemote(supabaseOrderId, email, localOrderId);
 });
 
 /**
