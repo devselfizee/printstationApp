@@ -1237,8 +1237,8 @@ async function createOrderRemote(orderData) {
     // Récupérer un token d'authentification
     const authToken = await getAuthToken();
 
-    // Créer la commande sur Supabase
-    const response = await makeHttpsRequest(API_SYNC_CONFIG.url, payload, 'POST', {}, authToken);
+    // Créer la commande sur Supabase avec retry automatique
+    const response = await makeHttpsRequestWithRetry(API_SYNC_CONFIG.url, payload, 'POST', {}, authToken);
 
     console.log('[CreateOrder] ✅ Commande créée sur Supabase');
     console.log('[CreateOrder] Réponse:', JSON.stringify(response, null, 2));
@@ -1281,8 +1281,8 @@ async function updateOrderRemote(supabaseOrderId, email) {
     // Récupérer un token d'authentification
     const authToken = await getAuthToken();
 
-    // Mettre à jour la commande sur Supabase (PUT ou PATCH)
-    const response = await makeHttpsRequest(updateUrl, payload, 'PATCH', {}, authToken);
+    // Mettre à jour la commande sur Supabase avec retry automatique
+    const response = await makeHttpsRequestWithRetry(updateUrl, payload, 'PATCH', {}, authToken);
 
     console.log('[UpdateOrder] ✅ Commande mise à jour sur Supabase');
     console.log('[UpdateOrder] Réponse:', JSON.stringify(response, null, 2));
@@ -1369,6 +1369,48 @@ function makeHttpsRequest(url, data, method = 'POST', customHeaders = {}, authTo
     }
     req.end();
   });
+}
+
+/**
+ * Fonction wrapper pour makeHttpsRequest avec retry et backoff exponentiel
+ * @param {string} url - URL complète
+ * @param {object} data - Données à envoyer
+ * @param {string} method - Méthode HTTP
+ * @param {object} customHeaders - Headers personnalisés
+ * @param {string} authToken - Token d'authentification
+ * @param {number} maxRetries - Nombre maximum de tentatives (défaut: 4)
+ * @returns {Promise} - Promesse résolue avec la réponse ou rejetée après toutes les tentatives
+ */
+async function makeHttpsRequestWithRetry(url, data, method = 'POST', customHeaders = {}, authToken = null, maxRetries = 4) {
+  const delays = [2000, 4000, 8000, 16000]; // Backoff exponentiel: 2s, 4s, 8s, 16s
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`[HTTP Retry] Tentative ${attempt + 1}/${maxRetries + 1} pour ${method} ${url}`);
+      const response = await makeHttpsRequest(url, data, method, customHeaders, authToken);
+      console.log(`[HTTP Retry] ✅ Succès à la tentative ${attempt + 1}`);
+      return response;
+    } catch (error) {
+      const isLastAttempt = attempt === maxRetries;
+      const isNetworkError = error.code === 'ECONNRESET' ||
+                            error.code === 'ETIMEDOUT' ||
+                            error.code === 'ECONNREFUSED' ||
+                            error.code === 'ENOTFOUND';
+
+      console.error(`[HTTP Retry] ❌ Tentative ${attempt + 1} échouée:`, error.message);
+
+      // Si c'est la dernière tentative ou ce n'est pas une erreur réseau, on rejette
+      if (isLastAttempt || !isNetworkError) {
+        console.error(`[HTTP Retry] ❌ Échec définitif après ${attempt + 1} tentative(s)`);
+        throw error;
+      }
+
+      // Sinon, on attend avant de réessayer
+      const delay = delays[attempt] || delays[delays.length - 1];
+      console.log(`[HTTP Retry] ⏳ Attente de ${delay}ms avant la prochaine tentative...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
 }
 
 /**
