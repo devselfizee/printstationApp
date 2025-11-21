@@ -1194,6 +1194,8 @@ async function createOrderRemote(orderData) {
     return { status: 'error', error: 'PhotoSystem non disponible' };
   }
 
+  let payload = null;  // Déclarer payload ici pour qu'il soit accessible dans le catch
+
   try {
     console.log('[CreateOrder] ═══════════════════════════════════════════════');
     console.log('[CreateOrder] 📦 CRÉATION DE COMMANDE SUR SUPABASE (status=pending)');
