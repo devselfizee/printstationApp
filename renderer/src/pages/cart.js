@@ -232,7 +232,58 @@ attachFooterListeners({
     updateCartCount();
     window.render();
   },
-  onContinue: () => {
+  onContinue: async () => {
+    // 🆕 ÉTAPE 1 : Créer la commande sur Supabase avec status=pending
+    if (state.cart.length > 0 && window.photoAPI?.orders) {
+      try {
+        console.log('[Cart] 📦 Création de la commande sur Supabase (status=pending)...');
+
+        // Calculer les montants
+        const totalAmount = cartNominal(state.cart, window.PRODUCTS);
+        const discountAmount = totalAmount - cartSubtotal(state.cart, window.PRODUCTS);
+        const finalAmount = cartSubtotal(state.cart, window.PRODUCTS);
+
+        // Préparer les items de la commande
+        const items = state.cart.map(cartItem => {
+          const product = window.PRODUCTS[cartItem.productId];
+          const unitPrice = cartItem.qty === 1 ? product.first : product.next;
+          const totalPrice = lineTotal(product, cartItem.qty);
+
+          return {
+            photoId: cartItem.photoId,
+            productId: cartItem.productId,
+            qty: cartItem.qty,
+            unitPrice: unitPrice,
+            totalPrice: totalPrice
+          };
+        });
+
+        // Créer la commande sur Supabase
+        const createResult = await window.photoAPI.orders.createRemote({
+          participantId: state.participantId || state.sessionId,
+          universeId: state.universe?.id || state.universeId || 'B',
+          totalAmount: totalAmount,
+          discountAmount: discountAmount,
+          finalAmount: finalAmount,
+          items: items
+        });
+
+        if (createResult?.status === 'success' && createResult.supabaseOrderId) {
+          // Sauvegarder l'ID de la commande Supabase dans le state
+          state.supabaseOrderId = createResult.supabaseOrderId;
+          console.log('[Cart] ✅ Commande créée sur Supabase:', state.supabaseOrderId);
+          console.log('[Cart] Réponse:', createResult.response);
+        } else {
+          console.error('[Cart] ⚠️  Erreur création commande Supabase:', createResult?.error);
+          // Continuer quand même vers la page de paiement
+        }
+      } catch (error) {
+        console.error('[Cart] ❌ Erreur lors de la création de la commande:', error);
+        // Continuer quand même vers la page de paiement
+      }
+    }
+
+    // Naviguer vers la page de paiement
     state.page = 'payment';
     window.render();
   }

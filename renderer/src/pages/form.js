@@ -166,23 +166,27 @@ attachFooterListeners({
             'Paiement accepté - Commande validée'
           );
 
-          // 7. 🆕 Synchroniser la commande avec l'API distante
+          // 7. 🆕 ÉTAPE 2 : Mettre à jour la commande sur Supabase (status=completed + email)
           try {
-            console.log('[Form] 🔄 Synchronisation de la commande avec l\'API distante...');
-            const syncResult = await window.photoAPI.orders.syncRemote(orderId);
+            if (state.supabaseOrderId) {
+              console.log('[Form] 📝 Mise à jour de la commande sur Supabase (status=completed + email)...');
+              const updateResult = await window.photoAPI.orders.updateRemote(state.supabaseOrderId, email);
 
-            if (syncResult?.status === 'success') {
-              console.log('[Form] ✅ Commande synchronisée avec l\'API distante');
-              console.log('[Form] Détails de la réponse:', syncResult.response);
-            } else if (syncResult?.status === 'skipped') {
-              console.log('[Form] ⏭️  Synchronisation ignorée:', syncResult.message);
+              if (updateResult?.status === 'success') {
+                console.log('[Form] ✅ Commande mise à jour sur Supabase');
+                console.log('[Form] Réponse:', updateResult.response);
+              } else if (updateResult?.status === 'skipped') {
+                console.log('[Form] ⏭️  Mise à jour ignorée:', updateResult.message);
+              } else {
+                console.warn('[Form] ⚠️  Erreur mise à jour API:', updateResult?.error);
+                // Ne pas bloquer le processus si la mise à jour échoue
+              }
             } else {
-              console.warn('[Form] ⚠️  Erreur synchronisation API:', syncResult?.error);
-              // Ne pas bloquer le processus si la synchronisation échoue
+              console.warn('[Form] ⚠️  Pas d\'ID de commande Supabase - création locale uniquement');
             }
-          } catch (syncError) {
-            console.error('[Form] ❌ Erreur lors de la synchronisation:', syncError);
-            // Continuer même si la synchronisation échoue
+          } catch (updateError) {
+            console.error('[Form] ❌ Erreur lors de la mise à jour:', updateError);
+            // Continuer même si la mise à jour échoue
           }
 
           // 8. Sauvegarder l'ID de commande dans le state

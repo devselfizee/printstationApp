@@ -1173,6 +1173,129 @@ async function syncOrderToRemoteAPI(orderId) {
 }
 
 /**
+ * Créer une commande directement sur l'API Supabase (status=pending)
+ * Appelé depuis cart.js lors du clic sur "Procéder au paiement"
+ */
+async function createOrderRemote(orderData) {
+  if (!API_SYNC_CONFIG.enabled) {
+    console.log('[CreateOrder] API désactivée');
+    return { status: 'skipped', message: 'API désactivée' };
+  }
+
+  if (!photoSystemReady || !photoSystem?.db) {
+    return { status: 'error', error: 'PhotoSystem non disponible' };
+  }
+
+  try {
+    console.log('[CreateOrder] ═══════════════════════════════════════════════');
+    console.log('[CreateOrder] 📦 CRÉATION DE COMMANDE SUR SUPABASE (status=pending)');
+    console.log('[CreateOrder] ═══════════════════════════════════════════════');
+
+    // Récupérer les informations des photos pour chaque item
+    const itemsWithPhotoUrls = await Promise.all(
+      (orderData.items || []).map(async (item) => {
+        let photoUrl = null;
+        if (item.photoId) {
+          try {
+            const photo = await photoSystem.db.getPhoto(item.photoId);
+            if (photo && photo.remote_url) {
+              photoUrl = photo.remote_url;
+            }
+          } catch (err) {
+            console.error('[CreateOrder] Erreur récupération photo:', item.photoId, err);
+          }
+        }
+        return {
+          ...item,
+          photo_url: photoUrl
+        };
+      })
+    );
+
+    // Transformer les données au format attendu par l'API
+    const payload = {
+      customer_name: orderData.participantId || 'Anonymous',
+      customer_email: null, // Pas d'email à cette étape
+      customer_address: null,
+      total_amount: Math.round(orderData.totalAmount * 100), // Convertir en centimes
+      sales_point_id: API_SYNC_CONFIG.salesPointId,
+      kiosk_id: API_SYNC_CONFIG.kioskId,
+      memory_session_id: null,
+      status: 'pending', // Status en attente
+      order_items: itemsWithPhotoUrls.map(item => ({
+        product_id: item.productId,
+        quantity: item.qty,
+        unit_price: Math.round((item.unitPrice || 0) * 100),
+        total_price: Math.round((item.totalPrice || 0) * 100),
+        photo_id: item.photoId || null,
+        photo_url: item.photo_url || null
+      }))
+    };
+
+    console.log('[CreateOrder] Payload:', JSON.stringify(payload, null, 2));
+
+    // Récupérer un token d'authentification
+    const authToken = await getAuthToken();
+
+    // Créer la commande sur Supabase
+    const response = await makeHttpsRequest(API_SYNC_CONFIG.url, payload, 'POST', {}, authToken);
+
+    console.log('[CreateOrder] ✅ Commande créée sur Supabase');
+    console.log('[CreateOrder] Réponse:', JSON.stringify(response, null, 2));
+    console.log('[CreateOrder] Order ID Supabase:', response.order_id);
+
+    return { status: 'success', response, supabaseOrderId: response.order_id };
+
+  } catch (error) {
+    console.error('[CreateOrder] ❌ Erreur création commande:', error);
+    return { status: 'error', error: error.message };
+  }
+}
+
+/**
+ * Mettre à jour une commande sur l'API Supabase (status=completed + email)
+ * Appelé depuis form.js lors du clic sur "Terminer"
+ */
+async function updateOrderRemote(supabaseOrderId, email) {
+  if (!API_SYNC_CONFIG.enabled) {
+    console.log('[UpdateOrder] API désactivée');
+    return { status: 'skipped', message: 'API désactivée' };
+  }
+
+  try {
+    console.log('[UpdateOrder] ═══════════════════════════════════════════════');
+    console.log('[UpdateOrder] 📝 MISE À JOUR DE COMMANDE SUR SUPABASE');
+    console.log('[UpdateOrder] ═══════════════════════════════════════════════');
+    console.log('[UpdateOrder] Order ID Supabase:', supabaseOrderId);
+    console.log('[UpdateOrder] Email:', email);
+
+    const payload = {
+      customer_email: email,
+      status: 'completed'
+    };
+
+    const updateUrl = `${API_SYNC_CONFIG.url}?id=${supabaseOrderId}`;
+    console.log('[UpdateOrder] URL:', updateUrl);
+    console.log('[UpdateOrder] Payload:', JSON.stringify(payload, null, 2));
+
+    // Récupérer un token d'authentification
+    const authToken = await getAuthToken();
+
+    // Mettre à jour la commande sur Supabase (PUT ou PATCH)
+    const response = await makeHttpsRequest(updateUrl, payload, 'PATCH', {}, authToken);
+
+    console.log('[UpdateOrder] ✅ Commande mise à jour sur Supabase');
+    console.log('[UpdateOrder] Réponse:', JSON.stringify(response, null, 2));
+
+    return { status: 'success', response };
+
+  } catch (error) {
+    console.error('[UpdateOrder] ❌ Erreur mise à jour commande:', error);
+    return { status: 'error', error: error.message };
+  }
+}
+
+/**
  * Utilitaire pour faire une requête HTTPS
  * @param {string} url - URL complète
  * @param {object} data - Données à envoyer (sera converti en JSON)
@@ -1349,6 +1472,16 @@ function startSyncRetrySystem() {
 // Handler IPC pour synchroniser une commande
 ipcMain.handle('order:sync-remote', async (event, orderId) => {
   return await syncOrderToRemoteAPI(orderId);
+});
+
+// Handler IPC pour créer une commande sur Supabase (status=pending)
+ipcMain.handle('order:create-remote', async (event, orderData) => {
+  return await createOrderRemote(orderData);
+});
+
+// Handler IPC pour mettre à jour une commande sur Supabase (status=completed + email)
+ipcMain.handle('order:update-remote', async (event, supabaseOrderId, email) => {
+  return await updateOrderRemote(supabaseOrderId, email);
 });
 
 /**
