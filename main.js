@@ -1387,16 +1387,16 @@ async function updateOrderRemote(supabaseOrderId, email, localOrderId) {
     console.log('[UpdateOrder]   - status:', existingOrder.status, '→', 'completed');
     console.log('[UpdateOrder] ═══════════════════════════════════════════════');
 
-    // ÉTAPE 3: POST le payload mis à jour
+    // ÉTAPE 3: PUT le payload mis à jour
     console.log('[UpdateOrder] ÉTAPE 3: Envoi de la mise à jour...');
 
     const updateUrl = `${API_SYNC_CONFIG.url}?id=${supabaseOrderId}`;
-    console.log('[UpdateOrder] POST URL:', updateUrl);
+    console.log('[UpdateOrder] PUT URL:', updateUrl);
 
     const response = await makeHttpsRequestWithRetry(
       updateUrl,
       payload,
-      'POST',
+      'PUT',
       {
         'apikey': API_SYNC_CONFIG.supabaseAnonKey
       },
