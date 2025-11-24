@@ -1205,6 +1205,7 @@ async function createOrderRemote(orderData) {
     console.log('[CreateOrder] Données reçues (orderData):');
     console.log(JSON.stringify(orderData, null, 2));
     console.log('[CreateOrder]   - participantId:', orderData.participantId);
+    console.log('[CreateOrder]   - universeId:', orderData.universeId);
     console.log('[CreateOrder]   - totalAmount:', orderData.totalAmount);
     console.log('[CreateOrder]   - items:', orderData.items?.length, 'item(s)');
 
@@ -1236,6 +1237,7 @@ async function createOrderRemote(orderData) {
 
     console.log('[CreateOrder] Préparation du payload:');
     console.log('[CreateOrder]   - customer_name (de participantId):', customer_name);
+    console.log('[CreateOrder]   - universe_id (de orderData):', orderData.universeId);
     console.log('[CreateOrder]   - total_amount_raw (avant conversion):', total_amount_raw);
     console.log('[CreateOrder]   - total_amount (en centimes):', total_amount);
 
@@ -1247,6 +1249,7 @@ async function createOrderRemote(orderData) {
       sales_point_id: API_SYNC_CONFIG.salesPointId,
       kiosk_id: API_SYNC_CONFIG.kioskId,
       memory_session_id: null,
+      universe_id: orderData.universeId || null, // 🆕 ID de l'univers du participant
       status: 'pending', // Status en attente
       order_items: itemsWithPhotoUrls.map(item => ({
         product_id: item.productId,
@@ -1356,6 +1359,7 @@ async function updateOrderRemote(supabaseOrderId, email, localOrderId) {
     console.log('[UpdateOrder] ✅ Commande existante récupérée:');
     console.log('[UpdateOrder]   - customer_name:', existingOrder.customer_name);
     console.log('[UpdateOrder]   - customer_email:', existingOrder.customer_email);
+    console.log('[UpdateOrder]   - universe_id:', existingOrder.universe_id);
     console.log('[UpdateOrder]   - total_amount:', existingOrder.total_amount);
     console.log('[UpdateOrder]   - status actuel:', existingOrder.status);
     console.log('[UpdateOrder]   - order_items:', existingOrder.order_items?.length || 0, 'item(s)');
@@ -1376,6 +1380,7 @@ async function updateOrderRemote(supabaseOrderId, email, localOrderId) {
       sales_point_id: existingOrder.sales_point_id,
       kiosk_id: existingOrder.kiosk_id,
       memory_session_id: existingOrder.memory_session_id,
+      universe_id: existingOrder.universe_id || null, // 🆕 Préserver l'universe_id existant
       status: 'completed', // ← SEUL CHANGEMENT FORCÉ
       order_items: existingOrder.order_items || []
     };
