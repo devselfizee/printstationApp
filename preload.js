@@ -7,6 +7,38 @@
 
 const { contextBridge, ipcRenderer } = require('electron');
 
+// DEBUT HEXAPAY TOOLS
+console.log('[Preload] Loading Hexapay API...');
+try {
+  contextBridge.exposeInMainWorld('hexapay', {
+    checkReady: async () => {
+      console.log('[Preload] checkReady called');
+      return await ipcRenderer.invoke('hexapay:check-ready');
+    },
+    checkLicense: async () => {
+      console.log('[Preload] checkLicense called');
+      return await ipcRenderer.invoke('hexapay:check-license');
+    },
+    initiatePayment: async (amount) => {
+      console.log('[Preload] initiatePayment called with', amount);
+      return await ipcRenderer.invoke('hexapay:initiate-payment', amount);
+    },
+    confirmPayment: async (amount) => {
+      console.log('[Preload] confirmPayment called with', amount);
+      return await ipcRenderer.invoke('hexapay:confirm-payment', amount);
+    },
+    cancelPayment: async () => {
+      console.log('[Preload] cancelPayment called');
+      return await ipcRenderer.invoke('hexapay:cancel-payment');
+    }
+  });
+
+  console.log('[Preload] Hexapay API exposed successfully');
+} catch (err) {
+  console.error('[Preload] Error exposing API:', err);
+}
+// FIN HEXAPAY TOOLS
+
 // API sécurisée exposée au renderer
 const photoAPI = {
   // Photos

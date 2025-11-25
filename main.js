@@ -1,21 +1,1119 @@
-/**
- * main.js - Electron main process
- * Version corrigée avec gestion gracieuse du photosystem
- */
-
 import { app, BrowserWindow, ipcMain, Menu, protocol } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import * as fs from 'fs';
 import * as dotenv from 'dotenv';
 import https from 'https';
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// DEBUT HEXAPAY TOOLS
+import dgram from 'dgram';
+import os from 'os';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+const execAsync = promisify(exec);
+const HEXAPAY_CONFIG = {
+  host: 'localhost',
+  serverPort: 50001,
+  clientPort: 50000
+};
+// Timeouts optimisés pour production (en ms)
+const TIMEOUTS = {
+  ACK: 1000,              // ACK_TIMEOUT_VALUE = 1s
+  COMMAND: 5000,          // TIMEOUT_VALUE = 5s (CBready, CBinfos)
+  CANCEL: 3000,           // CANCEL_TIMEOUT_VALUE = 3s
+  PAYMENT: 60000,         // 60s au lieu de 40s (plus sûr)
+  VALIDATION: 30000,      // 30s au lieu de 20s
+  PAYMENT_SLOW: 90000,    // Mode "slow" pour cartes lentes
+  VALIDATION_SLOW: 45000  // Mode "slow" pour validation
+};
+const LOG_FILE_PATH = app.isPackaged 
+  ? path.join(os.homedir(), 'Desktop', 'hexapay.log')
+  : path.join(__dirname, 'hexapay.log');
+const TRANSACTION_LOG_PATH = LOG_FILE_PATH.replace('.log', '-transactions.log');
+// Créer/Vider les fichiers log au démarrage
+try {
+  const logDir = path.dirname(LOG_FILE_PATH);
+  if (!fs.existsSync(logDir)) {
+    fs.mkdirSync(logDir, { recursive: true });
+  }
+  fs.writeFileSync(LOG_FILE_PATH, `=== HEXAPAY LOG - ${new Date().toISOString()} ===\n`, 'utf8');
+  fs.writeFileSync(TRANSACTION_LOG_PATH, `=== TRANSACTIONS LOG - ${new Date().toISOString()} ===\n`, 'utf8');
+  console.log(`📝 Fichiers log créés:\n   - ${LOG_FILE_PATH}\n   - ${TRANSACTION_LOG_PATH}`);
+} catch (err) {
+  console.error('❌ Impossible de créer les fichiers log:', err.message);
+}
+
+const log = (level, message, data = {}) => {
+  const timestamp = new Date().toISOString();
+  const levelColors = {
+    debug: '\x1b[36m',
+    info: '\x1b[32m',
+    error: '\x1b[31m',
+    warn: '\x1b[33m'
+  };
+  const reset = '\x1b[0m';
+  const color = levelColors[level] || '';
+  const dataStr = Object.keys(data).length > 0 ? '\n  ' + JSON.stringify(data, null, 2).split('\n').join('\n  ') : '';
+  
+  console.log(`${color}[${timestamp}] [${level.toUpperCase()}]${reset} ${message}${dataStr}`);
+  const logLine = `[${timestamp}] [${level.toUpperCase()}] ${message}${dataStr}\n`;
+  
+  try {
+    fs.appendFileSync(LOG_FILE_PATH, logLine, 'utf8');
+  } catch (err) {
+    console.error('❌ Erreur écriture log:', err.message);
+  }
+};
+
+// ============================================================================
+// TRANSACTION LOGGER - Logs structurés avec IDs uniques
+// ============================================================================
+
+class TransactionLogger {
+  constructor(logFilePath) {
+    this.logFilePath = logFilePath;
+  }
+
+  logTransaction(type, data) {
+    const entry = {
+      timestamp: new Date().toISOString(),
+      type,
+      transactionId: data.transactionId || this.generateTransactionId(),
+      ...data
+    };
+
+    const line = JSON.stringify(entry) + '\n';
+    
+    try {
+      fs.appendFileSync(this.logFilePath, line, 'utf8');
+    } catch (err) {
+      log('error', '❌ Could not write transaction log', { error: err.message });
+    }
+    
+    return entry.transactionId;
+  }
+
+  generateTransactionId() {
+    const now = new Date();
+    const date = now.toISOString().slice(0, 10).replace(/-/g, '');
+    const time = now.toTimeString().slice(0, 8).replace(/:/g, '');
+    const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+    return `TRX-${date}-${time}-${random}`;
+  }
+}
+
+const txLogger = new TransactionLogger(TRANSACTION_LOG_PATH);
+
+// ============================================================================
+// TIMEOUT TRACKER - Détection des timeouts fréquents
+// ============================================================================
+
+class TimeoutTracker {
+  constructor() {
+    this.timeouts = [];
+    this.slowModeThreshold = 2; // 2 timeouts = mode slow
+  }
+
+  recordTimeout(command) {
+    this.timeouts.push({ command, timestamp: Date.now() });
+    
+    if (this.timeouts.length > 10) {
+      this.timeouts.shift();
+    }
+    
+    log('warn', '⚠️ Timeout recorded', { 
+      command, 
+      totalTimeouts: this.timeouts.length,
+      slowMode: this.shouldUseSlowMode()
+    });
+  }
+
+  shouldUseSlowMode() {
+    const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
+    const recentTimeouts = this.timeouts.filter(t => t.timestamp > fiveMinutesAgo);
+    return recentTimeouts.length >= this.slowModeThreshold;
+  }
+
+  getStats() {
+    return {
+      total: this.timeouts.length,
+      recent: this.timeouts.filter(t => t.timestamp > Date.now() - 5 * 60 * 1000).length,
+      slowMode: this.shouldUseSlowMode()
+    };
+  }
+}
+
+const timeoutTracker = new TimeoutTracker();
+
+// ============================================================================
+// CRASH RECOVERY - Persistence et récupération d'état
+// ============================================================================
+
+class CrashRecovery {
+  constructor() {
+    this.stateFile = path.join(os.homedir(), 'Desktop', 'hexapay-state.json');
+  }
+
+  saveState(state) {
+    try {
+      const stateWithTimestamp = {
+        ...state,
+        savedAt: new Date().toISOString()
+      };
+      fs.writeFileSync(this.stateFile, JSON.stringify(stateWithTimestamp, null, 2));
+      log('debug', '💾 State saved', stateWithTimestamp);
+    } catch (err) {
+      log('error', '❌ Could not save state', { error: err.message });
+    }
+  }
+
+  loadState() {
+    try {
+      if (fs.existsSync(this.stateFile)) {
+        const content = fs.readFileSync(this.stateFile, 'utf8');
+        return JSON.parse(content);
+      }
+    } catch (err) {
+      log('error', '❌ Could not load state', { error: err.message });
+    }
+    return null;
+  }
+
+  clearState() {
+    try {
+      if (fs.existsSync(this.stateFile)) {
+        fs.unlinkSync(this.stateFile);
+        log('debug', '🗑️ State cleared');
+      }
+    } catch (err) {
+      log('error', '❌ Could not clear state', { error: err.message });
+    }
+  }
+
+  async recover(hexapayClient) {
+    const state = this.loadState();
+    
+    if (!state) {
+      log('info', 'ℹ️ No previous state to recover');
+      return;
+    }
+
+    const stateAge = Date.now() - new Date(state.savedAt).getTime();
+    log('warn', '⚠️ Found previous incomplete transaction', { 
+      ...state, 
+      stateAgeSeconds: Math.floor(stateAge / 1000) 
+    });
+
+    if (state.paymentInProgress) {
+      log('warn', '🔧 Attempting to recover payment state...');
+      
+      try {
+        await hexapayClient.forceUnblockTPA();
+        log('info', '✅ Recovery completed');
+      } catch (err) {
+        log('error', '❌ Could not complete recovery', { error: err.message });
+      }
+    }
+
+    this.clearState();
+  }
+}
+
+const recovery = new CrashRecovery();
+
+// ============================================================================
+// HEXAPAY WATCHDOG - Surveillance Hexapay.exe
+// ============================================================================
+
+class HexapayWatchdog {
+  constructor() {
+    this.checkInterval = 30000; // 30s
+    this.isRunning = false;
+    this.consecutiveFailures = 0;
+    this.maxFailures = 3;
+  }
+
+  async start() {
+    this.isRunning = true;
+    log('info', '👁️ Watchdog started');
+    this.check();
+  }
+
+  async check() {
+    if (!this.isRunning) return;
+
+    const running = await this.isHexapayRunning();
+    
+    if (!running) {
+      this.consecutiveFailures++;
+      log('error', '❌ Hexapay.exe not running!', { 
+        consecutiveFailures: this.consecutiveFailures,
+        maxFailures: this.maxFailures
+      });
+      
+      if (this.consecutiveFailures >= this.maxFailures) {
+        log('error', '🚨 CRITICAL: Hexapay.exe down for too long!');
+        // TODO: Envoyer alerte, tenter redémarrage, etc.
+      }
+    } else {
+      if (this.consecutiveFailures > 0) {
+        log('info', '✅ Hexapay.exe is running again');
+      }
+      this.consecutiveFailures = 0;
+    }
+
+    setTimeout(() => this.check(), this.checkInterval);
+  }
+
+  async isHexapayRunning() {
+    try {
+      if (process.platform === 'win32') {
+        const { stdout } = await execAsync('tasklist /FI "IMAGENAME eq hexapay.exe"');
+        return stdout.toLowerCase().includes('hexapay.exe');
+      } else {
+        const { stdout } = await execAsync('ps aux | grep -i hexapay | grep -v grep');
+        return stdout.trim().length > 0;
+      }
+    } catch (err) {
+      // ps/tasklist peut retourner code 1 si pas de résultat
+      return false;
+    }
+  }
+
+  stop() {
+    this.isRunning = false;
+    log('info', '👁️ Watchdog stopped');
+  }
+}
+
+const watchdog = new HexapayWatchdog();
+
+// ============================================================================
+// VALIDATION UTILS - Validation stricte des entrées
+// ============================================================================
+
+function validateAmount(amount) {
+  // Vérifier que c'est un nombre
+  if (typeof amount !== 'number' || isNaN(amount)) {
+    throw new Error('Amount must be a valid number');
+  }
+
+  // Vérifier que c'est positif
+  if (amount <= 0) {
+    throw new Error('Amount must be positive');
+  }
+
+  // Vérifier les limites (max 999.99€)
+  if (amount > 999.99) {
+    throw new Error('Amount exceeds maximum (999.99€)');
+  }
+
+  // Vérifier minimum (0.01€)
+  if (amount < 0.01) {
+    throw new Error('Amount below minimum (0.01€)');
+  }
+
+  // Vérifier la précision (max 2 décimales)
+  const cents = Math.round(amount * 100);
+  const reconstructed = cents / 100;
+  if (Math.abs(amount - reconstructed) > 0.001) {
+    throw new Error('Amount has too many decimal places');
+  }
+
+  return reconstructed; // Retourner le montant normalisé
+}
+
+// ============================================================================
+// HEXAPAY CLIENT - Version production avec tous les correctifs
+// ============================================================================
+
+class HexapayClient {
+  constructor() {
+    this.socket = null;
+    this.activated = false;
+    this.sendRxAck = false;
+    this.lastMessage = '';
+    this.lastResponse = '';
+    
+    this.paymentRequested = false;
+    this.validationRequested = false;
+    
+    // Rate limiting
+    this.lastCommandTime = 0;
+    this.minCommandInterval = 500; // 500ms minimum entre commandes
+    
+    // Statistiques
+    this.stats = {
+      commandsSent: 0,
+      responsesReceived: 0,
+      timeouts: 0,
+      errors: 0
+    };
+  }
+
+  async init() {
+    log('info', '🚀 Initializing HexapayClient...');
+    
+    this.socket = dgram.createSocket('udp4');
+    
+    this.socket.on('message', (msg, rinfo) => {
+      const response = msg.toString('utf-8').trim();
+      this.lastResponse = response;
+      this.stats.responsesReceived++;
+      
+      log('debug', '📥 UDP response received', { 
+        response, 
+        from: `${rinfo.address}:${rinfo.port}`,
+        isAck: response.startsWith('rx'),
+        stats: this.stats
+      });
+      
+      if (response.startsWith('rx')) {
+        this.socket.emit('ack-received', response);
+      } else {
+        this.socket.emit('data-received', response);
+      }
+    });
+
+    this.socket.on('error', (err) => {
+      this.stats.errors++;
+      log('error', '❌ UDP socket error', { 
+        message: err.message, 
+        code: err.code,
+        stats: this.stats
+      });
+      
+      if (err.code === 'EADDRINUSE') {
+        log('error', `🚨 Port ${HEXAPAY_CONFIG.clientPort} déjà utilisé`, {
+          solution: 'Fermer les autres instances ou changer le port dans HEXAPAY_CONFIG'
+        });
+      }
+    });
+
+    try {
+      await new Promise((resolve, reject) => {
+        this.socket.bind(HEXAPAY_CONFIG.clientPort, '127.0.0.1', () => {
+          log('info', '✅ UDP socket bound', { 
+            port: HEXAPAY_CONFIG.clientPort,
+            host: '127.0.0.1'
+          });
+          this.activated = true;
+          resolve();
+        });
+        
+        this.socket.on('error', reject);
+        
+        // Timeout si bind prend trop de temps
+        setTimeout(() => reject(new Error('Bind timeout')), 5000);
+      });
+      
+      // Tenter de débloquer le TPA au démarrage
+      await this.forceUnblockTPA();
+      
+    } catch (err) {
+      log('error', '❌ Failed to initialize socket', { error: err.message });
+      this.activated = false;
+      throw err;
+    }
+  }
+
+  /**
+   * Forcer le déblocage du TPA
+   * Appelé au démarrage pour nettoyer tout état bloqué
+   */
+  async forceUnblockTPA() {
+    log('info', '🔧 Attempting to force unblock TPA...');
+    
+    let attempts = 0;
+    const maxAttempts = 3;
+    
+    while (attempts < maxAttempts) {
+      try {
+        const result = await this.CBCancel();
+        
+        if (result.success) {
+          log('info', '✅ TPA unblocked successfully', { attempt: attempts + 1 });
+          return true;
+        }
+        
+        // Si timeout, c'est probablement normal (pas de paiement en cours)
+        if (result.error && result.error.includes('Timeout')) {
+          log('info', '✅ TPA appears clean (timeout on cancel is normal)');
+          return true;
+        }
+        
+      } catch (err) {
+        log('warn', '⚠️ Unblock attempt failed', { 
+          attempt: attempts + 1, 
+          error: err.message 
+        });
+      }
+      
+      attempts++;
+      
+      if (attempts < maxAttempts) {
+        await new Promise(r => setTimeout(r, 1000));
+      }
+    }
+    
+    log('warn', '⚠️ Could not confirm TPA unblock, continuing anyway');
+    return false;
+  }
+
+  /**
+   * sendAndPoll avec rate limiting et gestion d'erreur améliorée
+   */
+  async sendAndPoll(message, timeoutSeconds) {
+    if (!this.activated) {
+      const error = new Error('HEXA_WRAPPER_NOT_READY');
+      log('error', '❌ Socket not ready', { message });
+      throw error;
+    }
+
+    // Rate limiting
+    const now = Date.now();
+    const timeSinceLastCommand = now - this.lastCommandTime;
+    
+    if (timeSinceLastCommand < this.minCommandInterval) {
+      const waitTime = this.minCommandInterval - timeSinceLastCommand;
+      log('debug', '⏸️ Rate limit, waiting...', { waitMs: waitTime });
+      await new Promise(r => setTimeout(r, waitTime));
+    }
+    
+    this.lastCommandTime = Date.now();
+    this.stats.commandsSent++;
+
+    return new Promise((resolve, reject) => {
+      let ackReceived = false;
+      let dataReceived = false;
+      let ackTimer = null;
+      let dataTimer = null;
+
+      const commandParts = message.split(':');
+      const baseCommand = commandParts[0];
+      this.lastMessage = baseCommand;
+
+      log('info', '📡 Sending command', {
+        command: message,
+        baseCommand,
+        timeout: `${timeoutSeconds}s`,
+        expectAck: this.sendRxAck,
+        stats: this.stats
+      });
+
+      const ackHandler = (ack) => {
+        const expectedAck = 'rx' + baseCommand;
+        log('debug', '📨 ACK received', { ack, expected: expectedAck });
+        
+        if (ack === expectedAck) {
+          ackReceived = true;
+          if (ackTimer) clearTimeout(ackTimer);
+          log('debug', '✅ ACK matched');
+        }
+      };
+
+      const dataHandler = (data) => {
+        log('debug', '📦 Data received', { data });
+        
+        if (data.startsWith('rx')) {
+          return;
+        }
+        
+        dataReceived = true;
+        if (dataTimer) clearTimeout(dataTimer);
+        
+        this.socket.removeListener('ack-received', ackHandler);
+        this.socket.removeListener('data-received', dataHandler);
+        
+        if (data === 'rxCmderr' || data === '') {
+          const error = new Error('HEXA_CMD_UNKNOWN');
+          log('error', '❌ Command unknown or empty response', { data });
+          reject(error);
+        } else {
+          log('info', '✅ Command successful', { command: message, response: data });
+          resolve(data);
+        }
+      };
+
+      this.socket.on('ack-received', ackHandler);
+      this.socket.on('data-received', dataHandler);
+
+      if (this.sendRxAck) {
+        ackTimer = setTimeout(() => {
+          if (!ackReceived) {
+            this.stats.errors++;
+            log('error', '⏱️ ACK timeout', { 
+              command: message,
+              timeout: `${TIMEOUTS.ACK}ms`
+            });
+            this.socket.removeListener('ack-received', ackHandler);
+            this.socket.removeListener('data-received', dataHandler);
+            if (dataTimer) clearTimeout(dataTimer);
+            reject(new Error('HEXA_NOACK'));
+          }
+        }, TIMEOUTS.ACK);
+      }
+
+      dataTimer = setTimeout(() => {
+        if (!dataReceived) {
+          this.stats.timeouts++;
+          timeoutTracker.recordTimeout(baseCommand);
+          log('error', '⏱️ Command timeout', { 
+            command: message,
+            timeout: `${timeoutSeconds}s`,
+            stats: this.stats
+          });
+          this.socket.removeListener('ack-received', ackHandler);
+          this.socket.removeListener('data-received', dataHandler);
+          if (ackTimer) clearTimeout(ackTimer);
+          reject(new Error('HEXA_TIMEOUT'));
+        }
+      }, timeoutSeconds * 1000);
+
+      const buffer = Buffer.from(message, 'utf-8');
+      this.socket.send(
+        buffer, 
+        0, 
+        buffer.length, 
+        HEXAPAY_CONFIG.serverPort, 
+        HEXAPAY_CONFIG.host, 
+        (err) => {
+          if (err) {
+            this.stats.errors++;
+            log('error', '❌ Failed to send UDP packet', { 
+              command: message, 
+              error: err.message 
+            });
+            if (ackTimer) clearTimeout(ackTimer);
+            if (dataTimer) clearTimeout(dataTimer);
+            this.socket.removeListener('ack-received', ackHandler);
+            this.socket.removeListener('data-received', dataHandler);
+            reject(err);
+          } else {
+            log('debug', '📤 UDP packet sent', { 
+              command: message,
+              bytes: buffer.length 
+            });
+          }
+        }
+      );
+    });
+  }
+
+  /**
+   * CBReady - Vérifie si le lecteur est prêt
+   */
+  async CBReady() {
+    log('info', '🔍 Checking if card reader is ready...');
+    
+    if (this.paymentRequested) {
+      log('warn', '⚠️ Payment in progress, resetting flag');
+      this.paymentRequested = false;
+    }
+
+    try {
+      const response = await this.sendAndPoll('CBready', TIMEOUTS.COMMAND / 1000);
+      
+      if (response === 'CBreadyOk') {
+        log('info', '✅ Card reader is ready');
+        return { success: true, ready: true };
+      } else if (response === 'CBreaderbusy') {
+        log('warn', '⚠️ Card reader is busy');
+        return { success: true, ready: false, busy: true };
+      } else {
+        log('error', '❌ Unknown ready response', { response });
+        return { success: false, error: 'Unknown response: ' + response };
+      }
+    } catch (err) {
+      log('error', '❌ Communication error', { error: err.message });
+      return { success: false, error: err.message };
+    }
+  }
+
+  /**
+   * CBInfos - Vérifie l'activation de la licence
+   */
+  async CBInfos() {
+    log('info', '🔍 Checking license activation...');
+    
+    if (this.paymentRequested) {
+      log('error', '❌ Payment in progress');
+      return { success: false, error: 'Payment in progress' };
+    }
+
+    try {
+      const response = await this.sendAndPoll('CBinfos', TIMEOUTS.COMMAND / 1000);
+      
+      if (response === 'CBregistered') {
+        log('info', '✅ License is active');
+        return { success: true, registered: true };
+      } else if (response === 'CBnotRegistered') {
+        log('warn', '⚠️ License not registered');
+        return { success: true, registered: false };
+      } else {
+        log('error', '❌ Unknown license response', { response });
+        return { success: false, error: 'Unknown response: ' + response };
+      }
+    } catch (err) {
+      log('error', '❌ Communication error', { error: err.message });
+      return { success: false, error: err.message };
+    }
+  }
+
+  /**
+   * CBCancel - Annule un paiement en cours
+   */
+  async CBCancel() {
+    log('info', '🚫 Cancelling payment...');
+    this.paymentRequested = false;
+
+    try {
+      const response = await this.sendAndPoll('CBcancel', TIMEOUTS.CANCEL / 1000);
+      
+      if (response === 'CBcancelled') {
+        log('info', '✅ Payment cancelled');
+        return { success: true };
+      } else {
+        log('warn', '⚠️ Unexpected cancel response', { response });
+        return { success: false, error: 'Cancel error: ' + response };
+      }
+    } catch (err) {
+      if (err.message === 'HEXA_TIMEOUT') {
+        log('debug', 'ℹ️ Cancel timeout (normal if no payment in progress)');
+        return { success: true };
+      }
+      log('error', '❌ Cancel communication error', { error: err.message });
+      return { success: false, error: err.message };
+    }
+  }
+
+  /**
+   * readyToProceed - Vérifie que le système est prêt avec retry intelligent
+   */
+  async readyToProceed() {
+    log('info', '🔄 Checking if system is ready to proceed...');
+    
+    // Vérifier d'abord que le socket est activé
+    if (!this.activated) {
+      log('error', '❌ Socket not initialized, cannot proceed');
+      return false;
+    }
+
+    let retries = 3;
+    let lastError = null;
+    
+    while (retries > 0) {
+      try {
+        const readyResult = await this.CBReady();
+        
+        // Succès
+        if (readyResult.success && readyResult.ready) {
+          log('info', '✅ System ready to proceed');
+          return true;
+        }
+        
+        // TPA occupé → essayer de débloquer
+        if (readyResult.busy) {
+          log('warn', '⚠️ TPA busy, attempting to cancel...', { retriesLeft: retries });
+          await this.CBCancel();
+          lastError = 'TPA was busy';
+        } 
+        // Erreur socket → ne pas retry
+        else if (readyResult.error && readyResult.error.includes('HEXA_WRAPPER_NOT_READY')) {
+          log('error', '❌ Socket not ready, aborting retries');
+          return false;
+        }
+        // Timeout répété → peut-être Hexapay.exe down
+        else if (readyResult.error && readyResult.error.includes('HEXA_TIMEOUT')) {
+          lastError = 'Communication timeout';
+          log('warn', '⚠️ CBReady timeout', { 
+            error: lastError, 
+            retriesLeft: retries,
+            hint: 'Check if Hexapay.exe is running'
+          });
+        }
+        // Autre erreur
+        else {
+          lastError = readyResult.error || 'Unknown error';
+          log('warn', '⚠️ CBReady failed', { error: lastError, retriesLeft: retries });
+        }
+        
+      } catch (err) {
+        lastError = err.message;
+        log('error', '❌ Exception in readyToProceed', { 
+          error: err.message, 
+          retriesLeft: retries 
+        });
+      }
+      
+      retries--;
+      
+      // Attendre avant retry (sauf si socket HS)
+      if (retries > 0 && !lastError.includes('HEXA_WRAPPER_NOT_READY')) {
+        log('info', '⏳ Waiting 5s before retry...', { retriesLeft: retries });
+        await new Promise(resolve => setTimeout(resolve, 5000));
+      } else if (lastError.includes('HEXA_WRAPPER_NOT_READY')) {
+        break; // Sortir immédiatement si socket HS
+      }
+    }
+    
+    log('error', '❌ System not ready after all retries', { lastError });
+    return false;
+  }
+
+  /**
+   * requestPayment - Demande un paiement avec timeout adaptatif
+   */
+  async requestPayment(amount) {
+    log('info', '💳 Requesting payment...', { amount });
+    
+    // Validation stricte du montant
+    let validAmount;
+    try {
+      validAmount = validateAmount(amount);
+    } catch (err) {
+      log('error', '❌ Invalid amount', { amount, error: err.message });
+      return { success: false, error: err.message };
+    }
+
+    // Générer ID transaction
+    const txId = txLogger.logTransaction('payment_initiated', {
+      amount: validAmount,
+      status: 'initiated'
+    });
+
+    // Sauvegarder état (crash recovery)
+    recovery.saveState({
+      paymentInProgress: true,
+      amount: validAmount,
+      transactionId: txId
+    });
+
+    // Vérifier que le système est prêt
+    const isReady = await this.readyToProceed();
+    if (!isReady) {
+      log('error', '❌ System not ready, payment aborted');
+      txLogger.logTransaction('payment_aborted', {
+        transactionId: txId,
+        amount: validAmount,
+        status: 'aborted',
+        reason: 'System not ready'
+      });
+      recovery.clearState();
+      return { success: false, error: 'Device not ready' };
+    }
+
+    // Formater le montant
+    const amountStr = validAmount.toFixed(2).replace('.', ',');
+    const command = `CBpay:${amountStr}`;
+    
+    // Choisir le timeout adapté
+    const slowMode = timeoutTracker.shouldUseSlowMode();
+    const timeout = slowMode ? TIMEOUTS.PAYMENT_SLOW : TIMEOUTS.PAYMENT;
+    
+    this.paymentRequested = true;
+    
+    try {
+      log('info', '💳 Initiating payment', { 
+        amount: validAmount, 
+        formatted: amountStr,
+        timeout: `${timeout}ms`,
+        slowMode,
+        transactionId: txId
+      });
+      
+      const response = await this.sendAndPoll(command, timeout / 1000);
+      
+      this.paymentRequested = false;
+      
+      if (response === 'CBaccepted') {
+        log('info', '✅ Payment accepted', { amount: amountStr, transactionId: txId });
+        txLogger.logTransaction('payment_accepted', {
+          transactionId: txId,
+          amount: validAmount,
+          status: 'accepted'
+        });
+        return { success: true, accepted: true, transactionId: txId };
+        
+      } else if (response === 'CBcancelled') {
+        log('warn', '⚠️ Payment cancelled', { amount: amountStr, transactionId: txId });
+        txLogger.logTransaction('payment_cancelled', {
+          transactionId: txId,
+          amount: validAmount,
+          status: 'cancelled'
+        });
+        recovery.clearState();
+        return { success: false, error: 'Payment cancelled or timeout' };
+        
+      } else if (response === 'CBrefused') {
+        log('warn', '⚠️ Card refused', { amount: amountStr, transactionId: txId });
+        txLogger.logTransaction('payment_refused', {
+          transactionId: txId,
+          amount: validAmount,
+          status: 'refused'
+        });
+        recovery.clearState();
+        return { success: false, error: 'Card refused by bank' };
+        
+      } else if (response === 'CBnotRegistered') {
+        log('error', '❌ Terminal not registered', { amount: amountStr, transactionId: txId });
+        txLogger.logTransaction('payment_error', {
+          transactionId: txId,
+          amount: validAmount,
+          status: 'error',
+          error: 'Terminal not registered'
+        });
+        recovery.clearState();
+        setTimeout(() => this.CBInfos(), 2000);
+        return { success: false, error: 'Terminal not registered' };
+        
+      } else {
+        log('error', '❌ Unknown payment response', { response, transactionId: txId });
+        txLogger.logTransaction('payment_error', {
+          transactionId: txId,
+          amount: validAmount,
+          status: 'error',
+          error: 'Unknown response: ' + response
+        });
+        recovery.clearState();
+        return { success: false, error: 'Unknown response: ' + response };
+      }
+      
+    } catch (err) {
+      this.paymentRequested = false;
+      
+      if (err.message === 'HEXA_TIMEOUT') {
+        log('error', '⏱️ Payment timeout', { amount: amountStr, transactionId: txId });
+        txLogger.logTransaction('payment_timeout', {
+          transactionId: txId,
+          amount: validAmount,
+          status: 'timeout'
+        });
+        
+        // Essayer d'annuler
+        await this.CBCancel();
+        recovery.clearState();
+        
+        return { success: false, error: 'Payment timeout' };
+      }
+      
+      log('error', '❌ Payment error', { error: err.message, transactionId: txId });
+      txLogger.logTransaction('payment_error', {
+        transactionId: txId,
+        amount: validAmount,
+        status: 'error',
+        error: err.message
+      });
+      recovery.clearState();
+      
+      return { success: false, error: err.message };
+    }
+  }
+
+  /**
+   * requestValidation - Valide un paiement avec timeout adaptatif
+   */
+  async requestValidation(amount, transactionId) {
+    log('info', '✔️ Requesting payment validation...', { amount, transactionId });
+    
+    // Validation stricte du montant
+    let validAmount;
+    try {
+      validAmount = validateAmount(amount);
+    } catch (err) {
+      log('error', '❌ Invalid amount', { amount, error: err.message });
+      return { success: false, error: err.message };
+    }
+
+    const amountStr = validAmount.toFixed(2).replace('.', ',');
+    const command = `CBpayrec:${amountStr}`;
+    
+    // Choisir le timeout adapté
+    const slowMode = timeoutTracker.shouldUseSlowMode();
+    const timeout = slowMode ? TIMEOUTS.VALIDATION_SLOW : TIMEOUTS.VALIDATION;
+    
+    this.validationRequested = true;
+    
+    try {
+      log('info', '✔️ Validating payment', { 
+        amount: validAmount, 
+        formatted: amountStr,
+        timeout: `${timeout}ms`,
+        slowMode,
+        transactionId
+      });
+      
+      const response = await this.sendAndPoll(command, timeout / 1000);
+      
+      this.validationRequested = false;
+      
+      if (response === 'CBpaydone') {
+        log('info', '✅ Payment validation successful', { amount: amountStr, transactionId });
+        txLogger.logTransaction('payment_validated', {
+          transactionId,
+          amount: validAmount,
+          status: 'validated'
+        });
+        
+        // Nettoyer l'état sauvegardé
+        recovery.clearState();
+        
+        return { success: true, validated: true, transactionId };
+        
+      } else if (response === 'CBaborted') {
+        log('error', '❌ Payment validation failed', { amount: amountStr, transactionId });
+        txLogger.logTransaction('validation_failed', {
+          transactionId,
+          amount: validAmount,
+          status: 'validation_failed'
+        });
+        recovery.clearState();
+        return { success: false, error: 'Validation failed' };
+        
+      } else {
+        log('error', '❌ Unknown validation response', { response, transactionId });
+        txLogger.logTransaction('validation_error', {
+          transactionId,
+          amount: validAmount,
+          status: 'error',
+          error: 'Unknown response: ' + response
+        });
+        recovery.clearState();
+        return { success: false, error: 'Unknown response: ' + response };
+      }
+      
+    } catch (err) {
+      this.validationRequested = false;
+      
+      if (err.message === 'HEXA_TIMEOUT') {
+        log('error', '⏱️ Validation timeout', { amount: amountStr, transactionId });
+        txLogger.logTransaction('validation_timeout', {
+          transactionId,
+          amount: validAmount,
+          status: 'timeout'
+        });
+        recovery.clearState();
+        return { success: false, error: 'Validation timeout' };
+      }
+      
+      log('error', '❌ Validation error', { error: err.message, transactionId });
+      txLogger.logTransaction('validation_error', {
+        transactionId,
+        amount: validAmount,
+        status: 'error',
+        error: err.message
+      });
+      recovery.clearState();
+      
+      return { success: false, error: err.message };
+    }
+  }
+
+  getStats() {
+    return {
+      ...this.stats,
+      timeoutTracker: timeoutTracker.getStats()
+    };
+  }
+
+  close() {
+    if (this.socket) {
+      this.socket.close();
+      log('info', '🔌 UDP socket closed', { stats: this.stats });
+    }
+    this.activated = false;
+  }
+}
+
+// ============================================================================
+// INSTANCE GLOBALE
+// ============================================================================
+let hexapayClient = null;
+function getHexapayClient() {
+  if (!hexapayClient) {
+    hexapayClient = new HexapayClient();
+  }
+  return hexapayClient;
+}
+
+ipcMain.handle('hexapay:check-ready', async () => {
+  log('debug', '🔌 IPC: check-ready called');
+  try {
+    const client = getHexapayClient();
+    const result = await client.CBReady();
+    return result;
+  } catch (error) {
+    log('error', '❌ IPC: check-ready failed', { error: error.message });
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('hexapay:check-license', async () => {
+  log('debug', '🔌 IPC: check-license called');
+  try {
+    const client = getHexapayClient();
+    const result = await client.CBInfos();
+    return result;
+  } catch (error) {
+    log('error', '❌ IPC: check-license failed', { error: error.message });
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('hexapay:initiate-payment', async (event, amount) => {
+  log('debug', '🔌 IPC: initiate-payment called', { amount });
+  try {
+    const client = getHexapayClient();
+    const result = await client.requestPayment(amount);
+    return result;
+  } catch (error) {
+    log('error', '❌ IPC: initiate-payment failed', { error: error.message });
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('hexapay:confirm-payment', async (event, amount, transactionId) => {
+  log('debug', '🔌 IPC: confirm-payment called', { amount, transactionId });
+  try {
+    const client = getHexapayClient();
+    const result = await client.requestValidation(amount, transactionId);
+    return result;
+  } catch (error) {
+    log('error', '❌ IPC: confirm-payment failed', { error: error.message });
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('hexapay:cancel-payment', async () => {
+  log('debug', '🔌 IPC: cancel-payment called');
+  try {
+    const client = getHexapayClient();
+    const result = await client.CBCancel();
+    return result;
+  } catch (error) {
+    log('error', '❌ IPC: cancel-payment failed', { error: error.message });
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('hexapay:get-stats', async () => {
+  log('debug', '🔌 IPC: get-stats called');
+  try {
+    const client = getHexapayClient();
+    return { success: true, stats: client.getStats() };
+  } catch (error) {
+    log('error', '❌ IPC: get-stats failed', { error: error.message });
+    return { success: false, error: error.message };
+  }
+});
+// FIN HEXAPAY TOOLS
 
 // Charger les variables d'environnement
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const envPath = path.join(__dirname, '.env');
 if (fs.existsSync(envPath)) {
   dotenv.config({ path: envPath });
-  console.log('[Main] Variables d\'env chargées');
+  // console.log('[Main] Variables d\'env chargées');
 }
 
 // Configuration de synchronisation API distante
@@ -45,7 +1143,7 @@ let photoSystem = null;
 // Essayer charger le photosystem, mais continuer si erreur
 try {
   photoSystem = await import('./renderer/src/photosystem/photosystem.js').then(m => m.default).catch(err => {
-    console.warn('[Main] PhotoSystem non disponible:', err.message);
+    // console.warn('[Main] PhotoSystem non disponible:', err.message);
     return null;
   });
 } catch (error) {
@@ -89,7 +1187,36 @@ function createWindow() {
  * ===== CUSTOM PROTOCOL FOR LOCAL IMAGES =====
  * Permet d'afficher les images locales via printstation://
  */
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  // DEBUT HEXAPAY TOOLS
+  log('info', '🚀 Electron app ready', {
+    version: app.getVersion(),
+    hexapayConfig: HEXAPAY_CONFIG,
+    timeouts: TIMEOUTS,
+    platform: process.platform,
+    nodeVersion: process.version
+  });
+  try {
+    // Initialiser le client Hexapay
+    const client = getHexapayClient();
+    await client.init();
+    
+    // Récupération après crash
+    await recovery.recover(client);
+    
+    // Démarrer le watchdog
+    await watchdog.start();
+    
+    // Créer la fenêtre
+    createWindow();
+    
+  } catch (err) {
+    log('error', '❌ Failed to initialize application', { error: err.message });
+    app.quit();
+  }
+  // FIN HEXAPAY TOOLS
+
+
   protocol.registerFileProtocol('printstation', (request, callback) => {
     // Extraire le chemin depuis l'URL
     // Format: printstation://local/home/user/Documents/PrintStationApp/Medias/participant_123/photo_001.jpg
@@ -109,7 +1236,7 @@ app.whenReady().then(() => {
     }
   });
   
-  console.log('[Protocol] ✓ Protocole printstation:// enregistré');
+  // console.log('[Protocol] ✓ Protocole printstation:// enregistré');
 });
 
 /**
@@ -117,7 +1244,7 @@ app.whenReady().then(() => {
  */
 
 app.on('ready', async () => {
-  console.log('[Main] Démarrage PrintStation...');
+  // console.log('[Main] Démarrage PrintStation...');
 
   // Initialiser le système de photos SI disponible
   if (photoSystem && photoSystem.initialize) {
@@ -150,6 +1277,14 @@ app.on('ready', async () => {
 });
 
 app.on('window-all-closed', () => {
+  // DEBUT HEXAPAY TOOLS
+  log('info', '🪟 All windows closed');
+  if (hexapayClient) {
+    hexapayClient.close();
+  }
+  watchdog.stop();
+  // FIN HEXAPAY TOOLS
+
   if (process.platform !== 'darwin') {
     app.quit();
   }
@@ -160,6 +1295,30 @@ app.on('activate', () => {
     createWindow();
   }
 });
+
+// DEBUT HEXAPAY TOOLS
+// Gestion des erreurs non capturées
+process.on('uncaughtException', (err) => {
+  log('error', '🚨 UNCAUGHT EXCEPTION', { 
+    error: err.message, 
+    stack: err.stack 
+  });
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  log('error', '🚨 UNHANDLED REJECTION', { 
+    reason: reason instanceof Error ? reason.message : reason,
+    promise 
+  });
+});
+
+log('info', '🎬 Electron app starting...', {
+  nodeVersion: process.version,
+  electronVersion: process.versions.electron,
+  platform: process.platform,
+  arch: process.arch
+});
+// FIN HEXAPAY TOOLS
 
 app.on('before-quit', () => {
   console.log('[Main] Arrêt de PrintStation...');
