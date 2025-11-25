@@ -1,21 +1,39 @@
 export const PRODUCTS = {
-  print: { 
-    id: 'print', 
-    title: 'Photo papier (chevalet)', 
-    first: 10, 
-    next: 8 
+  print: {
+    id: 'print',
+    title: 'Photo papier (chevalet)',
+    first: 10,
+    next: 8
   },
-  magnet: { 
-    id: 'magnet', 
-    title: 'Porte-clé magnétique', 
-    first: 15, 
-    next: 12 
+  magnet: {
+    id: 'magnet',
+    title: 'Porte-clé magnétique',
+    first: 15,
+    next: 12
   }
 };
 
 export const UNIVERSES = {
-  universe1: {
-    id: 'universe1',
+  A: {
+    id: 'A',
+    name: "L'horizon de kheops",
+    banner: './assets/banniere-kheops.jpg',
+    photos: [
+      { id: 'p4', title: 'Devant la pyramide', src: './assets/kheops1.jpg' },
+      { id: 'p5', title: 'En haut de la pyramide', src: './assets/kheops2.jpg' },
+      { id: 'p6', title: 'Vue du ciel', src: './assets/kheops3.jpg' }
+    ],
+    productVisuals: {
+      print: {
+        image: './assets/chevalet-kheops.png'
+      },
+      magnet: {
+        image: './assets/porte-cle-kheops.png'
+      }
+    }
+  },
+  B: {
+    id: 'B',
     name: 'Mondes Disparus',
     banner: './assets/banniere-monde-perdu.jpg',
     photos: [
@@ -31,24 +49,6 @@ export const UNIVERSES = {
         image: './assets/porte-cle-disparu.png'
       }
     }
-  },
-  universe2: {
-    id: 'universe2',
-    name: "L'horizon de khepos",
-    banner: './assets/banniere-kheops.jpg',
-    photos: [
-      { id: 'p4', title: 'Devant la pyramide', src: './assets/kheops1.jpg' },
-      { id: 'p5', title: 'En haut de la pyramide', src: './assets/kheops2.jpg' },
-      { id: 'p6', title: 'Vue du ciel', src: './assets/kheops3.jpg' }
-    ],
-    productVisuals: {
-      print: {
-        image: './assets/chevalet-kheops.png'
-      },
-      magnet: {
-        image: './assets/porte-cle-kheops.png'
-      }
-    }
   }
 };
 
@@ -58,5 +58,23 @@ export const getProductVisual = (universeId, productId) => {
   if (!universe || !universe.productVisuals) {
     return null;
   }
-  return universe.productVisuals[productId];
+
+  // Support pour les IDs numériques et textuels
+  // Si le productId est numérique, on cherche d'abord par ID exact, puis par les anciennes clés
+  let visual = universe.productVisuals[productId];
+
+  // Si pas trouvé et que c'est un ID numérique, essayer les mappings par défaut
+  if (!visual && typeof productId === 'number') {
+    // Mapping basique : 1 = print, 2 = magnet (ajustable selon votre API)
+    const mapping = {
+      1: 'print',
+      2: 'magnet'
+    };
+    const mappedKey = mapping[productId];
+    if (mappedKey) {
+      visual = universe.productVisuals[mappedKey];
+    }
+  }
+
+  return visual || null;
 };

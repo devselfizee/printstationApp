@@ -67,7 +67,8 @@ export function validateQRData(data) {
     throw new Error('Types invalides dans QR');
   }
 
-  if (data.universe.length < 3 || data.universe.length > 32) {
+  // Accepter les IDs courts comme 'A' et 'B' ainsi que les anciens formats
+  if (data.universe.length < 1 || data.universe.length > 32) {
     throw new Error('ID univers invalide');
   }
 

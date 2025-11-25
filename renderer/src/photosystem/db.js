@@ -119,10 +119,10 @@ async function seedDefaultData() {
       console.log('[DB] 📦 Création univers par défaut...');
       
       // Créer les 2 univers
-      await addUniverse('universe1', 'Mondes Disparus', '/assets/banniere-monde-perdu.jpg');
-      await addUniverse('universe2', "L'horizon de khepos", '/assets/banniere-kheops.jpg');
+      await addUniverse('A', "L'horizon de kheops", '/assets/banniere-kheops.jpg');
+      await addUniverse('B', 'Monde Disparus', '/assets/banniere-monde-perdu.jpg');
       
-      console.log('[DB] ✅ 2 univers créés (universe1: Mondes Disparus, universe2: L\'horizon de khepos)');
+      console.log("[DB] ✅ 2 univers créés (A: L'horizon de kheops, B: Mondes Disparus)");
     } else {
       console.log(`[DB] ✓ ${universes.length} univers déjà présents`);
     }
@@ -236,6 +236,10 @@ async function createTables() {
       optin BOOLEAN DEFAULT 0,
       payment_method TEXT,
       notes TEXT,
+      synced_to_remote BOOLEAN DEFAULT 0,
+      sync_attempts INTEGER DEFAULT 0,
+      last_sync_attempt DATETIME,
+      synced_at DATETIME,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       completed_at DATETIME,
@@ -300,6 +304,16 @@ async function createTables() {
     );`,
 
     `CREATE INDEX IF NOT EXISTS idx_sync_log_participant ON sync_log(participant_id);`,
+
+    `CREATE TABLE IF NOT EXISTS machine_config (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      kiosk_id TEXT NOT NULL,
+      sales_point_id TEXT NOT NULL,
+      machine_name TEXT,
+      setup_completed BOOLEAN DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );`,
   ];
 
   for (const stmt of statements) {
@@ -308,6 +322,47 @@ async function createTables() {
     } catch (error) {
       console.error('[DB] Erreur création table:', error);
     }
+  }
+
+  // Migration: Ajouter les colonnes de synchronisation si elles n'existent pas
+  await migrateSyncColumns();
+}
+
+/**
+ * Migrer les colonnes de synchronisation pour les bases existantes
+ */
+async function migrateSyncColumns() {
+  try {
+    // Vérifier si les colonnes existent déjà
+    const tableInfo = await allAsync('PRAGMA table_info(orders)');
+    const columnNames = tableInfo.map(col => col.name);
+
+    // Ajouter synced_to_remote si manquant
+    if (!columnNames.includes('synced_to_remote')) {
+      await execAsync('ALTER TABLE orders ADD COLUMN synced_to_remote BOOLEAN DEFAULT 0');
+      console.log('[DB] ✅ Colonne synced_to_remote ajoutée');
+    }
+
+    // Ajouter sync_attempts si manquant
+    if (!columnNames.includes('sync_attempts')) {
+      await execAsync('ALTER TABLE orders ADD COLUMN sync_attempts INTEGER DEFAULT 0');
+      console.log('[DB] ✅ Colonne sync_attempts ajoutée');
+    }
+
+    // Ajouter last_sync_attempt si manquant
+    if (!columnNames.includes('last_sync_attempt')) {
+      await execAsync('ALTER TABLE orders ADD COLUMN last_sync_attempt DATETIME');
+      console.log('[DB] ✅ Colonne last_sync_attempt ajoutée');
+    }
+
+    // Ajouter synced_at si manquant
+    if (!columnNames.includes('synced_at')) {
+      await execAsync('ALTER TABLE orders ADD COLUMN synced_at DATETIME');
+      console.log('[DB] ✅ Colonne synced_at ajoutée');
+    }
+
+  } catch (error) {
+    console.error('[DB] Erreur migration colonnes sync:', error);
   }
 }
 
@@ -716,10 +771,25 @@ export async function getSessionCartItems(sessionId) {
  */
 export async function validateSessionItems(sessionId, orderId) {
   return runAsync(
-    `UPDATE order_items 
+    `UPDATE order_items
      SET status = 'validé',
          order_id = ?,
          validated_at = CURRENT_TIMESTAMP,
+         updated_at = CURRENT_TIMESTAMP
+     WHERE session_id = ? AND status IN ('en_cours', 'en_attente')`,
+    [orderId, sessionId]
+  );
+}
+
+/**
+ * Annuler tous les produits d'une session et les lier à une commande annulée
+ */
+export async function cancelSessionItems(sessionId, orderId) {
+  return runAsync(
+    `UPDATE order_items
+     SET status = 'annulé',
+         order_id = ?,
+         cancelled_at = CURRENT_TIMESTAMP,
          updated_at = CURRENT_TIMESTAMP
      WHERE session_id = ? AND status IN ('en_cours', 'en_attente')`,
     [orderId, sessionId]
@@ -986,6 +1056,108 @@ export async function updateCartItemQuantity(itemId, newQuantity, newTotalPrice)
          updated_at = CURRENT_TIMESTAMP
      WHERE id = ?`,
     [newQuantity, newTotalPrice, itemId]
+  );
+}
+
+/**
+ * ===== CONFIGURATION MACHINE =====
+ */
+
+/**
+ * Récupérer la configuration de la machine
+ */
+export async function getMachineConfig() {
+  return getAsync('SELECT * FROM machine_config WHERE id = 1');
+}
+
+/**
+ * Vérifier si la configuration initiale est complète
+ */
+export async function isSetupCompleted() {
+  try {
+    const config = await getMachineConfig();
+    console.log('[DB] isSetupCompleted - config récupérée:', config);
+
+    // Vérifier si la config existe et a les champs requis
+    const isCompleted = !!(config && config.kiosk_id && config.sales_point_id);
+    console.log('[DB] isSetupCompleted - résultat:', isCompleted);
+
+    return isCompleted;
+  } catch (error) {
+    console.error('[DB] Erreur isSetupCompleted:', error);
+    return false;
+  }
+}
+
+/**
+ * Sauvegarder la configuration de la machine
+ */
+export async function saveMachineConfig(kioskId, salesPointId, machineName = null) {
+  return runAsync(
+    `INSERT OR REPLACE INTO machine_config (id, kiosk_id, sales_point_id, machine_name, setup_completed, updated_at)
+     VALUES (1, ?, ?, ?, 1, CURRENT_TIMESTAMP)`,
+    [kioskId, salesPointId, machineName]
+  );
+}
+
+/**
+ * Mettre à jour la configuration de la machine
+ */
+export async function updateMachineConfig(kioskId, salesPointId, machineName = null) {
+  return runAsync(
+    `UPDATE machine_config
+     SET kiosk_id = ?,
+         sales_point_id = ?,
+         machine_name = ?,
+         updated_at = CURRENT_TIMESTAMP
+     WHERE id = 1`,
+    [kioskId, salesPointId, machineName]
+  );
+}
+
+/**
+ * ===== SYNCHRONISATION REMOTE API =====
+ */
+
+/**
+ * Récupérer les commandes non synchronisées avec l'API distante
+ */
+export async function getUnsyncedOrders(maxAttempts = 5) {
+  return allAsync(
+    `SELECT * FROM orders
+     WHERE synced_to_remote = 0
+       AND sync_attempts < ?
+       AND status IN ('processing', 'cancelled')
+     ORDER BY created_at ASC`,
+    [maxAttempts]
+  );
+}
+
+/**
+ * Marquer une commande comme synchronisée
+ */
+export async function markOrderAsSynced(orderId) {
+  return runAsync(
+    `UPDATE orders
+     SET synced_to_remote = 1,
+         synced_at = CURRENT_TIMESTAMP,
+         updated_at = CURRENT_TIMESTAMP
+     WHERE id = ?`,
+    [orderId]
+  );
+}
+
+/**
+ * Incrémenter le compteur de tentatives de synchronisation
+ */
+export async function incrementSyncAttempts(orderId) {
+  return runAsync(
+    `UPDATE orders
+     SET sync_attempts = sync_attempts + 1,
+         last_sync_attempt = CURRENT_TIMESTAMP,
+         updated_at = CURRENT_TIMESTAMP
+     WHERE id = ?`,
+    [orderId]
   );
 }
 

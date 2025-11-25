@@ -1,8 +1,14 @@
 {
-  "name": "printstation",
+  "name": "Eclipso",
   "version": "1.0.0",
   "main": "main.js",
   "type": "module",
+  "description": "Application Electron pour kiosk d'impression photos avec sélection d'univers graphiques, panier dynamique et paiement",
+  "author": {
+    "name": "Selfizee",
+    "email": "contact@selfizee.fr",
+    "url": "https://selfizee.fr/"
+  },
   "scripts": {
     "start": "electron .",
     "dev": "node build.js && electron .",
@@ -20,8 +26,6 @@
   "build": {
     "appId": "com.printstation.app",
     "productName": "PrintStation",
-    "electronRebuild": true,
-    "npmRebuild": true,
     "directories": {
       "buildResources": "renderer/assets"
     },
@@ -30,6 +34,7 @@
       "preload.js",
       "renderer/**/*",
       "!renderer/src",
+      "renderer/src/photosystem/**/*",
       "node_modules/**/*",
       "renderer/assets/**/*"
     ],
@@ -48,7 +53,7 @@
           ]
         }
       ],
-      "icon": "renderer/assets/icon.ico"
+      "icon": "renderer/assets/favicon.ico"
     },
     "nsis": {
       "oneClick": false,

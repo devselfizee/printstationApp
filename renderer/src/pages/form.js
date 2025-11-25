@@ -115,70 +115,108 @@ attachFooterListeners({
     state.optin = $('#optin').checked;
     
     // ========================================
-    // 🆕 VALIDER LA SESSION ET CRÉER LA COMMANDE
+    // 🆕 METTRE À JOUR LA COMMANDE EXISTANTE
     // ========================================
-    
+
     if (state.cart.length > 0 && window.photoAPI?.cart && state.sessionId) {
       try {
-        // 1. Créer l'ID de commande
-        const orderId = `order_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        
-        // 2. Importer les fonctions de calcul
-        const { cartSubtotal, cartNominal } = await import('../utils.js');
-        
-        // 3. Calculer les montants
-        const totalAmount = cartNominal(state.cart, window.PRODUCTS);
-        const discountAmount = totalAmount - cartSubtotal(state.cart, window.PRODUCTS);
-        const finalAmount = cartSubtotal(state.cart, window.PRODUCTS);
-        
-        // 4. Créer la commande principale
-        const orderResult = await window.photoAPI.orders.create({
-          orderId: orderId,
-          participantId: state.currentParticipant,
-          universeId: state.universe?.id || state.universeId || 'universe1',
-          totalAmount: totalAmount,
-          discountAmount: discountAmount,
-          finalAmount: finalAmount,
-          email: email || null,
-          optin: state.optin ? 1 : 0,
-          paymentMethod: 'card',
-          notes: null
-        });
-        
-        if (orderResult?.status === 'success') {
-          console.log('✅ Commande créée:', orderId);
-          
-          // 5. 🆕 VALIDER TOUS LES PRODUITS DE LA SESSION
-          // Change le statut de "en_cours"/"en_attente" → "validé"
-          // Et associe l'orderId à tous les produits
-          const validateResult = await window.photoAPI.cart.validateSession(
-            state.sessionId,
-            orderId
-          );
-          
-          if (validateResult?.status === 'success') {
-            console.log('✅ Session validée - Tous les produits ont statut "validé"');
+        let orderId = state.localOrderId;
+
+        // Si pas de commande locale existante (cas de fallback), en créer une
+        if (!orderId) {
+          console.log('[Form] ⚠️  Pas de commande locale existante - création d\'une nouvelle commande');
+          orderId = `order_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+          const { cartSubtotal, cartNominal } = await import('../utils.js');
+          const totalAmount = cartNominal(state.cart, window.PRODUCTS);
+          const discountAmount = totalAmount - cartSubtotal(state.cart, window.PRODUCTS);
+          const finalAmount = cartSubtotal(state.cart, window.PRODUCTS);
+
+          const orderResult = await window.photoAPI.orders.create({
+            orderId: orderId,
+            participantId: state.participantId || state.sessionId,
+            universeId: state.universe?.id || state.universeId || 'B',
+            totalAmount: totalAmount,
+            discountAmount: discountAmount,
+            finalAmount: finalAmount,
+            email: email || null,
+            optin: state.optin ? 1 : 0,
+            paymentMethod: 'card',
+            notes: null
+          });
+
+          if (orderResult?.status !== 'success') {
+            console.error('❌ Erreur création commande:', orderResult?.error);
+            toast('Erreur lors de l\'enregistrement', true);
+            return;
           }
-          
-          // 6. Mettre à jour le statut de la commande
-          await window.photoAPI.orders.updateStatus(
-            orderId, 
-            'processing', 
-            'Paiement accepté - Commande validée'
-          );
-          
-          // 7. Sauvegarder l'ID de commande dans le state
-          state.lastOrderId = orderId;
-          
-          console.log('✅ Commande complète enregistrée:', orderId);
-          toast('Commande enregistrée! ✅', false);
         } else {
-          console.error('❌ Erreur création commande:', orderResult?.error);
-          toast('Erreur lors de l\'enregistrement', true);
+          console.log('[Form] ✅ Commande locale existante trouvée:', orderId);
         }
-        
+
+        // Mettre à jour la commande locale avec l'email
+        // Note: On ne peut pas mettre à jour directement l'email dans la table orders
+        // mais on peut mettre à jour le statut
+        console.log('[Form] 📝 Mise à jour du statut de la commande locale...');
+
+        // Valider tous les produits de la session
+        const validateResult = await window.photoAPI.cart.validateSession(
+          state.sessionId,
+          orderId
+        );
+
+        if (validateResult?.status === 'success') {
+          console.log('✅ Session validée - Tous les produits ont statut "validé"');
+        }
+
+        // Mettre à jour le statut de la commande
+        await window.photoAPI.orders.updateStatus(
+          orderId,
+          'processing',
+          'Paiement accepté - Commande validée'
+        );
+
+        console.log('✅ Commande locale mise à jour:', orderId);
+
+        // ÉTAPE 2 : Mettre à jour la commande sur Supabase (status=completed + email)
+        console.log('[Form] 📋 Vérification de state.supabaseOrderId:', state.supabaseOrderId);
+        console.log('[Form] 📋 Email à enregistrer:', email || '(vide)');
+
+        try {
+          if (state.supabaseOrderId) {
+            console.log('[Form] 📝 Mise à jour de la commande sur Supabase (status=completed + email)...');
+            console.log('[Form] Supabase Order ID:', state.supabaseOrderId);
+            console.log('[Form] Email:', email || '(pas d\'email)');
+
+            const updateResult = await window.photoAPI.orders.updateRemote(state.supabaseOrderId, email, orderId);
+
+            if (updateResult?.status === 'success') {
+              console.log('[Form] ✅ Commande mise à jour sur Supabase');
+              console.log('[Form] Réponse:', updateResult.response);
+            } else if (updateResult?.status === 'skipped') {
+              console.log('[Form] ⏭️  Mise à jour ignorée:', updateResult.message);
+            } else {
+              console.warn('[Form] ⚠️  Erreur mise à jour API:', updateResult?.error);
+              // Ne pas bloquer le processus si la mise à jour échoue
+            }
+          } else {
+            console.warn('[Form] ⚠️  Pas d\'ID de commande Supabase - création locale uniquement');
+            console.warn('[Form] state.supabaseOrderId est:', state.supabaseOrderId);
+            console.warn('[Form] state.localOrderId est:', state.localOrderId);
+          }
+        } catch (updateError) {
+          console.error('[Form] ❌ Erreur lors de la mise à jour:', updateError);
+          // Continuer même si la mise à jour échoue
+        }
+
+        // Sauvegarder l'ID de commande dans le state
+        state.lastOrderId = orderId;
+
+        console.log('✅ Commande complète enregistrée:', orderId);
+        toast('Commande enregistrée! ✅', false);
+
       } catch (error) {
-        console.error('❌ Erreur système lors de la création de commande:', error);
+        console.error('❌ Erreur système lors de la création/mise à jour de commande:', error);
         // On continue quand même vers la page de remerciement
       }
     }

@@ -48,16 +48,16 @@ export const renderQR = (root) => {
     // scanBtn.onclick = () => {
     //   console.log('🎯 Scan button clicked');
     //   window.handleQRScan(JSON.stringify({
-    //     universe: 'universe1',
+    //     universe: 'B',
     //     participantId: 'participant_' + Date.now(),
     //   }));
     // };
 
     scanBtn.onclick = async () => {
       console.log('🎯 Scan button clicked');
-      
+
       const qrData = {
-        universe: 'universe1',
+        universe: 'B',
         participantId: 'participant_' + Date.now(),
       };
 

@@ -168,10 +168,10 @@ visibility:hidden; opacity:0;
   box-shadow: 0 12px 30px rgba(17, 24, 39, 0.1);
 }*/
 .footer-bar {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  /* Footer dans le flux normal du document */
+  position: relative;
+  width: 100%;
+  margin-top: 20px;
   height: 130px;
   background: var(--e-navy);
   padding: 20px 25px;
@@ -181,6 +181,7 @@ visibility:hidden; opacity:0;
   justify-content: space-between;
   gap: 16px;
   box-shadow: 0 12px 30px rgba(17, 24, 39, 0.1);
+  border-radius: 12px;
 }
 .footer-bar .info {
   flex: 1;
@@ -1055,6 +1056,12 @@ visibility:hidden; opacity:0;
   color: #10b981;
 }
 
+.period-detail {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-top: 4px;
+}
+
 /* TABLE */
 .admin-table {
   width: 100%;
@@ -1257,6 +1264,162 @@ visibility:hidden; opacity:0;
 
   .dev-form-group input,
   .dev-form-group select {
+    font-size: 14px;
+  }
+}
+
+/* ============================================
+ * SETUP MODAL STYLES - Configuration Machine
+ * Same design as QR Simulator
+ * ============================================ */
+
+.setup-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: grid;
+  place-items: center;
+  z-index: 9999;
+  backdrop-filter: blur(4px);
+}
+
+.setup-container {
+  max-width: 480px;
+  width: 90%;
+}
+
+.setup-box {
+  background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+  border-radius: 12px;
+  padding: 36px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.setup-box h2 {
+  color: #fff;
+  text-align: center;
+  margin: 0 0 12px 0;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.setup-description {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 14px;
+  margin-bottom: 28px;
+}
+
+.setup-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.setup-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.setup-form-group label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.setup-form-group input {
+  padding: 12px 14px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  font-size: 15px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  transition: all 0.3s ease;
+  font-family: inherit;
+}
+
+.setup-form-group input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.setup-form-group input:focus {
+  outline: none;
+  border-color: rgba(59, 130, 246, 0.6);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.setup-info {
+  padding: 12px;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 8px;
+  color: rgba(147, 197, 253, 0.9);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.setup-error {
+  display: none;
+  padding: 12px;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  color: #fca5a5;
+  font-size: 14px;
+}
+
+.setup-btn-save {
+  padding: 14px;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.setup-btn-save:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+}
+
+.setup-btn-save:active {
+  transform: translateY(0);
+}
+
+.setup-btn-save:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.setup-required-note {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .setup-box {
+    padding: 28px;
+  }
+
+  .setup-box h2 {
+    font-size: 20px;
+  }
+
+  .setup-form-group input {
     font-size: 14px;
   }
 }

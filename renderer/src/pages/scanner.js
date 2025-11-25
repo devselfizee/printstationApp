@@ -62,8 +62,8 @@ async function simulateScan(container) {
     
     if (result.status === 'success' && result.photos) {
       state.photos = result.photos;
-      state.universeId = 'universe1'; // Univers par défaut
-      
+      state.universeId = 'B'; // Univers par défaut (Mondes Disparus)
+
       console.log('[Scanner] ✅ Photos récupérées:', state.photos.length);
       
       // Naviguer vers la liste des photos
