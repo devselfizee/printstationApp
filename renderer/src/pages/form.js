@@ -98,6 +98,7 @@ attachFooterListeners({
   onCancel: () => {
     // Aller vers la page de remerciement sans aucune mise à jour API
     clearInterval(state.timer);
+    state.email = '';
     state.page = 'thanks';
     window.render();
   },
