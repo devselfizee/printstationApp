@@ -1,6 +1,6 @@
 import { state } from '../state.js';
 import { t } from '../i18n.js';
-import { lineTotal } from '../utils.js';
+import { lineTotal, toast } from '../utils.js';
 import { getProductVisual } from '../data.js';
 
 export const renderPayment = (root) => {

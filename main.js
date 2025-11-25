@@ -1197,6 +1197,24 @@ app.whenReady().then(async () => {
     nodeVersion: process.version
   });
   try {
+    protocol.registerFileProtocol('printstation', (request, callback) => {
+      // Extraire le chemin depuis l'URL
+      // Format: printstation://local/home/user/Documents/PrintStationApp/Medias/participant_123/photo_001.jpg
+      const url = request.url.replace('printstation://local', '');
+      
+      // Décoder l'URL (au cas où il y a des espaces ou caractères spéciaux)
+      const filePath = decodeURIComponent(url);
+      
+      console.log('[Protocol] Demande fichier:', filePath);
+      
+      // Vérifier que le fichier existe
+      if (fs.existsSync(filePath)) {
+        callback({ path: filePath });
+      } else {
+        console.error('[Protocol] Fichier non trouvé:', filePath);
+        callback({ error: -6 }); // FILE_NOT_FOUND
+      }
+    });
     // Initialiser le client Hexapay
     const client = getHexapayClient();
     await client.init();
@@ -1208,34 +1226,14 @@ app.whenReady().then(async () => {
     await watchdog.start();
     
     // Créer la fenêtre
-    createWindow();
+    // createWindow();
+
     
   } catch (err) {
     log('error', '❌ Failed to initialize application', { error: err.message });
     app.quit();
   }
   // FIN HEXAPAY TOOLS
-
-
-  protocol.registerFileProtocol('printstation', (request, callback) => {
-    // Extraire le chemin depuis l'URL
-    // Format: printstation://local/home/user/Documents/PrintStationApp/Medias/participant_123/photo_001.jpg
-    const url = request.url.replace('printstation://local', '');
-    
-    // Décoder l'URL (au cas où il y a des espaces ou caractères spéciaux)
-    const filePath = decodeURIComponent(url);
-    
-    console.log('[Protocol] Demande fichier:', filePath);
-    
-    // Vérifier que le fichier existe
-    if (fs.existsSync(filePath)) {
-      callback({ path: filePath });
-    } else {
-      console.error('[Protocol] Fichier non trouvé:', filePath);
-      callback({ error: -6 }); // FILE_NOT_FOUND
-    }
-  });
-  
   // console.log('[Protocol] ✓ Protocole printstation:// enregistré');
 });
 
