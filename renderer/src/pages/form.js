@@ -96,9 +96,9 @@ const footer = createFooterBar({
 root.appendChild(footer);
 attachFooterListeners({
   onCancel: () => {
+    // Simplement retourner à la page d'accueil sans aucune mise à jour
     clearInterval(state.timer);
-    state.email = '';
-    state.page = 'thanks';
+    state.page = 'qr';
     window.render();
   },
   onContinue: async () => {
