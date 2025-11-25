@@ -70,26 +70,53 @@ async function initiatePaymentFlow(totalAmount, root) {
     // 1. Vérifier lecteur
     const ready = await window.hexapay.checkReady();
     if (!ready.success) throw new Error('Lecteur indisponible');
-    
+
     // 2. Vérifier licence
     const licensed = await window.hexapay.checkLicense();
     if (!licensed.success) throw new Error('Licence inactive');
-    
+
     // 3. Initier paiement
     const payment = await window.hexapay.initiatePayment(totalAmount);
     if (!payment.success) throw new Error(payment.error);
-    
+
     // 4. Impression (2s simulation)
     await new Promise(r => setTimeout(r, 2000));
-    
+
     // 5. Confirmer
     const confirm = await window.hexapay.confirmPayment(totalAmount);
     if (!confirm.success) throw new Error(confirm.error);
-    
+
+    // 6. Mettre à jour le statut de la commande sur Supabase (status=completed)
+    if (state.supabaseOrderId && window.photoAPI?.orders?.updateRemote) {
+      try {
+        console.log('[Payment] 📝 Mise à jour du statut sur Supabase (status=completed)...');
+        console.log('[Payment] Supabase Order ID:', state.supabaseOrderId);
+
+        const updateResult = await window.photoAPI.orders.updateRemote(
+          state.supabaseOrderId,
+          '',  // pas d'email à ce stade
+          state.localOrderId || ''
+        );
+
+        if (updateResult?.status === 'success') {
+          console.log('[Payment] ✅ Commande mise à jour sur Supabase (completed)');
+        } else if (updateResult?.status === 'skipped') {
+          console.log('[Payment] ⏭️  Mise à jour ignorée:', updateResult.message);
+        } else {
+          console.warn('[Payment] ⚠️  Erreur mise à jour API:', updateResult?.error);
+        }
+      } catch (updateError) {
+        console.error('[Payment] ❌ Erreur lors de la mise à jour Supabase:', updateError);
+        // Ne pas bloquer le processus si la mise à jour échoue
+      }
+    } else {
+      console.warn('[Payment] ⚠️  Pas d\'ID Supabase ou API non disponible');
+    }
+
     // Succès -> page form
     state.page = 'form';
     window.render();
-    
+
   } catch (error) {
     console.error('Payment failed:', error);
     toast(`Erreur: ${error.message}`);
