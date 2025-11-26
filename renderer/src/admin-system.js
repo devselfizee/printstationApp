@@ -48,19 +48,77 @@ function formatEuro(amount) {
   return (amount || 0).toFixed(2).replace('.', ',');
 }
 
+// Variables pour le long press
+let longPressTimer = null;
+const LONG_PRESS_DURATION = 3000; // 3 secondes
+
 // Initialiser
 export function initAdminButton() {
+  // Raccourci clavier F2
   document.addEventListener('keydown', (e) => {
-    // Si le login est ouvert, ignorer "A"
+    // Si le login est ouvert, ignorer
     if (isLoginOpen) return;
-    
-    if (e.key.toLowerCase() === 'a') {
-      console.log('[Admin] Touche A détectée');
+
+    if (e.key === 'F2') {
+      console.log('[Admin] Touche F2 détectée');
       showAdminLogin();
     }
   });
-  
-  console.log('[Admin] Ready - Appuyer sur "A" pour login');
+
+  // Long press sur le coin haut gauche
+  createLongPressZone();
+
+  console.log('[Admin] Ready - Appuyer sur "F2" ou long press coin haut gauche');
+}
+
+/**
+ * Créer une zone invisible pour le long press
+ */
+function createLongPressZone() {
+  const zone = document.createElement('div');
+  zone.id = 'admin-longpress-zone';
+  zone.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100px;
+    height: 100px;
+    z-index: 9999;
+    cursor: default;
+    background: transparent;
+  `;
+
+  // Long press handlers
+  zone.addEventListener('mousedown', startLongPress);
+  zone.addEventListener('mouseup', cancelLongPress);
+  zone.addEventListener('mouseleave', cancelLongPress);
+
+  // Touch support
+  zone.addEventListener('touchstart', startLongPress);
+  zone.addEventListener('touchend', cancelLongPress);
+  zone.addEventListener('touchcancel', cancelLongPress);
+
+  document.body.appendChild(zone);
+  console.log('[Admin] Zone long press créée (coin haut gauche)');
+}
+
+function startLongPress(e) {
+  if (isLoginOpen) return;
+
+  e.preventDefault();
+  console.log('[Admin] Long press démarré...');
+
+  longPressTimer = setTimeout(() => {
+    console.log('[Admin] Long press validé!');
+    showAdminLogin();
+  }, LONG_PRESS_DURATION);
+}
+
+function cancelLongPress() {
+  if (longPressTimer) {
+    clearTimeout(longPressTimer);
+    longPressTimer = null;
+  }
 }
 
 /**
