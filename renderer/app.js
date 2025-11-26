@@ -129,11 +129,14 @@ async function loadProducts() {
     console.log('[App] 📦 Chargement des produits depuis l\'API...');
     const result = await window.photoAPI.products.fetch();
 
-    if (result.status === 'success') {
-      // Remplacer les produits par ceux de l'API
+    if (result.status === 'success' && result.products && Object.keys(result.products).length > 0) {
+      // Remplacer les produits par ceux de l'API seulement s'il y en a
       window.PRODUCTS = result.products;
       console.log('[App] ✅ Produits chargés depuis l\'API:', Object.keys(result.products).length, 'produit(s)');
       console.log('[App] Produits disponibles:', result.products);
+    } else if (result.status === 'success') {
+      console.warn('[App] ⚠️  L\'API a retourné 0 produits - utilisation des produits par défaut');
+      // Garder les produits par défaut de data.js
     } else if (result.status === 'skipped') {
       console.log('[App] ⏭️  Chargement des produits ignoré:', result.message);
       // Garder les produits par défaut
