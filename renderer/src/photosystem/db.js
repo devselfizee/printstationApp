@@ -121,6 +121,8 @@ async function seedDefaultData() {
       // Créer les 2 univers
       await addUniverse('A', "L'horizon de kheops", '/assets/banniere-kheops.jpg');
       await addUniverse('B', 'Monde Disparus', '/assets/banniere-monde-perdu.jpg');
+      await addUniverse('C', 'Remparts', '/assets/banniere-monde-perdu.jpg');
+      await addUniverse('D', 'Impressionnistes', '/assets/banniere-kheops.jpg');
       
       console.log("[DB] ✅ 2 univers créés (A: L'horizon de kheops, B: Mondes Disparus)");
     } else {
