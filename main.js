@@ -2059,7 +2059,8 @@ async function fetchProductsFromAPI() {
         next: nextPrice,
         description: product.description || '',
         status: product.status || 'active',
-        thumbnail: product.thumbnail_url || null
+        thumbnail: product.thumbnail_url || null,
+        universe_id: product.universe_id || null
       };
     });
 

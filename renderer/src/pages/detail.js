@@ -152,10 +152,19 @@ export const renderDetail = (root) => {
   const section = document.createElement('section');
   section.innerHTML = `<h2 class="detail-title">${t('photo')}</h2><div class="detail-preview"><img src="${p.source}" alt=""></div>`;
 
-  // Afficher tous les produits disponibles dynamiquement
-  Object.values(window.PRODUCTS).forEach(product => {
-    section.appendChild(renderOffer(p, product));
-  });
+  // Afficher les produits filtrés par univers
+  const currentUniverseId = state.universe?.id || state.universeId;
+
+  Object.values(window.PRODUCTS)
+    .filter(product => {
+      // Afficher le produit si:
+      // - universe_id est null (produit global disponible pour tous les univers)
+      // - universe_id correspond à l'univers actuel
+      return !product.universe_id || product.universe_id === currentUniverseId;
+    })
+    .forEach(product => {
+      section.appendChild(renderOffer(p, product));
+    });
 
   // Ajouter un séparateur entre les produits et les autres photos
   const sep = document.createElement('div');
