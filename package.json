@@ -32,6 +32,7 @@
     "files": [
       "main.js",
       "preload.js",
+      ".env",
       "renderer/**/*",
       "!renderer/src",
       "renderer/src/photosystem/**/*",
