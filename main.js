@@ -2878,6 +2878,26 @@ ipcMain.handle('products:fetch', async (event) => {
   return await fetchProductsFromAPI();
 });
 
+/**
+ * ===== HANDLERS IPC PARTICIPANTS =====
+ */
+ipcMain.handle('participant:add-or-update', async (event, participantId, universeId, status) => {
+  console.log('[IPC] participant:add-or-update appelé:', { participantId, universeId, status });
+
+  if (!photoSystemReady || !photoSystem?.db) {
+    return { status: 'error', error: 'PhotoSystem non disponible' };
+  }
+
+  try {
+    await photoSystem.db.addOrUpdateParticipant(participantId, universeId, status || 'active');
+    console.log('[IPC] ✅ Participant créé/mis à jour:', participantId);
+    return { status: 'success', participantId, universeId };
+  } catch (error) {
+    console.error('[IPC] ❌ Erreur création participant:', error);
+    return { status: 'error', error: error.message };
+  }
+});
+
 console.log('[Main] Tous les handlers IPC sont enregistrés');
 
 

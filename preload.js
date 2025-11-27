@@ -124,6 +124,11 @@ const photoAPI = {
     fetch: () => ipcRenderer.invoke('products:fetch'),
   },
 
+  // Participants
+  participants: {
+    addOrUpdate: (participantId, universeId, status) => ipcRenderer.invoke('participant:add-or-update', participantId, universeId, status),
+  },
+
   // Listeners
   onPhotoProgress: (callback) => ipcRenderer.on('photos:progress', (event, data) => callback(data)),
   onPhotoComplete: (callback) => ipcRenderer.on('photos:complete', (event, data) => callback(data)),

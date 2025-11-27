@@ -146,6 +146,7 @@ async function showSimulatorPopup() {
   // 🆕 Fonction pour auto-sélectionner l'univers
   function autoSelectUniverse() {
     const selectedParticipant = participantSelect.value;
+    const customInput = participantInput.value.trim().toUpperCase();
 
     if (selectedParticipant && participantUniverseMap[selectedParticipant]) {
       // Participant existant → auto-sélectionner l'univers
@@ -155,12 +156,20 @@ async function showSimulatorPopup() {
       universeSelect.style.opacity = '0.6';
       universeSelect.style.cursor = 'not-allowed';
       universeAutoLabel.textContent = '(auto-sélectionné)';
+    } else if (customInput && ['A', 'B', 'C', 'D', 'E'].includes(customInput.charAt(0))) {
+      // 🆕 Nouveau participant avec préfixe valide → auto-sélectionner l'univers
+      const universeId = customInput.charAt(0);
+      universeSelect.value = universeId;
+      universeSelect.disabled = true;
+      universeSelect.style.opacity = '0.6';
+      universeSelect.style.cursor = 'not-allowed';
+      universeAutoLabel.textContent = `(univers ${universeId} détecté)`;
     } else {
-      // Nouveau participant → activer la sélection manuelle
+      // Pas de préfixe valide → activer la sélection manuelle
       universeSelect.disabled = false;
       universeSelect.style.opacity = '1';
       universeSelect.style.cursor = 'pointer';
-      universeAutoLabel.textContent = '';
+      universeAutoLabel.textContent = customInput ? '(préfixe A-E requis)' : '';
     }
   }
 
@@ -184,35 +193,82 @@ async function showSimulatorPopup() {
   autoSelectUniverse();
 
   simulateBtn.onclick = async () => {
-    let participantId = participantSelect.value || participantInput.value.trim();
+    const selectedFromList = participantSelect.value;
+    const customInput = participantInput.value.trim();
 
-    if (!participantId) {
+    let participantId = '';
+    let universe = '';
+    let isNewParticipant = false;
+
+    if (selectedFromList) {
+      // Participant existant sélectionné depuis la liste
+      participantId = selectedFromList;
+      universe = participantUniverseMap[participantId] || universeSelect.value;
+      isNewParticipant = false;
+      console.log('[DevSim] Participant existant sélectionné:', participantId);
+    } else if (customInput) {
+      // Nouveau participant saisi manuellement
+      const upperInput = customInput.toUpperCase();
+      const firstLetter = upperInput.charAt(0);
+
+      // Valider que la première lettre est A, B, C, D ou E
+      if (!['A', 'B', 'C', 'D', 'E'].includes(firstLetter)) {
+        alert('❌ La première lettre doit être A, B, C, D ou E pour définir l\'univers');
+        return;
+      }
+
+      if (upperInput.length < 2) {
+        alert('❌ L\'ID doit contenir au moins 2 caractères (lettre univers + code)');
+        return;
+      }
+
+      // Extraire l'univers et le code_participant
+      universe = firstLetter;
+      participantId = upperInput.substring(1); // Le reste après la première lettre
+      isNewParticipant = true;
+
+      console.log('[DevSim] Nouveau participant détecté:');
+      console.log('[DevSim]   - Input complet:', upperInput);
+      console.log('[DevSim]   - Universe ID:', universe);
+      console.log('[DevSim]   - Code participant:', participantId);
+    } else {
       alert('Veuillez sélectionner ou créer un participant');
       return;
     }
 
-    const universe = universeSelect.value;
-    const isExistingParticipant = participantUniverseMap[participantId] ? true : false;
-
-    console.log('[DevSim] Simulation scan QR:', { participantId, universe, isExistingParticipant });
-
-    // ⭐ Appeler le scan QR avec les données
-    const qrContent = JSON.stringify({
-      universe,
-      participantId,
-    });
+    console.log('[DevSim] Simulation scan QR:', { participantId, universe, isNewParticipant });
 
     try {
+      // 🆕 Si nouveau participant, le créer d'abord dans la DB
+      if (isNewParticipant && window.photoAPI?.participants?.addOrUpdate) {
+        console.log('[DevSim] 📝 Création du participant dans la DB...');
+
+        const createResult = await window.photoAPI.participants.addOrUpdate(participantId, universe, 'active');
+
+        if (createResult?.status === 'success') {
+          console.log('[DevSim] ✅ Participant créé:', participantId, '→ univers', universe);
+        } else {
+          console.warn('[DevSim] ⚠️ Erreur création participant:', createResult?.error);
+          // Continuer quand même le scan
+        }
+      }
+
+      // ⭐ Appeler le scan QR avec les données
+      const qrContent = JSON.stringify({
+        universe,
+        participantId,
+      });
+
       // ⭐ CORRECTION: Utiliser l'API photoAPI.scanQR
       if (window.photoAPI?.scanQR) {
         const result = await window.photoAPI.scanQR(qrContent);
         console.log('[DevSim] Résultat scan:', result);
-        
+
         if (result.status === 'success') {
           console.log('[DevSim] ✅ Scan réussi!');
           console.log('[DevSim] Participant:', result.participantId);
           console.log('[DevSim] Photos:', result.photos?.length || 0);
-          
+
           // ⭐ NAVIGATION: Mettre à jour le state et naviguer vers listing
           if (window.state && window.render) {
             // Mettre à jour le state global
@@ -220,13 +276,13 @@ async function showSimulatorPopup() {
             window.state.photos = result.photos || [];
             window.state.participantId = result.participantId;
             window.state.universeId = result.universeId || universe;
-            
+
             // Changer de page
             window.state.page = 'listing';
-            
+
             // Re-render l'application
             window.render();
-            
+
             console.log('[DevSim] ✅ Navigation vers listing effectuée');
           } else {
             console.warn('[DevSim] ⚠️  window.state ou window.render non disponible');
