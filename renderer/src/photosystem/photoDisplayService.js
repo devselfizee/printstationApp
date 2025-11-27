@@ -37,18 +37,48 @@ export function setPhotosUpdatedCallback(callback) {
 
 /**
  * Parser QR code
+ * Supporte plusieurs formats:
+ * - Simple: "B12345" → universe="B", participantId="12345"
+ * - JSON: {"universe":"B","participantId":"12345"}
+ * - URL params: universe=B&participantId=12345
  */
 export function parseQRData(qrContent) {
   try {
-    if (qrContent.startsWith('{')) {
-      return JSON.parse(qrContent);
+    const content = qrContent.trim();
+
+    // Format JSON
+    if (content.startsWith('{')) {
+      return JSON.parse(content);
     }
-    const params = new URLSearchParams(qrContent);
-    const result = {};
-    for (const [key, value] of params) {
-      result[key] = value;
+
+    // Format URL params
+    if (content.includes('=')) {
+      const params = new URLSearchParams(content);
+      const result = {};
+      for (const [key, value] of params) {
+        result[key] = value;
+      }
+      return result;
     }
-    return result;
+
+    // Format simple: première lettre = univers, reste = participantId
+    if (content.length >= 2) {
+      const firstChar = content.charAt(0).toUpperCase();
+
+      // Vérifier que la première lettre est un univers valide (A-E)
+      if (['A', 'B', 'C', 'D', 'E'].includes(firstChar)) {
+        const participantId = content.substring(1);
+        console.log('[PhotoDisplay] QR format simple détecté:', { universe: firstChar, participantId });
+        return {
+          universe: firstChar,
+          participantId: participantId
+        };
+      }
+    }
+
+    // Si aucun format reconnu, essayer de parser comme JSON quand même
+    return JSON.parse(content);
+
   } catch (error) {
     console.error('[PhotoDisplay] Erreur parsing QR:', error);
     throw new Error('Format QR invalide');
