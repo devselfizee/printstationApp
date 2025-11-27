@@ -72,7 +72,8 @@ export function validateQRData(data) {
     throw new Error('ID univers invalide');
   }
 
-  if (data.participantId.length < 5 || data.participantId.length > 64) {
+  // Accepter des IDs de participant plus courts (minimum 1 caractère)
+  if (data.participantId.length < 1 || data.participantId.length > 64) {
     throw new Error('ID participant invalide');
   }
 
