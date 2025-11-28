@@ -200,6 +200,12 @@ function showAdminLogin() {
         font-size: 24px;
         letter-spacing: 8px;
         color: #fff;
+        min-height: 1em;
+        line-height: 1;
+      }
+      .password-dots:empty::before {
+        content: '\\00a0';
+        visibility: hidden;
       }
       .admin-buttons {
         display: flex;
