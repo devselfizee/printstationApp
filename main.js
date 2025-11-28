@@ -27,10 +27,13 @@ const TIMEOUTS = {
   PAYMENT_SLOW: 90000,    // Mode "slow" pour cartes lentes
   VALIDATION_SLOW: 45000  // Mode "slow" pour validation
 };
-const LOG_FILE_PATH = app.isPackaged 
+const LOG_FILE_PATH = app.isPackaged
   ? path.join(os.homedir(), 'Desktop', 'hexapay.log')
   : path.join(__dirname, 'hexapay.log');
 const TRANSACTION_LOG_PATH = LOG_FILE_PATH.replace('.log', '-transactions.log');
+const QRSCAN_LOG_PATH = app.isPackaged
+  ? path.join(os.homedir(), 'Desktop', 'qrscan.log')
+  : path.join(__dirname, 'qrscan.log');
 // Créer/Vider les fichiers log au démarrage
 try {
   const logDir = path.dirname(LOG_FILE_PATH);
@@ -39,7 +42,8 @@ try {
   }
   fs.writeFileSync(LOG_FILE_PATH, `=== HEXAPAY LOG - ${new Date().toISOString()} ===\n`, 'utf8');
   fs.writeFileSync(TRANSACTION_LOG_PATH, `=== TRANSACTIONS LOG - ${new Date().toISOString()} ===\n`, 'utf8');
-  console.log(`📝 Fichiers log créés:\n   - ${LOG_FILE_PATH}\n   - ${TRANSACTION_LOG_PATH}`);
+  fs.writeFileSync(QRSCAN_LOG_PATH, `=== QR SCAN LOG - ${new Date().toISOString()} ===\n`, 'utf8');
+  console.log(`📝 Fichiers log créés:\n   - ${LOG_FILE_PATH}\n   - ${TRANSACTION_LOG_PATH}\n   - ${QRSCAN_LOG_PATH}`);
 } catch (err) {
   console.error('❌ Impossible de créer les fichiers log:', err.message);
 }
@@ -55,14 +59,44 @@ const log = (level, message, data = {}) => {
   const reset = '\x1b[0m';
   const color = levelColors[level] || '';
   const dataStr = Object.keys(data).length > 0 ? '\n  ' + JSON.stringify(data, null, 2).split('\n').join('\n  ') : '';
-  
+
   console.log(`${color}[${timestamp}] [${level.toUpperCase()}]${reset} ${message}${dataStr}`);
   const logLine = `[${timestamp}] [${level.toUpperCase()}] ${message}${dataStr}\n`;
-  
+
   try {
     fs.appendFileSync(LOG_FILE_PATH, logLine, 'utf8');
   } catch (err) {
     console.error('❌ Erreur écriture log:', err.message);
+  }
+};
+
+// ============================================================================
+// QR SCAN LOGGER - Logs des scans QR
+// ============================================================================
+
+const logQRScan = (type, rawData, parsedData = null, result = null) => {
+  const timestamp = new Date().toISOString();
+  const entry = {
+    timestamp,
+    type,
+    rawData: rawData,
+    rawDataLength: rawData ? rawData.length : 0,
+    rawDataHex: rawData ? Buffer.from(rawData).toString('hex') : null,
+    parsedData: parsedData,
+    result: result
+  };
+
+  const logLine = `[${timestamp}] [${type.toUpperCase()}] Raw: "${rawData}" | Length: ${entry.rawDataLength}\n`;
+  const jsonLine = JSON.stringify(entry) + '\n';
+
+  console.log(`\x1b[35m[${timestamp}] [QR-SCAN]\x1b[0m ${type} - Raw: "${rawData}"`);
+
+  try {
+    fs.appendFileSync(QRSCAN_LOG_PATH, logLine, 'utf8');
+    fs.appendFileSync(QRSCAN_LOG_PATH, jsonLine, 'utf8');
+    fs.appendFileSync(QRSCAN_LOG_PATH, '---\n', 'utf8');
+  } catch (err) {
+    console.error('❌ Erreur écriture QR scan log:', err.message);
   }
 };
 
@@ -1393,33 +1427,49 @@ function createMenu() {
 // Scan QR code
 ipcMain.handle('photos:scan-qr', async (event, qrContent) => {
   console.log('[IPC] Scan QR reçu');
-  
+
+  // Logger les données brutes du scan
+  logQRScan('SCAN_RECEIVED', qrContent);
+
   if (!photoSystemReady || !photoSystem) {
     console.warn('[IPC] PhotoSystem non disponible, retour dummy data');
-    return {
+    const result = {
       status: 'success',
       message: 'Mode local - données dummy',
       photos: [],
     };
+    logQRScan('SCAN_RESULT', qrContent, null, result);
+    return result;
   }
 
   try {
-    return await photoSystem.onQRCodeScanned(qrContent);
+    const result = await photoSystem.onQRCodeScanned(qrContent);
+    logQRScan('SCAN_SUCCESS', qrContent, null, result);
+    return result;
   } catch (error) {
     console.error('[IPC] Erreur scan QR:', error);
-    return {
+    const errorResult = {
       status: 'error',
       error: error.message,
     };
+    logQRScan('SCAN_ERROR', qrContent, null, errorResult);
+    return errorResult;
   }
 });
 
 // Parser QR code
 ipcMain.handle('photos:parse-qr', (event, qrContent) => {
+  logQRScan('PARSE_REQUEST', qrContent);
+
   if (!photoSystemReady || !photoSystem) {
-    return { status: 'error', error: 'PhotoSystem non disponible' };
+    const result = { status: 'error', error: 'PhotoSystem non disponible' };
+    logQRScan('PARSE_ERROR', qrContent, null, result);
+    return result;
   }
-  return photoSystem.parseQRCode(qrContent);
+
+  const parsed = photoSystem.parseQRCode(qrContent);
+  logQRScan('PARSE_RESULT', qrContent, parsed, null);
+  return parsed;
 });
 
 // Charger photos d'un participant
