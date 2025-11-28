@@ -115,6 +115,9 @@ function createLongPressZone() {
 function startLongPress(e) {
   if (isLoginOpen) return;
 
+  // Ne fonctionne que sur la page d'accueil (QR)
+  if (window.state?.page !== 'qr') return;
+
   e.preventDefault();
   console.log('[Admin] Long press démarré...');
 
