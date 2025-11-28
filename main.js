@@ -1161,7 +1161,7 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1920,
     height: 1080,
-    fullscreen: process.env.NODE_ENV === 'production',
+    fullscreen: true, // Fullscreen par défaut (F10 pour toggle)
     icon: path.join(__dirname, 'renderer', 'assets', 'favicon.png'), // Icône de la fenêtre
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
