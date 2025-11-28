@@ -346,6 +346,9 @@ visibility:hidden; opacity:0;
 .hero img{ width:100%; height:100%; object-fit:cover; object-position: center; display:block; }
 .section{ padding:48px 0 48px; }
 .section h2{ margin:0; text-align:center; font-size:32px; font-weight:900; letter-spacing:.12em; text-transform:uppercase; }
+.listing-enter .section { padding: 48px 0 24px; }
+.listing-enter #grid { margin-bottom: 0; }
+.listing-enter .footer-bar { margin-top: 30px; }
 .grid{ display:grid; margin-top:0px; grid-template-columns: repeat(3, 1fr); gap:32px; }
 #grid{ grid-template-columns: repeat(3, 1fr); gap:32px; }
 .other .grid{ grid-template-columns: repeat(5, 1fr); gap:16px; }
