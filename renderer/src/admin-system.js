@@ -226,55 +226,51 @@ function showAdminLogin() {
         left: 50%;
         transform: translateX(-50%);
         width: 690px;
-        background: rgba(0,0,0,0.85);
-        border-radius: 12px;
-        padding: 15px;
+        background: #fff;
+        border-radius: 16px;
+        padding: 30px 40px;
         display: flex;
         flex-direction: column;
-        gap: 10px;
+        gap: 0;
         z-index: 10002;
-        box-shadow: 0 -5px 30px rgba(0,0,0,0.5);
+        box-shadow: 0 12px 28px rgba(17, 24, 39, 0.15);
       }
       .admin-kb-row {
         display: flex;
         justify-content: center;
-        gap: 8px;
+        gap: 12px;
+        margin: 8px 0;
       }
       .admin-key {
-        background: rgba(255,255,255,0.2);
-        border: 1px solid rgba(255,255,255,0.4);
-        border-radius: 8px;
-        color: #fff;
-        font-size: 20px;
-        font-weight: bold;
-        flex: 1;
-        max-width: 55px;
-        height: 55px;
+        background: #f3f4f6;
+        border: none;
+        border-radius: 12px;
+        color: #111827;
+        font-size: 16px;
+        font-weight: 900;
+        width: 52px;
+        height: 52px;
         cursor: pointer;
-        transition: all 0.15s ease;
+        transition: all 0.12s ease;
         display: flex;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 3px 6px rgba(0,0,0,0.3);
       }
       .admin-key:hover {
-        background: rgba(255,255,255,0.35);
-        transform: translateY(-2px);
-        box-shadow: 0 5px 10px rgba(0,0,0,0.4);
+        background: #e5e7eb;
       }
       .admin-key:active {
-        background: rgba(255,255,255,0.45);
-        transform: translateY(1px);
-        box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        transform: scale(0.94);
+        background: #d1d5db;
       }
       .admin-key.delete-key {
-        background: rgba(255,100,100,0.4);
-        flex: 2;
-        max-width: 120px;
-        font-size: 14px;
+        background: #fee2e2;
+        color: #dc2626;
+        width: 100px;
+        font-size: 13px;
       }
       .admin-key.delete-key:hover {
-        background: rgba(255,100,100,0.6);
+        background: #fecaca;
       }
     </style>
   `;
