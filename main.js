@@ -11,6 +11,10 @@ import * as dotenv from 'dotenv';
 
 // Charger les variables d'environnement
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// Log immédiat au lancement de l'application
+console.log(`[${new Date().toISOString()}] 🚀 PrintStation démarrage - Version: ${app.getVersion()} - Env: ${app.isPackaged ? 'production' : 'development'}`);
+
 const envPath = path.join(__dirname, '.env');
 if (fs.existsSync(envPath)) {
   dotenv.config({ path: envPath });
