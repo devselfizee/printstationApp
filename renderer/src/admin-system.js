@@ -54,21 +54,31 @@ const LONG_PRESS_DURATION = 3000; // 3 secondes
 
 // Initialiser
 export function initAdminButton() {
-  // Raccourci clavier F2
-  document.addEventListener('keydown', (e) => {
-    // Si le login est ouvert, ignorer
-    if (isLoginOpen) return;
-
+  // Raccourcis clavier
+  document.addEventListener('keydown', async (e) => {
+    // F2 - Admin login
     if (e.key === 'F2') {
+      // Si le login est ouvert, ignorer
+      if (isLoginOpen) return;
       console.log('[Admin] Touche F2 détectée');
       showAdminLogin();
+    }
+
+    // F10 - Toggle fullscreen
+    if (e.key === 'F10') {
+      e.preventDefault();
+      console.log('[Admin] Touche F10 détectée - Toggle fullscreen');
+      if (window.photoAPI?.window?.toggleFullscreen) {
+        const result = await window.photoAPI.window.toggleFullscreen();
+        console.log('[Admin] Fullscreen:', result.fullscreen ? 'ON' : 'OFF');
+      }
     }
   });
 
   // Long press sur le coin haut gauche
   createLongPressZone();
 
-  console.log('[Admin] Ready - Appuyer sur "F2" ou long press coin haut gauche');
+  console.log('[Admin] Ready - F2: Admin, F10: Fullscreen, Long press coin haut gauche');
 }
 
 /**

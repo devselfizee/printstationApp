@@ -2879,6 +2879,26 @@ ipcMain.handle('products:fetch', async (event) => {
 });
 
 /**
+ * ===== HANDLERS IPC WINDOW =====
+ */
+ipcMain.handle('window:toggle-fullscreen', async (event) => {
+  if (mainWindow) {
+    const isFullscreen = mainWindow.isFullScreen();
+    mainWindow.setFullScreen(!isFullscreen);
+    console.log('[IPC] Fullscreen toggled:', !isFullscreen);
+    return { status: 'success', fullscreen: !isFullscreen };
+  }
+  return { status: 'error', error: 'Window not available' };
+});
+
+ipcMain.handle('window:is-fullscreen', async (event) => {
+  if (mainWindow) {
+    return { status: 'success', fullscreen: mainWindow.isFullScreen() };
+  }
+  return { status: 'error', error: 'Window not available' };
+});
+
+/**
  * ===== HANDLERS IPC PARTICIPANTS =====
  */
 ipcMain.handle('participant:add-or-update', async (event, participantId, universeId, status) => {

@@ -129,6 +129,12 @@ const photoAPI = {
     addOrUpdate: (participantId, universeId, status) => ipcRenderer.invoke('participant:add-or-update', participantId, universeId, status),
   },
 
+  // Window controls
+  window: {
+    toggleFullscreen: () => ipcRenderer.invoke('window:toggle-fullscreen'),
+    isFullscreen: () => ipcRenderer.invoke('window:is-fullscreen'),
+  },
+
   // Listeners
   onPhotoProgress: (callback) => ipcRenderer.on('photos:progress', (event, data) => callback(data)),
   onPhotoComplete: (callback) => ipcRenderer.on('photos:complete', (event, data) => callback(data)),
