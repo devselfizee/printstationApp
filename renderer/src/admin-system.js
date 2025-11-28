@@ -174,17 +174,20 @@ function showAdminLogin() {
         </div>
         <div class="admin-error-msg" id="adminErrorMsg"></div>
 
-        <!-- Clavier virtuel complet (style form.js) -->
-        <div class="admin-kb" id="adminKb"></div>
-
         <div class="admin-buttons">
           <button id="adminOkBtn" class="admin-btn-ok">Valider</button>
           <button id="adminCancelBtn" class="admin-btn-cancel">Annuler</button>
         </div>
+
+        <!-- Clavier virtuel complet (style form.js) -->
+        <div class="admin-kb" id="adminKb"></div>
       </div>
     </div>
 
     <style>
+      .admin-login-box {
+        width: 720px;
+      }
       .admin-password-display {
         background: rgba(255,255,255,0.1);
         border: 2px solid rgba(255,255,255,0.3);
@@ -201,67 +204,76 @@ function showAdminLogin() {
         letter-spacing: 8px;
         color: #fff;
       }
-      .admin-kb {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        margin-bottom: 20px;
-      }
-      .admin-kb-row {
-        display: flex;
-        justify-content: center;
-        gap: 6px;
-      }
-      .admin-key {
-        background: rgba(255,255,255,0.15);
-        border: 1px solid rgba(255,255,255,0.3);
-        border-radius: 8px;
-        color: #fff;
-        font-size: 18px;
-        font-weight: bold;
-        min-width: 44px;
-        height: 48px;
-        padding: 0 12px;
-        cursor: pointer;
-        transition: all 0.15s ease;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-      .admin-key:hover {
-        background: rgba(255,255,255,0.25);
-        transform: scale(1.05);
-      }
-      .admin-key:active {
-        background: rgba(255,255,255,0.35);
-        transform: scale(0.95);
-      }
-      .admin-key.delete-key {
-        background: rgba(255,100,100,0.3);
-        min-width: 80px;
-        font-size: 14px;
-      }
-      .admin-key.delete-key:hover {
-        background: rgba(255,100,100,0.5);
-      }
       .admin-buttons {
         display: flex;
-        gap: 10px;
+        gap: 15px;
         justify-content: center;
+        margin-bottom: 20px;
       }
       .admin-btn-ok {
         background: rgba(100,255,100,0.3);
         border: 1px solid rgba(100,255,100,0.5);
         border-radius: 8px;
         color: #fff;
-        font-size: 16px;
+        font-size: 18px;
         font-weight: bold;
-        padding: 12px 30px;
+        padding: 14px 40px;
         cursor: pointer;
         transition: all 0.15s ease;
       }
       .admin-btn-ok:hover {
         background: rgba(100,255,100,0.5);
+      }
+      .admin-kb {
+        width: 690px;
+        margin: 0 auto;
+        background: rgba(0,0,0,0.4);
+        border-radius: 12px;
+        padding: 15px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .admin-kb-row {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+      }
+      .admin-key {
+        background: rgba(255,255,255,0.2);
+        border: 1px solid rgba(255,255,255,0.4);
+        border-radius: 8px;
+        color: #fff;
+        font-size: 20px;
+        font-weight: bold;
+        flex: 1;
+        max-width: 55px;
+        height: 55px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+      }
+      .admin-key:hover {
+        background: rgba(255,255,255,0.35);
+        transform: translateY(-2px);
+        box-shadow: 0 5px 10px rgba(0,0,0,0.4);
+      }
+      .admin-key:active {
+        background: rgba(255,255,255,0.45);
+        transform: translateY(1px);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+      }
+      .admin-key.delete-key {
+        background: rgba(255,100,100,0.4);
+        flex: 2;
+        max-width: 120px;
+        font-size: 14px;
+      }
+      .admin-key.delete-key:hover {
+        background: rgba(255,100,100,0.6);
       }
     </style>
   `;
