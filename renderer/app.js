@@ -32,11 +32,17 @@ function render() {
   const app = $('#app');
   if (!app) return;
   app.innerHTML = '';
-  
-  
+
+  // Appliquer la classe page-qr pour la page d'accueil (hauteur fixe)
+  if (state.page === 'qr') {
+    app.classList.add('page-qr');
+  } else {
+    app.classList.remove('page-qr');
+  }
+
   const showHeader = state.page !== 'thanks' && state.page !== 'payment' && state.page !== 'form' && state.page !== 'qr';
   const showBackBtn = state.page !== 'qr' && state.page !== 'listing';
-  
+
   if (showHeader) {
     app.classList.remove('no-header');
     renderTopbar(app, goBack);
@@ -44,10 +50,8 @@ function render() {
       const back = $('.back-btn');
       if (back) back.classList.add('show');
     }
-  }else{
-
-  app.classList.add('no-header');
-
+  } else {
+    app.classList.add('no-header');
   }
   
   if (state.page === 'qr') renderQR(app);

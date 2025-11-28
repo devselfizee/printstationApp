@@ -13,6 +13,10 @@ body{ background:var(--panel); color:var(--txt); font:16px/1.45 ui-sans-serif, s
 .mast{ position:fixed; inset:0 0 auto 0; height:92px; background:var(--panel); z-index:0; }
 .app{ width:1080px; min-height:100vh; height:auto; margin:0 auto; position:relative; overflow:hidden; z-index:1; box-shadow:var(--shadow); display:flex; flex-direction:column; }
 
+/* Page d'accueil (QR) - hauteur fixe comme avant */
+.app.page-qr { height:1920px; min-height:1920px; display:block; }
+.app.page-qr .main { position:absolute; inset:90px 0 0 0; margin-top:0; }
+
 /* === TOPBAR FIX === */
 header.topbar{
   position:absolute; 
