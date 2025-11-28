@@ -10,6 +10,22 @@ const ADMIN_PASSWORD = 'admin123'; // À changer en ENV
 
 let isLoginOpen = false;
 
+// Layouts de claviers par langue (même style que form.js)
+const KEYBOARD_LAYOUTS = {
+  fr: [
+    ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'EFFACER'],
+    [...'AZERTYUIOP'],
+    [...'QSDFGHJKLM'],
+    [...'WXCVBN', '@', '.', '-', '_']
+  ],
+  en: [
+    ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'EFFACER'],
+    [...'QWERTYUIOP'],
+    [...'ASDFGHJKL'],
+    [...'ZXCVBNM', '@', '.', '-', '_']
+  ]
+};
+
 /**
  * Fonctions helper pour calculer les périodes
  */
@@ -137,10 +153,14 @@ function cancelLongPress() {
 }
 
 /**
- * Afficher le login avec clavier numérique virtuel
+ * Afficher le login avec clavier virtuel complet (style form.js)
  */
 function showAdminLogin() {
   isLoginOpen = true;
+
+  // Détecter la langue (utiliser fr par défaut)
+  const lang = window.state?.lang || 'fr';
+  const layout = KEYBOARD_LAYOUTS[lang] || KEYBOARD_LAYOUTS.fr;
 
   const modal = document.createElement('div');
   modal.id = 'admin-login-modal';
@@ -154,23 +174,11 @@ function showAdminLogin() {
         </div>
         <div class="admin-error-msg" id="adminErrorMsg"></div>
 
-        <!-- Clavier numérique virtuel -->
-        <div class="admin-numpad">
-          <button class="numpad-key" data-key="1">1</button>
-          <button class="numpad-key" data-key="2">2</button>
-          <button class="numpad-key" data-key="3">3</button>
-          <button class="numpad-key" data-key="4">4</button>
-          <button class="numpad-key" data-key="5">5</button>
-          <button class="numpad-key" data-key="6">6</button>
-          <button class="numpad-key" data-key="7">7</button>
-          <button class="numpad-key" data-key="8">8</button>
-          <button class="numpad-key" data-key="9">9</button>
-          <button class="numpad-key numpad-clear" data-key="clear">⌫</button>
-          <button class="numpad-key" data-key="0">0</button>
-          <button class="numpad-key numpad-ok" data-key="ok">OK</button>
-        </div>
+        <!-- Clavier virtuel complet (style form.js) -->
+        <div class="admin-kb" id="adminKb"></div>
 
         <div class="admin-buttons">
+          <button id="adminOkBtn" class="admin-btn-ok">Valider</button>
           <button id="adminCancelBtn" class="admin-btn-cancel">Annuler</button>
         </div>
       </div>
@@ -193,41 +201,66 @@ function showAdminLogin() {
         letter-spacing: 8px;
         color: #fff;
       }
-      .admin-numpad {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 10px;
+      .admin-kb {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
         margin-bottom: 20px;
       }
-      .numpad-key {
+      .admin-kb-row {
+        display: flex;
+        justify-content: center;
+        gap: 6px;
+      }
+      .admin-key {
         background: rgba(255,255,255,0.15);
         border: 1px solid rgba(255,255,255,0.3);
         border-radius: 8px;
         color: #fff;
-        font-size: 24px;
+        font-size: 18px;
         font-weight: bold;
-        padding: 20px;
+        min-width: 44px;
+        height: 48px;
+        padding: 0 12px;
         cursor: pointer;
         transition: all 0.15s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       }
-      .numpad-key:hover {
+      .admin-key:hover {
         background: rgba(255,255,255,0.25);
         transform: scale(1.05);
       }
-      .numpad-key:active {
+      .admin-key:active {
         background: rgba(255,255,255,0.35);
         transform: scale(0.95);
       }
-      .numpad-clear {
+      .admin-key.delete-key {
         background: rgba(255,100,100,0.3);
+        min-width: 80px;
+        font-size: 14px;
       }
-      .numpad-clear:hover {
+      .admin-key.delete-key:hover {
         background: rgba(255,100,100,0.5);
       }
-      .numpad-ok {
-        background: rgba(100,255,100,0.3);
+      .admin-buttons {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
       }
-      .numpad-ok:hover {
+      .admin-btn-ok {
+        background: rgba(100,255,100,0.3);
+        border: 1px solid rgba(100,255,100,0.5);
+        border-radius: 8px;
+        color: #fff;
+        font-size: 16px;
+        font-weight: bold;
+        padding: 12px 30px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+      }
+      .admin-btn-ok:hover {
         background: rgba(100,255,100,0.5);
       }
     </style>
@@ -238,35 +271,39 @@ function showAdminLogin() {
   let password = '';
   const passwordDots = $('#passwordDots');
   const cancelBtn = $('#adminCancelBtn');
+  const okBtn = $('#adminOkBtn');
   const errorMsg = $('#adminErrorMsg');
+  const kb = $('#adminKb');
 
   // Mettre à jour l'affichage des points
   function updateDisplay() {
     passwordDots.textContent = '●'.repeat(password.length);
   }
 
-  // Gestionnaire pour les touches du clavier numérique
-  modal.querySelectorAll('.numpad-key').forEach(key => {
-    key.addEventListener('click', () => {
-      const value = key.dataset.key;
+  // Construire le clavier virtuel
+  layout.forEach((row) => {
+    const rowDiv = document.createElement('div');
+    rowDiv.className = 'admin-kb-row';
 
-      if (value === 'clear') {
-        // Effacer le dernier caractère
-        password = password.slice(0, -1);
+    row.forEach(k => {
+      const btn = document.createElement('button');
+      btn.className = 'admin-key' + (k === 'EFFACER' ? ' delete-key' : '');
+      btn.textContent = k;
+      btn.onclick = () => {
+        if (k === 'EFFACER') {
+          password = password.slice(0, -1);
+        } else {
+          if (password.length < 32) {
+            password += k.toLowerCase();
+          }
+        }
         updateDisplay();
         errorMsg.style.display = 'none';
-      } else if (value === 'ok') {
-        // Valider
-        attemptLogin();
-      } else {
-        // Ajouter un chiffre (max 10 caractères)
-        if (password.length < 10) {
-          password += value;
-          updateDisplay();
-          errorMsg.style.display = 'none';
-        }
-      }
+      };
+      rowDiv.appendChild(btn);
     });
+
+    kb.appendChild(rowDiv);
   });
 
   // Support clavier physique aussi
@@ -275,9 +312,10 @@ function showAdminLogin() {
   function handleKeydown(e) {
     if (!isLoginOpen) return;
 
-    if (e.key >= '0' && e.key <= '9') {
-      if (password.length < 10) {
-        password += e.key;
+    // Lettres et chiffres
+    if (/^[a-zA-Z0-9@.\-_]$/.test(e.key)) {
+      if (password.length < 32) {
+        password += e.key.toLowerCase();
         updateDisplay();
         errorMsg.style.display = 'none';
       }
@@ -290,6 +328,10 @@ function showAdminLogin() {
     } else if (e.key === 'Escape') {
       closeModal();
     }
+  }
+
+  if (okBtn) {
+    okBtn.addEventListener('click', attemptLogin);
   }
 
   if (cancelBtn) {
