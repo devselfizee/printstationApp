@@ -31,6 +31,13 @@ window.UNIVERSES = UNIVERSES;
 function render() {
   const app = $('#app');
   if (!app) return;
+
+  // Nettoyer la page QR si on la quitte
+  if (window.cleanupQRPage && state.page !== 'qr') {
+    window.cleanupQRPage();
+    window.cleanupQRPage = null;
+  }
+
   app.innerHTML = '';
 
   // Appliquer la classe page-qr pour la page d'accueil (hauteur fixe)
