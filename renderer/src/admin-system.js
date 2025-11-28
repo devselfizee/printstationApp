@@ -8,7 +8,11 @@ const $ = (selector) => document.querySelector(selector);
 
 const ADMIN_PASSWORD = 'admin123'; // À changer en ENV
 
+// Timeout d'inactivité (par défaut 20s, configurable via .env ADMIN_INACTIVITY_TIMEOUT_MS)
+const ADMIN_INACTIVITY_TIMEOUT = window.appConfig?.adminInactivityTimeout || 20000;
+
 let isLoginOpen = false;
+let inactivityTimer = null;
 
 // Layouts de claviers par langue (même style que form.js)
 const KEYBOARD_LAYOUTS = {
@@ -311,6 +315,20 @@ function showAdminLogin() {
   const errorMsg = $('#adminErrorMsg');
   const kb = $('#adminKb');
 
+  // Timer d'inactivité
+  function resetInactivityTimer() {
+    if (inactivityTimer) {
+      clearTimeout(inactivityTimer);
+    }
+    inactivityTimer = setTimeout(() => {
+      console.log('[Admin] ⏰ Timeout inactivité - fermeture login');
+      closeModal();
+    }, ADMIN_INACTIVITY_TIMEOUT);
+  }
+
+  // Démarrer le timer
+  resetInactivityTimer();
+
   // Mettre à jour l'affichage des points
   function updateDisplay() {
     passwordDots.textContent = '●'.repeat(password.length);
@@ -326,6 +344,7 @@ function showAdminLogin() {
       btn.className = 'admin-key' + (k === 'EFFACER' ? ' delete-key' : '');
       btn.textContent = k;
       btn.onclick = () => {
+        resetInactivityTimer(); // Reset timer on activity
         if (k === 'EFFACER') {
           password = password.slice(0, -1);
         } else {
@@ -347,6 +366,8 @@ function showAdminLogin() {
 
   function handleKeydown(e) {
     if (!isLoginOpen) return;
+
+    resetInactivityTimer(); // Reset timer on any key
 
     // Lettres et chiffres
     if (/^[a-zA-Z0-9@.\-_]$/.test(e.key)) {
@@ -390,6 +411,10 @@ function showAdminLogin() {
 
   function closeModal() {
     console.log('[Admin] Fermeture login');
+    if (inactivityTimer) {
+      clearTimeout(inactivityTimer);
+      inactivityTimer = null;
+    }
     document.removeEventListener('keydown', handleKeydown);
     isLoginOpen = false;
     modal.remove();
@@ -543,22 +568,55 @@ async function showAdminDashboard() {
   `;
 
   document.body.appendChild(dashboard);
-  
+
+  // Timer d'inactivité pour le dashboard
+  let dashboardTimer = null;
+
+  function resetDashboardTimer() {
+    if (dashboardTimer) {
+      clearTimeout(dashboardTimer);
+    }
+    dashboardTimer = setTimeout(() => {
+      console.log('[Admin] ⏰ Timeout inactivité - fermeture dashboard');
+      closeDashboard();
+    }, ADMIN_INACTIVITY_TIMEOUT);
+  }
+
+  function closeDashboard() {
+    console.log('[Admin] Fermeture dashboard');
+    if (dashboardTimer) {
+      clearTimeout(dashboardTimer);
+      dashboardTimer = null;
+    }
+    document.removeEventListener('keydown', escapeHandler);
+    document.removeEventListener('click', activityHandler);
+    document.removeEventListener('mousemove', activityHandler);
+    dashboard.remove();
+  }
+
+  // Démarrer le timer
+  resetDashboardTimer();
+
+  // Reset timer sur activité (clic, mouvement souris, touche)
+  function activityHandler() {
+    resetDashboardTimer();
+  }
+
+  document.addEventListener('click', activityHandler);
+  document.addEventListener('mousemove', activityHandler);
+
   const closeBtn = $('#adminCloseBtn');
   if (closeBtn) {
-    closeBtn.addEventListener('click', () => {
-      console.log('[Admin] Fermeture dashboard');
-      dashboard.remove();
-    });
+    closeBtn.addEventListener('click', closeDashboard);
   }
 
   // Fermer avec Escape
   const escapeHandler = (e) => {
+    resetDashboardTimer(); // Reset on any key
     if (e.key === 'Escape' && $('#admin-dashboard')) {
-      dashboard.remove();
-      document.removeEventListener('keydown', escapeHandler);
+      closeDashboard();
     }
   };
-  
+
   document.addEventListener('keydown', escapeHandler);
 }
