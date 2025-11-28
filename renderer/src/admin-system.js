@@ -137,11 +137,11 @@ function cancelLongPress() {
 }
 
 /**
- * Afficher le login
+ * Afficher le login avec clavier numérique virtuel
  */
 function showAdminLogin() {
   isLoginOpen = true;
-  
+
   const modal = document.createElement('div');
   modal.id = 'admin-login-modal';
   modal.className = 'admin-login-modal';
@@ -149,38 +149,154 @@ function showAdminLogin() {
     <div class="admin-login-container">
       <div class="admin-login-box">
         <h2>🔐 Admin</h2>
-        <input type="password" id="adminPassword" placeholder="Mot de passe..." autofocus />
+        <div class="admin-password-display" id="adminPasswordDisplay">
+          <span class="password-dots" id="passwordDots"></span>
+        </div>
         <div class="admin-error-msg" id="adminErrorMsg"></div>
+
+        <!-- Clavier numérique virtuel -->
+        <div class="admin-numpad">
+          <button class="numpad-key" data-key="1">1</button>
+          <button class="numpad-key" data-key="2">2</button>
+          <button class="numpad-key" data-key="3">3</button>
+          <button class="numpad-key" data-key="4">4</button>
+          <button class="numpad-key" data-key="5">5</button>
+          <button class="numpad-key" data-key="6">6</button>
+          <button class="numpad-key" data-key="7">7</button>
+          <button class="numpad-key" data-key="8">8</button>
+          <button class="numpad-key" data-key="9">9</button>
+          <button class="numpad-key numpad-clear" data-key="clear">⌫</button>
+          <button class="numpad-key" data-key="0">0</button>
+          <button class="numpad-key numpad-ok" data-key="ok">OK</button>
+        </div>
+
         <div class="admin-buttons">
-          <button id="adminLoginBtn" class="admin-btn-login">Connexion</button>
           <button id="adminCancelBtn" class="admin-btn-cancel">Annuler</button>
         </div>
       </div>
     </div>
+
+    <style>
+      .admin-password-display {
+        background: rgba(255,255,255,0.1);
+        border: 2px solid rgba(255,255,255,0.3);
+        border-radius: 8px;
+        padding: 15px 20px;
+        margin-bottom: 15px;
+        min-height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .password-dots {
+        font-size: 24px;
+        letter-spacing: 8px;
+        color: #fff;
+      }
+      .admin-numpad {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        margin-bottom: 20px;
+      }
+      .numpad-key {
+        background: rgba(255,255,255,0.15);
+        border: 1px solid rgba(255,255,255,0.3);
+        border-radius: 8px;
+        color: #fff;
+        font-size: 24px;
+        font-weight: bold;
+        padding: 20px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+      }
+      .numpad-key:hover {
+        background: rgba(255,255,255,0.25);
+        transform: scale(1.05);
+      }
+      .numpad-key:active {
+        background: rgba(255,255,255,0.35);
+        transform: scale(0.95);
+      }
+      .numpad-clear {
+        background: rgba(255,100,100,0.3);
+      }
+      .numpad-clear:hover {
+        background: rgba(255,100,100,0.5);
+      }
+      .numpad-ok {
+        background: rgba(100,255,100,0.3);
+      }
+      .numpad-ok:hover {
+        background: rgba(100,255,100,0.5);
+      }
+    </style>
   `;
 
   document.body.appendChild(modal);
 
-  const passwordInput = $('#adminPassword');
-  const loginBtn = $('#adminLoginBtn');
+  let password = '';
+  const passwordDots = $('#passwordDots');
   const cancelBtn = $('#adminCancelBtn');
   const errorMsg = $('#adminErrorMsg');
 
-  passwordInput.onkeydown = (e) => {
-    if (e.key === 'Enter') attemptLogin();
-    if (e.key === 'Escape') closeModal();
-  };
-
-  // ⭐ Ajouter event listeners correctement
-  if (loginBtn) {
-    loginBtn.addEventListener('click', attemptLogin);
+  // Mettre à jour l'affichage des points
+  function updateDisplay() {
+    passwordDots.textContent = '●'.repeat(password.length);
   }
+
+  // Gestionnaire pour les touches du clavier numérique
+  modal.querySelectorAll('.numpad-key').forEach(key => {
+    key.addEventListener('click', () => {
+      const value = key.dataset.key;
+
+      if (value === 'clear') {
+        // Effacer le dernier caractère
+        password = password.slice(0, -1);
+        updateDisplay();
+        errorMsg.style.display = 'none';
+      } else if (value === 'ok') {
+        // Valider
+        attemptLogin();
+      } else {
+        // Ajouter un chiffre (max 10 caractères)
+        if (password.length < 10) {
+          password += value;
+          updateDisplay();
+          errorMsg.style.display = 'none';
+        }
+      }
+    });
+  });
+
+  // Support clavier physique aussi
+  document.addEventListener('keydown', handleKeydown);
+
+  function handleKeydown(e) {
+    if (!isLoginOpen) return;
+
+    if (e.key >= '0' && e.key <= '9') {
+      if (password.length < 10) {
+        password += e.key;
+        updateDisplay();
+        errorMsg.style.display = 'none';
+      }
+    } else if (e.key === 'Backspace') {
+      password = password.slice(0, -1);
+      updateDisplay();
+      errorMsg.style.display = 'none';
+    } else if (e.key === 'Enter') {
+      attemptLogin();
+    } else if (e.key === 'Escape') {
+      closeModal();
+    }
+  }
+
   if (cancelBtn) {
     cancelBtn.addEventListener('click', closeModal);
   }
 
   function attemptLogin() {
-    const password = passwordInput.value.trim();
     if (password === ADMIN_PASSWORD) {
       console.log('[Admin] ✅ Login success');
       closeModal();
@@ -189,22 +305,17 @@ function showAdminLogin() {
       console.log('[Admin] ❌ Wrong password');
       errorMsg.textContent = '❌ Mot de passe incorrect';
       errorMsg.style.display = 'block';
-      passwordInput.value = '';
-      passwordInput.focus();
+      password = '';
+      updateDisplay();
     }
   }
 
   function closeModal() {
     console.log('[Admin] Fermeture login');
+    document.removeEventListener('keydown', handleKeydown);
     isLoginOpen = false;
     modal.remove();
   }
-
-  // Focus sur input
-  setTimeout(() => {
-    const input = $('#adminPassword');
-    if (input) input.focus();
-  }, 100);
 }
 
 /**
