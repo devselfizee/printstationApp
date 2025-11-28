@@ -178,16 +178,13 @@ function showAdminLogin() {
           <button id="adminOkBtn" class="admin-btn-ok">Valider</button>
           <button id="adminCancelBtn" class="admin-btn-cancel">Annuler</button>
         </div>
-
-        <!-- Clavier virtuel complet (style form.js) -->
-        <div class="admin-kb" id="adminKb"></div>
       </div>
     </div>
 
+    <!-- Clavier virtuel en position fixed -->
+    <div class="admin-kb" id="adminKb"></div>
+
     <style>
-      .admin-login-box {
-        width: 720px;
-      }
       .admin-password-display {
         background: rgba(255,255,255,0.1);
         border: 2px solid rgba(255,255,255,0.3);
@@ -208,7 +205,6 @@ function showAdminLogin() {
         display: flex;
         gap: 15px;
         justify-content: center;
-        margin-bottom: 20px;
       }
       .admin-btn-ok {
         background: rgba(100,255,100,0.3);
@@ -225,14 +221,19 @@ function showAdminLogin() {
         background: rgba(100,255,100,0.5);
       }
       .admin-kb {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
         width: 690px;
-        margin: 0 auto;
-        background: rgba(0,0,0,0.4);
+        background: rgba(0,0,0,0.85);
         border-radius: 12px;
         padding: 15px;
         display: flex;
         flex-direction: column;
         gap: 10px;
+        z-index: 10002;
+        box-shadow: 0 -5px 30px rgba(0,0,0,0.5);
       }
       .admin-kb-row {
         display: flex;
