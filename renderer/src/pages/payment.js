@@ -62,10 +62,10 @@ export const renderPayment = (root) => {
   root.appendChild(main);
 
   clearTimeout(state.timer);
-  // state.timer = setTimeout(() => { state.page = 'form'; window.render(); }, 5000);
+  state.timer = setTimeout(() => { state.page = 'form'; window.render(); }, 5000);
 
   // DEBUT HEXAPAY TOOLS (INTEGRATION)
-  initiatePaymentFlow(total, root);
+  // initiatePaymentFlow(total, root);
   // FIN HEXAPAY TOOLS
 };
 
