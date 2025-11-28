@@ -258,4 +258,5 @@ export default {
   getHistory,
   parseQRCode,
   admin,
+  db, // Exposer le module db pour les opérations de commande
 };

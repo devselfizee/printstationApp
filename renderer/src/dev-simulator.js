@@ -61,18 +61,25 @@ async function showSimulatorPopup() {
   // Charger les participants depuis l'API
   let participants = [];
   let universes = [];
+  const participantUniverseMap = {}; // 🆕 Map participant → universe
 
   try {
     // ⭐ CORRECTION: Utiliser la bonne API
     if (window.photoAPI?.admin?.getDashboard) {
       const stats = await window.photoAPI.admin.getDashboard();
-      
+
       // ⭐ participants.list existe maintenant
       participants = stats?.participants?.list || [];
       universes = stats?.universes?.list || [];
-      
+
+      // 🆕 Créer une map participant → universe pour l'auto-sélection
+      participants.forEach(p => {
+        participantUniverseMap[p.id] = p.universe_id;
+      });
+
       console.log('[DevSim] Participants chargés:', participants.length);
       console.log('[DevSim] Univers chargés:', universes.length);
+      console.log('[DevSim] Participant→Universe map:', participantUniverseMap);
     }
   } catch (error) {
     console.error('[DevSim] Erreur chargement participants:', error);
@@ -80,12 +87,13 @@ async function showSimulatorPopup() {
 
   // Créer la liste HTML des participants
   const participantsList = participants.length > 0
-    ? participants.map(p => `<option value="${p.id}">${p.id} (${p.universe_id || p.status})</option>`).join('')
+    ? `<option value="">-- Sélectionner un participant --</option>` +
+      participants.map(p => `<option value="${p.id}" data-universe="${p.universe_id}">${p.id} (${p.universe_id || p.status})</option>`).join('')
     : '<option value="">-- Aucun participant en DB --</option>';
 
   const universesList = universes.length > 0
     ? universes.map(u => `<option value="${u.id}">${u.name}</option>`).join('')
-    : '<option value="universe1">Universe 1 (défaut)</option>';
+    : '<option value="B">Mondes Disparus (défaut)</option>';
 
   modal.innerHTML = `
     <div class="dev-simulator-container">
@@ -109,14 +117,14 @@ async function showSimulatorPopup() {
           </div>
 
           <div class="dev-form-group">
-            <label>Universe</label>
+            <label>Universe <span id="universeAutoLabel" style="font-size: 11px; color: #4ade80;"></span></label>
             <select id="devUniverse">
               ${universesList}
             </select>
           </div>
 
           <div class="dev-info">
-            ℹ️ Sélectionne un participant existant ou crée-en un nouveau pour simuler un scan QR
+            ℹ️ L'univers est automatiquement sélectionné pour les participants existants
           </div>
 
           <button id="devSimulateBtn" class="dev-btn-simulate">▶️ Simuler Scan</button>
@@ -131,52 +139,136 @@ async function showSimulatorPopup() {
   const participantSelect = $('#devParticipantSelect');
   const participantInput = $('#devParticipantId');
   const universeSelect = $('#devUniverse');
+  const universeAutoLabel = $('#universeAutoLabel');
   const simulateBtn = $('#devSimulateBtn');
   const cancelBtn = $('#devCancelBtn');
 
-  // Quand on sélectionne un participant, vider le champ custom
+  // 🆕 Fonction pour auto-sélectionner l'univers
+  function autoSelectUniverse() {
+    const selectedParticipant = participantSelect.value;
+    const customInput = participantInput.value.trim().toUpperCase();
+
+    if (selectedParticipant && participantUniverseMap[selectedParticipant]) {
+      // Participant existant → auto-sélectionner l'univers
+      const universeId = participantUniverseMap[selectedParticipant];
+      universeSelect.value = universeId;
+      universeSelect.disabled = true;
+      universeSelect.style.opacity = '0.6';
+      universeSelect.style.cursor = 'not-allowed';
+      universeAutoLabel.textContent = '(auto-sélectionné)';
+    } else if (customInput && ['A', 'B', 'C', 'D', 'E'].includes(customInput.charAt(0))) {
+      // 🆕 Nouveau participant avec préfixe valide → auto-sélectionner l'univers
+      const universeId = customInput.charAt(0);
+      universeSelect.value = universeId;
+      universeSelect.disabled = true;
+      universeSelect.style.opacity = '0.6';
+      universeSelect.style.cursor = 'not-allowed';
+      universeAutoLabel.textContent = `(univers ${universeId} détecté)`;
+    } else {
+      // Pas de préfixe valide → activer la sélection manuelle
+      universeSelect.disabled = false;
+      universeSelect.style.opacity = '1';
+      universeSelect.style.cursor = 'pointer';
+      universeAutoLabel.textContent = customInput ? '(préfixe A-E requis)' : '';
+    }
+  }
+
+  // Quand on sélectionne un participant, vider le champ custom ET auto-sélectionner l'univers
   participantSelect.onchange = () => {
     if (participantSelect.value) {
       participantInput.value = '';
     }
+    autoSelectUniverse();
   };
 
-  // Quand on tape dans le champ custom, déselectionner
-  participantInput.onchange = () => {
+  // Quand on tape dans le champ custom, déselectionner ET activer la sélection d'univers
+  participantInput.oninput = () => {
     if (participantInput.value) {
       participantSelect.value = '';
     }
+    autoSelectUniverse();
   };
 
-  simulateBtn.onclick = async () => {
-    let participantId = participantSelect.value || participantInput.value.trim();
+  // 🆕 Auto-sélectionner l'univers au chargement si un participant est pré-sélectionné
+  autoSelectUniverse();
 
-    if (!participantId) {
+  simulateBtn.onclick = async () => {
+    const selectedFromList = participantSelect.value;
+    const customInput = participantInput.value.trim();
+
+    let participantId = '';
+    let universe = '';
+    let isNewParticipant = false;
+
+    if (selectedFromList) {
+      // Participant existant sélectionné depuis la liste
+      participantId = selectedFromList;
+      universe = participantUniverseMap[participantId] || universeSelect.value;
+      isNewParticipant = false;
+      console.log('[DevSim] Participant existant sélectionné:', participantId);
+    } else if (customInput) {
+      // Nouveau participant saisi manuellement
+      const upperInput = customInput.toUpperCase();
+      const firstLetter = upperInput.charAt(0);
+
+      // Valider que la première lettre est A, B, C, D ou E
+      if (!['A', 'B', 'C', 'D', 'E'].includes(firstLetter)) {
+        alert('❌ La première lettre doit être A, B, C, D ou E pour définir l\'univers');
+        return;
+      }
+
+      if (upperInput.length < 2) {
+        alert('❌ L\'ID doit contenir au moins 2 caractères (lettre univers + code)');
+        return;
+      }
+
+      // Extraire l'univers et le code_participant
+      universe = firstLetter;
+      participantId = upperInput.substring(1); // Le reste après la première lettre
+      isNewParticipant = true;
+
+      console.log('[DevSim] Nouveau participant détecté:');
+      console.log('[DevSim]   - Input complet:', upperInput);
+      console.log('[DevSim]   - Universe ID:', universe);
+      console.log('[DevSim]   - Code participant:', participantId);
+    } else {
       alert('Veuillez sélectionner ou créer un participant');
       return;
     }
 
-    const universe = universeSelect.value;
-
-    console.log('[DevSim] Simulation scan QR:', { participantId, universe });
-
-    // ⭐ Appeler le scan QR avec les données
-    const qrContent = JSON.stringify({
-      universe,
-      participantId,
-    });
+    console.log('[DevSim] Simulation scan QR:', { participantId, universe, isNewParticipant });
 
     try {
+      // 🆕 Si nouveau participant, le créer d'abord dans la DB
+      if (isNewParticipant && window.photoAPI?.participants?.addOrUpdate) {
+        console.log('[DevSim] 📝 Création du participant dans la DB...');
+
+        const createResult = await window.photoAPI.participants.addOrUpdate(participantId, universe, 'active');
+
+        if (createResult?.status === 'success') {
+          console.log('[DevSim] ✅ Participant créé:', participantId, '→ univers', universe);
+        } else {
+          console.warn('[DevSim] ⚠️ Erreur création participant:', createResult?.error);
+          // Continuer quand même le scan
+        }
+      }
+
+      // ⭐ Appeler le scan QR avec les données
+      const qrContent = JSON.stringify({
+        universe,
+        participantId,
+      });
+
       // ⭐ CORRECTION: Utiliser l'API photoAPI.scanQR
       if (window.photoAPI?.scanQR) {
         const result = await window.photoAPI.scanQR(qrContent);
         console.log('[DevSim] Résultat scan:', result);
-        
+
         if (result.status === 'success') {
           console.log('[DevSim] ✅ Scan réussi!');
           console.log('[DevSim] Participant:', result.participantId);
           console.log('[DevSim] Photos:', result.photos?.length || 0);
-          
+
           // ⭐ NAVIGATION: Mettre à jour le state et naviguer vers listing
           if (window.state && window.render) {
             // Mettre à jour le state global
@@ -184,13 +276,13 @@ async function showSimulatorPopup() {
             window.state.photos = result.photos || [];
             window.state.participantId = result.participantId;
             window.state.universeId = result.universeId || universe;
-            
+
             // Changer de page
             window.state.page = 'listing';
-            
+
             // Re-render l'application
             window.render();
-            
+
             console.log('[DevSim] ✅ Navigation vers listing effectuée');
           } else {
             console.warn('[DevSim] ⚠️  window.state ou window.render non disponible');

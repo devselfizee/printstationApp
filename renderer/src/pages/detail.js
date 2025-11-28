@@ -12,15 +12,28 @@ export const renderOffer = (photo, product) => {
   const el = document.createElement('div');
   el.className = 'offer';
   
-  
-  // Récupérer les visuels spécifiques à l'univers
-  const visual = getProductVisual(state.universe.id, product.id);
-  const visuHTML = visual && visual.image 
-    ? `<img src="${visual.image}" alt="${product.title}" style="max-width:100%;max-height:190px;object-fit:contain;">`
-    : `<div style="width:100%;height:150px;background:#f0f0f0;display:grid;place-items:center;color:#999;">Image non disponible</div>`;
-  
 
-  
+  // Récupérer l'image du produit
+  // Priorité 1 : thumbnail_url de l'API
+  // Priorité 2 : visuels spécifiques à l'univers
+  // Priorité 3 : placeholder "Image non disponible"
+  let imageUrl = null;
+
+  if (product.thumbnail) {
+    imageUrl = product.thumbnail;
+  } else {
+    const visual = getProductVisual(state.universe.id, product.id);
+    if (visual && visual.image) {
+      imageUrl = visual.image;
+    }
+  }
+
+  const visuHTML = imageUrl
+    ? `<img src="${imageUrl}" alt="${product.title}" style="max-width:100%;max-height:190px;object-fit:contain;">`
+    : `<div style="width:100%;height:150px;background:#f0f0f0;display:grid;place-items:center;color:#999;">Image non disponible</div>`;
+
+
+
 el.innerHTML = `
     <div class="visu" style="display:grid;place-items:center;">${visuHTML}</div>
     <div class="info">
@@ -138,12 +151,24 @@ export const renderDetail = (root) => {
   main.className = 'main detail-enter';
   const section = document.createElement('section');
   section.innerHTML = `<h2 class="detail-title">${t('photo')}</h2><div class="detail-preview"><img src="${p.source}" alt=""></div>`;
-  
-  section.appendChild(renderOffer(p, window.PRODUCTS.print));
-  section.appendChild(renderOffer(p, window.PRODUCTS.magnet));
-  
+
+  // Afficher les produits filtrés par univers
+  const currentUniverseId = state.universe?.id || state.universeId;
+
+  Object.values(window.PRODUCTS)
+    .filter(product => {
+      // Afficher le produit si:
+      // - universe_id est null (produit global disponible pour tous les univers)
+      // - universe_id correspond à l'univers actuel
+      return !product.universe_id || product.universe_id === currentUniverseId;
+    })
+    .forEach(product => {
+      section.appendChild(renderOffer(p, product));
+    });
+
+  // Ajouter un séparateur entre les produits et les autres photos
   const sep = document.createElement('div');
-  sep.style.height = '20px';
+  sep.style.height = '40px';
   section.appendChild(sep);
   
   const wrap = document.createElement('div');
@@ -164,7 +189,7 @@ export const renderDetail = (root) => {
     grid.appendChild(card);
   });
   section.appendChild(wrap);
-  
+
   // === FOOTER ===
 
   const footer = createFooterBar({
