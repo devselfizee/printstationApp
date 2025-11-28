@@ -167,16 +167,18 @@ function showAdminLogin() {
   modal.className = 'admin-login-modal';
   modal.innerHTML = `
     <!-- Formulaire positionné au-dessus du clavier -->
-    <div class="admin-login-box" id="adminLoginBox">
-      <h2>🔐 Admin</h2>
-      <div class="admin-password-display" id="adminPasswordDisplay">
-        <span class="password-dots" id="passwordDots"></span>
-      </div>
-      <div class="admin-error-msg" id="adminErrorMsg"></div>
+    <div class="admin-login-container">
+      <div class="admin-login-box" id="adminLoginBox">
+        <h2>🔐 Admin</h2>
+        <div class="admin-password-display" id="adminPasswordDisplay">
+          <span class="password-dots" id="passwordDots"></span>
+        </div>
+        <div class="admin-error-msg" id="adminErrorMsg"></div>
 
-      <div class="admin-buttons">
-        <button id="adminOkBtn" class="admin-btn-ok">Valider</button>
-        <button id="adminCancelBtn" class="admin-btn-cancel">Annuler</button>
+        <div class="admin-buttons">
+          <button id="adminOkBtn" class="admin-btn-ok">Valider</button>
+          <button id="adminCancelBtn" class="admin-btn-cancel">Annuler</button>
+        </div>
       </div>
     </div>
 
@@ -184,20 +186,19 @@ function showAdminLogin() {
     <div class="admin-kb" id="adminKb"></div>
 
     <style>
-      .admin-login-box {
+      .admin-login-container {
         position: fixed;
         bottom: 340px;
         left: 50%;
         transform: translateX(-50%);
-        background: rgba(0,0,0,0.9);
-        border-radius: 16px;
-        padding: 25px 40px;
+        min-width: 400px;
         z-index: 10002;
+      }
+      .admin-login-box {
         text-align: center;
       }
       .admin-login-box h2 {
         margin: 0 0 20px 0;
-        color: #fff;
       }
       .admin-password-display {
         background: rgba(255,255,255,0.1);
@@ -205,7 +206,6 @@ function showAdminLogin() {
         border-radius: 8px;
         padding: 15px 20px;
         min-height: 30px;
-        min-width: 200px;
         display: flex;
         align-items: center;
         justify-content: center;
