@@ -56,10 +56,12 @@ const LONG_PRESS_DURATION = 3000; // 3 secondes
 export function initAdminButton() {
   // Raccourcis clavier
   document.addEventListener('keydown', async (e) => {
-    // F2 - Admin login
+    // F2 - Admin login (uniquement sur page d'accueil)
     if (e.key === 'F2') {
       // Si le login est ouvert, ignorer
       if (isLoginOpen) return;
+      // Ne fonctionne que sur la page d'accueil (QR)
+      if (window.state?.page !== 'qr') return;
       console.log('[Admin] Touche F2 détectée');
       showAdminLogin();
     }
@@ -78,7 +80,7 @@ export function initAdminButton() {
   // Long press sur le coin haut gauche
   createLongPressZone();
 
-  console.log('[Admin] Ready - F2: Admin, F10: Fullscreen, Long press coin haut gauche');
+  console.log('[Admin] Ready - F2/Long press: Admin (page accueil), F10: Fullscreen');
 }
 
 /**
