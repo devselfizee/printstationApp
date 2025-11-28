@@ -188,7 +188,7 @@ function showAdminLogin() {
     <style>
       .admin-login-container {
         position: fixed;
-        bottom: 340px;
+        bottom: 355px;
         left: 50%;
         transform: translateX(-50%);
         min-width: 400px;
