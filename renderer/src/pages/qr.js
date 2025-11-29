@@ -182,13 +182,6 @@ export const renderQR = (root) => {
       <div class="qr-buttons-row">
         <button class="qr-btn qr-btn-scanner" id="scanBtn">📱 Scanner QR</button>
       </div>
-      <div class="qr-simulator-toggle">
-        <label class="simulator-checkbox-label">
-          <input type="checkbox" id="simulatorCheckbox" checked>
-          <span class="checkmark"></span>
-          <span class="label-text">💳 Simuler le paiement</span>
-        </label>
-      </div>
     </div>
   `;
 
@@ -218,62 +211,6 @@ export const renderQR = (root) => {
         console.log('📷 Résultat du scan:', result);
       } catch (err) {
         console.error('Erreur pendant le scan:', err);
-      }
-    };
-  }
-
-  // ===== CHECKBOX SIMULATEUR HEXAPAY =====
-  const simulatorCheckbox = $('#simulatorCheckbox');
-  if (simulatorCheckbox) {
-    // Fonction pour démarrer le simulateur
-    const startSimulator = async () => {
-      console.log('💳 Démarrage du simulateur Hexapay...');
-      try {
-        const result = await window.photoAPI.simulator.runHexapay();
-        console.log('💳 Résultat simulateur:', result);
-
-        if (result.status === 'success') {
-          console.log('✅ Simulateur lancé avec PID:', result.pid);
-        } else if (result.status === 'already_running') {
-          console.log('✅ Simulateur déjà en cours (PID:', result.pid, ')');
-        } else {
-          console.error('❌ Erreur simulateur:', result.error);
-        }
-      } catch (err) {
-        console.error('Erreur lancement simulateur:', err);
-      }
-    };
-
-    // Fonction pour arrêter le simulateur
-    const stopSimulator = async () => {
-      console.log('💳 Arrêt du simulateur Hexapay...');
-      try {
-        const result = await window.photoAPI.simulator.stopHexapay();
-        console.log('💳 Résultat arrêt:', result);
-
-        if (result.status === 'success') {
-          console.log('✅ Simulateur arrêté');
-        } else if (result.status === 'not_running') {
-          console.log('⚠️ Aucun simulateur en cours');
-        } else {
-          console.error('❌ Erreur arrêt simulateur:', result.error);
-        }
-      } catch (err) {
-        console.error('Erreur arrêt simulateur:', err);
-      }
-    };
-
-    // Lancer le simulateur au chargement si la checkbox est cochée
-    if (simulatorCheckbox.checked) {
-      startSimulator();
-    }
-
-    // Gérer le changement de la checkbox
-    simulatorCheckbox.onchange = async () => {
-      if (simulatorCheckbox.checked) {
-        await startSimulator();
-      } else {
-        await stopSimulator();
       }
     };
   }

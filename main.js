@@ -1310,7 +1310,48 @@ app.on('ready', async () => {
 
   createWindow();
   createMenu();
+
+  // Auto-démarrer le simulateur en mode dev si la checkbox est cochée par défaut
+  const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
+  if (isDev) {
+    autoStartSimulator();
+  }
 });
+
+/**
+ * Auto-démarre le simulateur Hexapay en mode dev
+ */
+async function autoStartSimulator() {
+  console.log('[Simulator] Auto-démarrage du simulateur Hexapay...');
+  try {
+    const { spawn } = await import('child_process');
+    const nodePath = process.execPath.includes('electron')
+      ? 'node'
+      : process.execPath;
+
+    simulatorProcess = spawn(nodePath, ['simulator.js'], {
+      cwd: process.cwd(),
+      stdio: ['ignore', 'pipe', 'pipe']
+    });
+
+    simulatorProcess.stdout.on('data', (data) => {
+      console.log(`[Simulator] ${data.toString().trim()}`);
+    });
+
+    simulatorProcess.stderr.on('data', (data) => {
+      console.error(`[Simulator Error] ${data.toString().trim()}`);
+    });
+
+    simulatorProcess.on('close', (code) => {
+      console.log(`[Simulator] Processus terminé avec code ${code}`);
+      simulatorProcess = null;
+    });
+
+    console.log('[Simulator] ✅ Simulateur auto-lancé avec PID:', simulatorProcess.pid);
+  } catch (err) {
+    console.error('[Simulator] Erreur auto-démarrage:', err);
+  }
+}
 
 app.on('window-all-closed', () => {
   // DEBUT HEXAPAY TOOLS
@@ -1405,6 +1446,58 @@ function createMenu() {
           label: 'Recharger',
           accelerator: 'CmdOrCtrl+R',
           click: () => mainWindow?.reload(),
+        },
+        { type: 'separator' },
+        {
+          label: 'Simuler le paiement',
+          type: 'checkbox',
+          checked: true,
+          click: async (menuItem) => {
+            if (menuItem.checked) {
+              // Démarrer le simulateur
+              console.log('[Menu] Démarrage du simulateur Hexapay...');
+              if (simulatorProcess && !simulatorProcess.killed) {
+                console.log('[Menu] Simulateur déjà en cours');
+                return;
+              }
+              try {
+                const { spawn } = await import('child_process');
+                const nodePath = process.execPath.includes('electron')
+                  ? 'node'
+                  : process.execPath;
+
+                simulatorProcess = spawn(nodePath, ['simulator.js'], {
+                  cwd: process.cwd(),
+                  stdio: ['ignore', 'pipe', 'pipe']
+                });
+
+                simulatorProcess.stdout.on('data', (data) => {
+                  console.log(`[Simulator] ${data.toString().trim()}`);
+                });
+
+                simulatorProcess.stderr.on('data', (data) => {
+                  console.error(`[Simulator Error] ${data.toString().trim()}`);
+                });
+
+                simulatorProcess.on('close', (code) => {
+                  console.log(`[Simulator] Processus terminé avec code ${code}`);
+                  simulatorProcess = null;
+                });
+
+                console.log('[Menu] ✅ Simulateur lancé avec PID:', simulatorProcess.pid);
+              } catch (err) {
+                console.error('[Menu] Erreur lancement simulateur:', err);
+              }
+            } else {
+              // Arrêter le simulateur
+              console.log('[Menu] Arrêt du simulateur Hexapay...');
+              if (simulatorProcess && !simulatorProcess.killed) {
+                simulatorProcess.kill();
+                simulatorProcess = null;
+                console.log('[Menu] ✅ Simulateur arrêté');
+              }
+            }
+          },
         },
         { type: 'separator' },
         {
