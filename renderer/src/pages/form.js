@@ -193,6 +193,14 @@ attachFooterListeners({
             if (updateResult?.status === 'success') {
               console.log('[Form] ✅ Commande mise à jour sur Supabase');
               console.log('[Form] Réponse:', updateResult.response);
+
+              // Mettre à jour aussi le statut LOCAL à "completed"
+              try {
+                await window.photoAPI.orders.updateStatus(orderId, 'completed', 'Commande finalisée');
+                console.log('[Form] ✅ Statut local mis à jour: completed');
+              } catch (localError) {
+                console.error('[Form] ❌ Erreur mise à jour statut local:', localError);
+              }
             } else if (updateResult?.status === 'skipped') {
               console.log('[Form] ⏭️  Mise à jour ignorée:', updateResult.message);
             } else {

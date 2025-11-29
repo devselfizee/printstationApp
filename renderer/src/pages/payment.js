@@ -90,7 +90,20 @@ async function initiatePaymentFlow(totalAmount, root) {
     const confirm = await window.hexapay.confirmPayment(totalAmount);
     if (!confirm.success) throw new Error(confirm.error);
 
-    // 6. Mettre à jour le statut de la commande sur Supabase (status=completed)
+    // 6. Mettre à jour le statut de la commande LOCALE à "completed"
+    if (state.localOrderId && window.photoAPI?.orders?.updateStatus) {
+      try {
+        console.log('[Payment] 📝 Mise à jour du statut LOCAL (status=completed)...');
+        console.log('[Payment] Local Order ID:', state.localOrderId);
+
+        await window.photoAPI.orders.updateStatus(state.localOrderId, 'completed', 'Paiement réussi');
+        console.log('[Payment] ✅ Statut local mis à jour: completed');
+      } catch (localError) {
+        console.error('[Payment] ❌ Erreur mise à jour statut local:', localError);
+      }
+    }
+
+    // 7. Mettre à jour le statut de la commande sur Supabase (status=completed)
     if (state.supabaseOrderId && window.photoAPI?.orders?.updateRemote) {
       try {
         console.log('[Payment] 📝 Mise à jour du statut sur Supabase (status=completed)...');
