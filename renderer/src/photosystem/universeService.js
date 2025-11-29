@@ -18,6 +18,42 @@ const universeCache = new Map();
  * Alternative à l'API externe si elle n'est pas disponible
  */
 const LOCAL_UNIVERSES = {
+  A: {
+    id: 'A',
+    name: 'L\'horizon de Khéops',
+    description: 'Thème égyptien avec couleurs dorées et bleues',
+
+    theme: {
+      primaryColor: '#1e3a8a',
+      secondaryColor: '#1e40af',
+      backgroundColor: '#fef3c7',
+      fontFamily: 'Arial, sans-serif',
+      accentColor: '#fbbf24',
+    },
+
+    pricing: {
+      basePrice: 3.00,
+      currency: 'EUR',
+      tiers: [
+        { quantity: 1, multiplier: 1.0 },
+        { quantity: 5, multiplier: 0.92 },
+        { quantity: 10, multiplier: 0.88 },
+        { quantity: 20, multiplier: 0.80 },
+      ],
+    },
+
+    templates: {
+      layout1: '4x6',
+      layout2: '5x7',
+      layout3: '8x10',
+    },
+
+    assets: {
+      logo: '/assets/A/logo.png',
+      background: '/assets/A/bg.jpg',
+    },
+  },
+
   B: {
     id: 'B',
     name: 'Mondes Disparus',
@@ -54,27 +90,27 @@ const LOCAL_UNIVERSES = {
     },
   },
 
-  A: {
-    id: 'A',
-    name: 'L\'horizon de Khéops',
-    description: 'Thème égyptien avec couleurs dorées et bleues',
+  C: {
+    id: 'C',
+    name: 'Aventure Tropicale',
+    description: 'Thème tropical avec couleurs vives',
 
     theme: {
-      primaryColor: '#1e3a8a',
-      secondaryColor: '#1e40af',
-      backgroundColor: '#fef3c7',
-      fontFamily: 'Arial, sans-serif',
-      accentColor: '#fbbf24',
+      primaryColor: '#059669',
+      secondaryColor: '#10b981',
+      backgroundColor: '#ecfdf5',
+      fontFamily: 'Verdana, sans-serif',
+      accentColor: '#34d399',
     },
 
     pricing: {
-      basePrice: 3.00,
+      basePrice: 2.50,
       currency: 'EUR',
       tiers: [
         { quantity: 1, multiplier: 1.0 },
-        { quantity: 5, multiplier: 0.92 },
-        { quantity: 10, multiplier: 0.88 },
-        { quantity: 20, multiplier: 0.80 },
+        { quantity: 5, multiplier: 0.95 },
+        { quantity: 10, multiplier: 0.90 },
+        { quantity: 20, multiplier: 0.85 },
       ],
     },
 
@@ -85,8 +121,80 @@ const LOCAL_UNIVERSES = {
     },
 
     assets: {
-      logo: '/assets/A/logo.png',
-      background: '/assets/A/bg.jpg',
+      logo: '/assets/C/logo.png',
+      background: '/assets/C/bg.jpg',
+    },
+  },
+
+  D: {
+    id: 'D',
+    name: 'Mystères de l\'Orient',
+    description: 'Thème oriental avec couleurs pourpres',
+
+    theme: {
+      primaryColor: '#7c3aed',
+      secondaryColor: '#8b5cf6',
+      backgroundColor: '#f5f3ff',
+      fontFamily: 'Times New Roman, serif',
+      accentColor: '#a78bfa',
+    },
+
+    pricing: {
+      basePrice: 2.50,
+      currency: 'EUR',
+      tiers: [
+        { quantity: 1, multiplier: 1.0 },
+        { quantity: 5, multiplier: 0.95 },
+        { quantity: 10, multiplier: 0.90 },
+        { quantity: 20, multiplier: 0.85 },
+      ],
+    },
+
+    templates: {
+      layout1: '4x6',
+      layout2: '5x7',
+      layout3: '8x10',
+    },
+
+    assets: {
+      logo: '/assets/D/logo.png',
+      background: '/assets/D/bg.jpg',
+    },
+  },
+
+  E: {
+    id: 'E',
+    name: 'Ère Glaciaire',
+    description: 'Thème hivernal avec couleurs froides',
+
+    theme: {
+      primaryColor: '#0ea5e9',
+      secondaryColor: '#38bdf8',
+      backgroundColor: '#f0f9ff',
+      fontFamily: 'Helvetica, sans-serif',
+      accentColor: '#7dd3fc',
+    },
+
+    pricing: {
+      basePrice: 2.50,
+      currency: 'EUR',
+      tiers: [
+        { quantity: 1, multiplier: 1.0 },
+        { quantity: 5, multiplier: 0.95 },
+        { quantity: 10, multiplier: 0.90 },
+        { quantity: 20, multiplier: 0.85 },
+      ],
+    },
+
+    templates: {
+      layout1: '4x6',
+      layout2: '5x7',
+      layout3: '8x10',
+    },
+
+    assets: {
+      logo: '/assets/E/logo.png',
+      background: '/assets/E/bg.jpg',
     },
   },
 };
