@@ -118,6 +118,7 @@ function createLongPressZone() {
     z-index: 9999;
     cursor: default;
     background: transparent;
+    display: none;
   `;
 
   // Long press handlers
@@ -131,7 +132,15 @@ function createLongPressZone() {
   zone.addEventListener('touchcancel', cancelLongPress);
 
   document.body.appendChild(zone);
-  console.log('[Admin] Zone long press créée (coin haut gauche)');
+  console.log('[Admin] Zone long press créée (coin haut gauche, cachée par défaut)');
+
+  // Exposer les fonctions pour afficher/cacher la zone
+  window.showAdminLongPressZone = () => {
+    zone.style.display = 'block';
+  };
+  window.hideAdminLongPressZone = () => {
+    zone.style.display = 'none';
+  };
 }
 
 function startLongPress(e) {

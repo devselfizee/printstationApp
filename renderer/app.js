@@ -43,8 +43,12 @@ function render() {
   // Appliquer la classe page-qr pour la page d'accueil (hauteur fixe)
   if (state.page === 'qr') {
     app.classList.add('page-qr');
+    // Afficher la zone longpress admin sur la page d'accueil
+    if (window.showAdminLongPressZone) window.showAdminLongPressZone();
   } else {
     app.classList.remove('page-qr');
+    // Cacher la zone longpress admin sur les autres pages
+    if (window.hideAdminLongPressZone) window.hideAdminLongPressZone();
   }
 
   const showHeader = state.page !== 'thanks' && state.page !== 'payment' && state.page !== 'form' && state.page !== 'qr';
