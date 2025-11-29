@@ -1441,3 +1441,68 @@ visibility:hidden; opacity:0;
     font-size: 14px;
   }
 }
+
+/* ============================================
+ * HEXAPAY SIMULATOR CHECKBOX
+ * ============================================ */
+
+.qr-simulator-toggle {
+  margin-top: 4px;
+}
+
+.simulator-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  background: rgba(255, 183, 94, 0.15);
+  border: 1px solid rgba(255, 183, 94, 0.3);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(10px);
+}
+
+.simulator-checkbox-label:hover {
+  background: rgba(255, 183, 94, 0.25);
+  border-color: rgba(255, 183, 94, 0.5);
+}
+
+.simulator-checkbox-label input[type="checkbox"] {
+  display: none;
+}
+
+.simulator-checkbox-label .checkmark {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 183, 94, 0.6);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  position: relative;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.simulator-checkbox-label input[type="checkbox"]:checked + .checkmark {
+  background: rgba(255, 183, 94, 0.8);
+  border-color: rgba(255, 183, 94, 0.9);
+}
+
+.simulator-checkbox-label input[type="checkbox"]:checked + .checkmark::after {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 2px;
+  width: 5px;
+  height: 10px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.simulator-checkbox-label .label-text {
+  color: #fff;
+  font-weight: 600;
+  font-size: 11px;
+  white-space: nowrap;
+}

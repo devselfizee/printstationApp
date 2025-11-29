@@ -3008,6 +3008,32 @@ app.on('before-quit', () => {
   }
 });
 
+// Handler pour arrêter le simulateur manuellement
+ipcMain.handle('simulator:stop-hexapay', async (event) => {
+  console.log('[IPC] Arrêt du simulateur Hexapay...');
+
+  try {
+    if (simulatorProcess && !simulatorProcess.killed) {
+      simulatorProcess.kill();
+      simulatorProcess = null;
+      console.log('[IPC] ✅ Simulateur Hexapay arrêté');
+      return { status: 'success' };
+    } else {
+      console.log('[IPC] ⚠️ Aucun simulateur en cours');
+      return { status: 'not_running' };
+    }
+  } catch (error) {
+    console.error('[IPC] ❌ Erreur arrêt simulateur:', error);
+    return { status: 'error', error: error.message };
+  }
+});
+
+// Handler pour vérifier si le simulateur est en cours
+ipcMain.handle('simulator:is-running', async (event) => {
+  const isRunning = simulatorProcess && !simulatorProcess.killed;
+  return { status: 'success', running: isRunning, pid: isRunning ? simulatorProcess.pid : null };
+});
+
 /**
  * ===== HANDLERS IPC PARTICIPANTS =====
  */
