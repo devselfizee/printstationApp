@@ -92,8 +92,8 @@ const LOCAL_UNIVERSES = {
 
   C: {
     id: 'C',
-    name: 'Aventure Tropicale',
-    description: 'Thème tropical avec couleurs vives',
+    name: 'Remparts',
+    description: 'Remparts',
 
     theme: {
       primaryColor: '#059669',
@@ -128,8 +128,8 @@ const LOCAL_UNIVERSES = {
 
   D: {
     id: 'D',
-    name: 'Mystères de l\'Orient',
-    description: 'Thème oriental avec couleurs pourpres',
+    name: 'Impressionnistes',
+    description: 'Impressionnistes',
 
     theme: {
       primaryColor: '#7c3aed',

@@ -49,6 +49,42 @@ export const UNIVERSES = {
         image: './assets/porte-cle-disparu.png'
       }
     }
+  },
+  C: {
+    id: 'C',
+    name: 'Remparts',
+    banner: './assets/banniere-monde-perdu.jpg',
+    photos: [
+      { id: 'p1', title: 'Scène 1 - Dinosaures', src: './assets/disparu-photo1.jpg' },
+      { id: 'p2', title: 'Scène 2 - Paysage', src: './assets/disparu-photo2.jpg' },
+      { id: 'p3', title: 'Scène 3 - Forêt', src: './assets/disparu-photo3.jpg' }
+    ],
+    productVisuals: {
+      print: {
+        image: './assets/chevalet-disparu.png'
+      },
+      magnet: {
+        image: './assets/porte-cle-disparu.png'
+      }
+    }
+  },
+  D: {
+    id: 'D',
+    name: 'Impressionnistes',
+    banner: './assets/banniere-monde-perdu.jpg',
+    photos: [
+      { id: 'p1', title: 'Scène 1 - Dinosaures', src: './assets/disparu-photo1.jpg' },
+      { id: 'p2', title: 'Scène 2 - Paysage', src: './assets/disparu-photo2.jpg' },
+      { id: 'p3', title: 'Scène 3 - Forêt', src: './assets/disparu-photo3.jpg' }
+    ],
+    productVisuals: {
+      print: {
+        image: './assets/chevalet-disparu.png'
+      },
+      magnet: {
+        image: './assets/porte-cle-disparu.png'
+      }
+    }
   }
 };
 
