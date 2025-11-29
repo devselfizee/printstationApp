@@ -7,7 +7,7 @@
   --shadow: 0 12px 30px rgba(17,24,39,.08);
 }
 *{ box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
-html,body{ height:100%; margin:0; }
+html,body{ height:100%; margin:0; overflow-x:hidden; }
 body{ background:var(--panel); color:var(--txt); font:16px/1.45 ui-sans-serif, system-ui, -apple-system, Segoe UI, Inter, Roboto, Arial; }
 
 .mast{ position:fixed; inset:0 0 auto 0; height:92px; background:var(--panel); z-index:0; }
