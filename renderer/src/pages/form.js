@@ -96,6 +96,12 @@ const footer = createFooterBar({
 root.appendChild(footer);
 attachFooterListeners({
   onCancel: () => {
+    // Désactiver les boutons pour éviter les doubles clics
+    const cancelBtn = document.querySelector('.btn-cancel');
+    const continueBtn = document.querySelector('.btn-continue');
+    if (cancelBtn) cancelBtn.disabled = true;
+    if (continueBtn) continueBtn.disabled = true;
+
     // Aller vers la page de remerciement sans aucune mise à jour API
     clearInterval(state.timer);
     state.email = '';
@@ -103,10 +109,19 @@ attachFooterListeners({
     window.render();
   },
   onContinue: async () => {
+    // Désactiver les boutons pour éviter les doubles clics
+    const cancelBtn = document.querySelector('.btn-cancel');
+    const continueBtn = document.querySelector('.btn-continue');
+    if (cancelBtn) cancelBtn.disabled = true;
+    if (continueBtn) continueBtn.disabled = true;
+
     const email = $('#email').value.trim();
     if (email && (!email.includes('@') || !email.includes('.'))) {
       $('#inputWrap').classList.add('error');
       toast(t('errorEmail'),true);
+      // Réactiver les boutons en cas d'erreur de validation
+      if (cancelBtn) cancelBtn.disabled = false;
+      if (continueBtn) continueBtn.disabled = false;
       return;
     }
     

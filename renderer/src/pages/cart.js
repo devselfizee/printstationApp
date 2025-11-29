@@ -157,6 +157,12 @@ sum.innerHTML = `
 root.appendChild(footer);
 attachFooterListeners({
   onCancel: async () => {
+    // Désactiver les boutons pour éviter les doubles clics
+    const cancelBtn = document.querySelector('.btn-cancel');
+    const continueBtn = document.querySelector('.btn-continue');
+    if (cancelBtn) cancelBtn.disabled = true;
+    if (continueBtn) continueBtn.disabled = true;
+
     // 🆕 Enregistrer la commande annulée dans la DB
     if (state.cart.length > 0 && window.photoAPI?.orders && window.photoAPI?.cart && state.sessionId) {
       try {
@@ -233,6 +239,12 @@ attachFooterListeners({
     window.render();
   },
   onContinue: async () => {
+    // Désactiver les boutons pour éviter les doubles clics
+    const cancelBtn = document.querySelector('.btn-cancel');
+    const continueBtn = document.querySelector('.btn-continue');
+    if (cancelBtn) cancelBtn.disabled = true;
+    if (continueBtn) continueBtn.disabled = true;
+
     // 🆕 ÉTAPE 1 : Créer la commande locale d'abord, puis synchroniser avec Supabase
     if (state.cart.length > 0 && window.photoAPI?.orders) {
       try {
