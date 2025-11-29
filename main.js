@@ -395,7 +395,8 @@ class HexapayClient {
     this.socket = dgram.createSocket('udp4');
     
     this.socket.on('message', (msg, rinfo) => {
-      const response = msg.toString('utf-8').trim();
+      // Nettoyer la réponse: trim + supprimer les caractères nuls et autres caractères invisibles
+      const response = msg.toString('utf-8').trim().replace(/\0/g, '').replace(/[\x00-\x1F\x7F]/g, '');
       this.lastResponse = response;
       this.stats.responsesReceived++;
       
@@ -3005,6 +3006,32 @@ app.on('before-quit', () => {
     console.log('[App] Fermeture du simulateur Hexapay...');
     simulatorProcess.kill();
   }
+});
+
+// Handler pour arrêter le simulateur manuellement
+ipcMain.handle('simulator:stop-hexapay', async (event) => {
+  console.log('[IPC] Arrêt du simulateur Hexapay...');
+
+  try {
+    if (simulatorProcess && !simulatorProcess.killed) {
+      simulatorProcess.kill();
+      simulatorProcess = null;
+      console.log('[IPC] ✅ Simulateur Hexapay arrêté');
+      return { status: 'success' };
+    } else {
+      console.log('[IPC] ⚠️ Aucun simulateur en cours');
+      return { status: 'not_running' };
+    }
+  } catch (error) {
+    console.error('[IPC] ❌ Erreur arrêt simulateur:', error);
+    return { status: 'error', error: error.message };
+  }
+});
+
+// Handler pour vérifier si le simulateur est en cours
+ipcMain.handle('simulator:is-running', async (event) => {
+  const isRunning = simulatorProcess && !simulatorProcess.killed;
+  return { status: 'success', running: isRunning, pid: isRunning ? simulatorProcess.pid : null };
 });
 
 /**

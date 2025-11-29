@@ -138,6 +138,8 @@ const photoAPI = {
   // Simulator
   simulator: {
     runHexapay: () => ipcRenderer.invoke('simulator:run-hexapay'),
+    stopHexapay: () => ipcRenderer.invoke('simulator:stop-hexapay'),
+    isRunning: () => ipcRenderer.invoke('simulator:is-running'),
   },
 
   // Listeners
