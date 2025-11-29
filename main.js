@@ -2954,10 +2954,18 @@ ipcMain.handle('window:is-fullscreen', async (event) => {
 /**
  * ===== HANDLER SIMULATOR HEXAPAY =====
  */
+let simulatorProcess = null;
+
 ipcMain.handle('simulator:run-hexapay', async (event) => {
   console.log('[IPC] Lancement du simulateur Hexapay...');
 
   try {
+    // Si le simulateur est déjà lancé, ne pas en relancer un autre
+    if (simulatorProcess && !simulatorProcess.killed) {
+      console.log('[IPC] ⚠️ Simulateur déjà en cours (PID:', simulatorProcess.pid, ')');
+      return { status: 'already_running', pid: simulatorProcess.pid };
+    }
+
     const simulatorPath = path.join(__dirname, 'simulator.js');
 
     // Vérifier si le fichier existe
@@ -2966,21 +2974,36 @@ ipcMain.handle('simulator:run-hexapay', async (event) => {
       return { status: 'error', error: 'Fichier simulator.js non trouvé' };
     }
 
-    // Lancer le simulateur en arrière-plan
+    // Lancer le simulateur (attaché au processus parent)
     const { spawn } = await import('child_process');
-    const simulator = spawn('node', ['simulator.js'], {
+    simulatorProcess = spawn('node', ['simulator.js'], {
       cwd: __dirname,
-      detached: true,
-      stdio: 'ignore'
+      stdio: 'inherit' // Affiche les logs du simulateur dans la console
     });
 
-    simulator.unref();
+    simulatorProcess.on('close', (code) => {
+      console.log('[IPC] Simulateur fermé avec code:', code);
+      simulatorProcess = null;
+    });
 
-    console.log('[IPC] ✅ Simulateur Hexapay lancé (PID:', simulator.pid, ')');
-    return { status: 'success', pid: simulator.pid };
+    simulatorProcess.on('error', (err) => {
+      console.error('[IPC] Erreur simulateur:', err);
+      simulatorProcess = null;
+    });
+
+    console.log('[IPC] ✅ Simulateur Hexapay lancé (PID:', simulatorProcess.pid, ')');
+    return { status: 'success', pid: simulatorProcess.pid };
   } catch (error) {
     console.error('[IPC] ❌ Erreur lancement simulateur:', error);
     return { status: 'error', error: error.message };
+  }
+});
+
+// Fermer le simulateur quand l'application se ferme
+app.on('before-quit', () => {
+  if (simulatorProcess && !simulatorProcess.killed) {
+    console.log('[App] Fermeture du simulateur Hexapay...');
+    simulatorProcess.kill();
   }
 });
 
