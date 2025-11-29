@@ -828,11 +828,46 @@ export async function updateOrderStatus(orderId, newStatus, notes = null) {
  */
 export async function updateOrderItemStatus(itemId, newStatus) {
   return runAsync(
-    `UPDATE order_items 
-     SET status = ?, updated_at = CURRENT_TIMESTAMP 
+    `UPDATE order_items
+     SET status = ?, updated_at = CURRENT_TIMESTAMP
      WHERE id = ?`,
     [newStatus, itemId]
   );
+}
+
+/**
+ * Mettre à jour les détails d'une commande (email, optin, etc.)
+ */
+export async function updateOrderDetails(orderId, { email = null, optin = null, paymentMethod = null }) {
+  const updates = [];
+  const params = [];
+
+  if (email !== null) {
+    updates.push('email = ?');
+    params.push(email);
+  }
+
+  if (optin !== null) {
+    updates.push('optin = ?');
+    params.push(optin ? 1 : 0);
+  }
+
+  if (paymentMethod !== null) {
+    updates.push('payment_method = ?');
+    params.push(paymentMethod);
+  }
+
+  if (updates.length === 0) {
+    return { success: true, message: 'Aucun champ à mettre à jour' };
+  }
+
+  updates.push('updated_at = CURRENT_TIMESTAMP');
+  params.push(orderId);
+
+  const query = `UPDATE orders SET ${updates.join(', ')} WHERE id = ?`;
+  await runAsync(query, params);
+
+  return { success: true };
 }
 
 /**

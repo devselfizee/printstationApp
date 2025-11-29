@@ -1811,6 +1811,20 @@ ipcMain.handle('order:update-item-status', async (event, itemId, status) => {
   }
 });
 
+ipcMain.handle('order:update-details', async (event, orderId, details) => {
+  if (!photoSystemReady || !photoSystem?.db) {
+    return { status: 'error', error: 'PhotoSystem non disponible' };
+  }
+  try {
+    await photoSystem.db.updateOrderDetails(orderId, details);
+    console.log('[IPC] Détails commande mis à jour:', orderId, details);
+    return { status: 'success' };
+  } catch (error) {
+    console.error('[IPC] Erreur mise à jour détails commande:', error);
+    return { status: 'error', error: error.message };
+  }
+});
+
 ipcMain.handle('order:get-with-items', async (event, orderId) => {
   if (!photoSystemReady || !photoSystem?.db) {
     return null;

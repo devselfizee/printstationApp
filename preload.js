@@ -84,6 +84,7 @@ const photoAPI = {
     addItem: (itemData) => ipcRenderer.invoke('order:add-item', itemData),
     updateStatus: (orderId, status, notes) => ipcRenderer.invoke('order:update-status', orderId, status, notes),
     updateItemStatus: (itemId, status) => ipcRenderer.invoke('order:update-item-status', itemId, status),
+    updateDetails: (orderId, details) => ipcRenderer.invoke('order:update-details', orderId, details),
     getWithItems: (orderId) => ipcRenderer.invoke('order:get-with-items', orderId),
     getByParticipant: (participantId) => ipcRenderer.invoke('order:get-by-participant', participantId),
     getByStatus: (status) => ipcRenderer.invoke('order:get-by-status', status),

@@ -194,12 +194,23 @@ attachFooterListeners({
               console.log('[Form] ✅ Commande mise à jour sur Supabase');
               console.log('[Form] Réponse:', updateResult.response);
 
-              // Mettre à jour aussi le statut LOCAL à "completed"
+              // Mettre à jour le statut LOCAL à "completed"
               try {
                 await window.photoAPI.orders.updateStatus(orderId, 'completed', 'Commande finalisée');
                 console.log('[Form] ✅ Statut local mis à jour: completed');
               } catch (localError) {
                 console.error('[Form] ❌ Erreur mise à jour statut local:', localError);
+              }
+
+              // Mettre à jour l'email et l'optin dans la commande locale
+              try {
+                await window.photoAPI.orders.updateDetails(orderId, {
+                  email: email || null,
+                  optin: state.optin || false
+                });
+                console.log('[Form] ✅ Email et optin mis à jour:', email, 'optin:', state.optin);
+              } catch (detailsError) {
+                console.error('[Form] ❌ Erreur mise à jour email/optin:', detailsError);
               }
             } else if (updateResult?.status === 'skipped') {
               console.log('[Form] ⏭️  Mise à jour ignorée:', updateResult.message);
@@ -208,9 +219,28 @@ attachFooterListeners({
               // Ne pas bloquer le processus si la mise à jour échoue
             }
           } else {
-            console.warn('[Form] ⚠️  Pas d\'ID de commande Supabase - création locale uniquement');
+            console.warn('[Form] ⚠️  Pas d\'ID de commande Supabase - mise à jour locale uniquement');
             console.warn('[Form] state.supabaseOrderId est:', state.supabaseOrderId);
             console.warn('[Form] state.localOrderId est:', state.localOrderId);
+
+            // Mettre à jour le statut LOCAL à "completed" même sans Supabase
+            try {
+              await window.photoAPI.orders.updateStatus(orderId, 'completed', 'Commande finalisée (local)');
+              console.log('[Form] ✅ Statut local mis à jour: completed');
+            } catch (localError) {
+              console.error('[Form] ❌ Erreur mise à jour statut local:', localError);
+            }
+
+            // Mettre à jour l'email et l'optin dans la commande locale
+            try {
+              await window.photoAPI.orders.updateDetails(orderId, {
+                email: email || null,
+                optin: state.optin || false
+              });
+              console.log('[Form] ✅ Email et optin mis à jour (local):', email, 'optin:', state.optin);
+            } catch (detailsError) {
+              console.error('[Form] ❌ Erreur mise à jour email/optin:', detailsError);
+            }
           }
         } catch (updateError) {
           console.error('[Form] ❌ Erreur lors de la mise à jour:', updateError);
