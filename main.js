@@ -2030,10 +2030,9 @@ ipcMain.handle('cart:get-session-stats', async (event, sessionId) => {
   if (!photoSystemReady || !photoSystem?.db) {
     return {
       total_items: 0,
-      en_cours: 0,
-      en_attente: 0,
-      annulé: 0,
-      validé: 0,
+      pending: 0,
+      cancelled: 0,
+      completed: 0,
       total_amount: 0
     };
   }

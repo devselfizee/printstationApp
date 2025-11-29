@@ -679,12 +679,12 @@ export async function addOrderItem(itemData) {
     totalPrice,
     incrustationId = null,
     sessionId = null,
-    status = 'en_cours'
+    status = 'pending'
   } = itemData;
 
   return runAsync(
     `INSERT INTO order_items (
-      order_id, photo_id, product_id, product_name, quantity, 
+      order_id, photo_id, product_id, product_name, quantity,
       unit_price, total_price, incrustation_id, session_id, status, created_at, updated_at
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
     [orderId, photoId, productId, productName, quantity, unitPrice, totalPrice, incrustationId, sessionId, status]
@@ -692,7 +692,7 @@ export async function addOrderItem(itemData) {
 }
 
 /**
- * Ajouter un produit immédiatement lors du clic "Ajouter" (statut: en_cours)
+ * Ajouter un produit immédiatement lors du clic "Ajouter" (statut: pending)
  */
 export async function addCartItemImmediate(itemData) {
   const {
@@ -708,10 +708,10 @@ export async function addCartItemImmediate(itemData) {
 
   const result = await runAsync(
     `INSERT INTO order_items (
-      photo_id, product_id, product_name, quantity, 
-      unit_price, total_price, incrustation_id, session_id, 
+      photo_id, product_id, product_name, quantity,
+      unit_price, total_price, incrustation_id, session_id,
       status, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'en_cours', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
     [photoId, productId, productName, quantity, unitPrice, totalPrice, incrustationId, sessionId]
   );
 
@@ -719,12 +719,12 @@ export async function addCartItemImmediate(itemData) {
 }
 
 /**
- * Annuler un produit du panier (change statut à "annulé")
+ * Annuler un produit du panier (change statut à "cancelled")
  */
 export async function cancelCartItem(itemId) {
   return runAsync(
-    `UPDATE order_items 
-     SET status = 'annulé', 
+    `UPDATE order_items
+     SET status = 'cancelled',
          cancelled_at = CURRENT_TIMESTAMP,
          updated_at = CURRENT_TIMESTAMP
      WHERE id = ?`,
@@ -738,16 +738,16 @@ export async function cancelCartItem(itemId) {
 export async function reactivateCartItem(photoId, productId, sessionId) {
   const result = await runAsync(
     `INSERT INTO order_items (
-      photo_id, product_id, product_name, quantity, 
+      photo_id, product_id, product_name, quantity,
       unit_price, total_price, incrustation_id, session_id,
       status, created_at, updated_at
     )
-    SELECT 
+    SELECT
       photo_id, product_id, product_name, quantity,
       unit_price, total_price, incrustation_id, ?,
-      'en_attente', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+      'pending', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
     FROM order_items
-    WHERE photo_id = ? AND product_id = ? AND status = 'annulé'
+    WHERE photo_id = ? AND product_id = ? AND status = 'cancelled'
     ORDER BY created_at DESC
     LIMIT 1`,
     [sessionId, photoId, productId]
@@ -761,24 +761,24 @@ export async function reactivateCartItem(photoId, productId, sessionId) {
  */
 export async function getSessionCartItems(sessionId) {
   return allAsync(
-    `SELECT * FROM order_items 
-     WHERE session_id = ? AND status = 'en_cours'
+    `SELECT * FROM order_items
+     WHERE session_id = ? AND status = 'pending'
      ORDER BY created_at DESC`,
     [sessionId]
   );
 }
 
 /**
- * Valider tous les produits en_attente d'une session (lors du paiement)
+ * Valider tous les produits pending d'une session (lors du paiement)
  */
 export async function validateSessionItems(sessionId, orderId) {
   return runAsync(
     `UPDATE order_items
-     SET status = 'validé',
+     SET status = 'completed',
          order_id = ?,
          validated_at = CURRENT_TIMESTAMP,
          updated_at = CURRENT_TIMESTAMP
-     WHERE session_id = ? AND status IN ('en_cours', 'en_attente')`,
+     WHERE session_id = ? AND status = 'pending'`,
     [orderId, sessionId]
   );
 }
@@ -789,11 +789,11 @@ export async function validateSessionItems(sessionId, orderId) {
 export async function cancelSessionItems(sessionId, orderId) {
   return runAsync(
     `UPDATE order_items
-     SET status = 'annulé',
+     SET status = 'cancelled',
          order_id = ?,
          cancelled_at = CURRENT_TIMESTAMP,
          updated_at = CURRENT_TIMESTAMP
-     WHERE session_id = ? AND status IN ('en_cours', 'en_attente')`,
+     WHERE session_id = ? AND status = 'pending'`,
     [orderId, sessionId]
   );
 }
@@ -1043,13 +1043,13 @@ export async function getAllSessionItems(sessionId) {
 }
 
 /**
- * Récupérer uniquement les produits actifs d'une session (en_cours + en_attente)
+ * Récupérer uniquement les produits actifs d'une session (pending)
  */
 export async function getActiveSessionItems(sessionId) {
   return allAsync(
-    `SELECT * FROM order_items 
-     WHERE session_id = ? 
-       AND status IN ('en_cours', 'en_attente')
+    `SELECT * FROM order_items
+     WHERE session_id = ?
+       AND status = 'pending'
      ORDER BY created_at DESC`,
     [sessionId]
   );
@@ -1062,11 +1062,10 @@ export async function getSessionStats(sessionId) {
   const stats = await getAsync(
     `SELECT
       COUNT(*) as total_items,
-      SUM(CASE WHEN status = 'en_cours' THEN 1 ELSE 0 END) as en_cours,
-      SUM(CASE WHEN status = 'en_attente' THEN 1 ELSE 0 END) as en_attente,
-      SUM(CASE WHEN status = 'annulé' THEN 1 ELSE 0 END) as annulé,
-      SUM(CASE WHEN status = 'validé' THEN 1 ELSE 0 END) as validé,
-      SUM(CASE WHEN status IN ('en_cours', 'en_attente') THEN total_price ELSE 0 END) as total_amount
+      SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
+      SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled,
+      SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
+      SUM(CASE WHEN status = 'pending' THEN total_price ELSE 0 END) as total_amount
      FROM order_items
      WHERE session_id = ?`,
     [sessionId]
@@ -1074,10 +1073,9 @@ export async function getSessionStats(sessionId) {
 
   return stats || {
     total_items: 0,
-    en_cours: 0,
-    en_attente: 0,
-    annulé: 0,
-    validé: 0,
+    pending: 0,
+    cancelled: 0,
+    completed: 0,
     total_amount: 0
   };
 }
