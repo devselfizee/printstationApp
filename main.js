@@ -2952,6 +2952,39 @@ ipcMain.handle('window:is-fullscreen', async (event) => {
 });
 
 /**
+ * ===== HANDLER SIMULATOR HEXAPAY =====
+ */
+ipcMain.handle('simulator:run-hexapay', async (event) => {
+  console.log('[IPC] Lancement du simulateur Hexapay...');
+
+  try {
+    const simulatorPath = path.join(__dirname, 'simulator.js');
+
+    // Vérifier si le fichier existe
+    if (!fs.existsSync(simulatorPath)) {
+      console.error('[IPC] ❌ Fichier simulator.js non trouvé:', simulatorPath);
+      return { status: 'error', error: 'Fichier simulator.js non trouvé' };
+    }
+
+    // Lancer le simulateur en arrière-plan
+    const { spawn } = await import('child_process');
+    const simulator = spawn('node', ['simulator.js'], {
+      cwd: __dirname,
+      detached: true,
+      stdio: 'ignore'
+    });
+
+    simulator.unref();
+
+    console.log('[IPC] ✅ Simulateur Hexapay lancé (PID:', simulator.pid, ')');
+    return { status: 'success', pid: simulator.pid };
+  } catch (error) {
+    console.error('[IPC] ❌ Erreur lancement simulateur:', error);
+    return { status: 'error', error: error.message };
+  }
+});
+
+/**
  * ===== HANDLERS IPC PARTICIPANTS =====
  */
 ipcMain.handle('participant:add-or-update', async (event, participantId, universeId, status) => {

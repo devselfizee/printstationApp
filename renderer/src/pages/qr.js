@@ -181,6 +181,7 @@ export const renderQR = (root) => {
     <div class="qr-buttons-container">
       <div class="qr-buttons-row">
         <button class="qr-btn qr-btn-scanner" id="scanBtn">📱 Scanner QR</button>
+        <button class="qr-btn qr-btn-simulator" id="simulatorBtn">💳 Simulateur Hexapay</button>
       </div>
     </div>
   `;
@@ -211,6 +212,29 @@ export const renderQR = (root) => {
         console.log('📷 Résultat du scan:', result);
       } catch (err) {
         console.error('Erreur pendant le scan:', err);
+      }
+    };
+  }
+
+  // ===== BOUTON SIMULATEUR HEXAPAY =====
+  const simulatorBtn = $('#simulatorBtn');
+  if (simulatorBtn) {
+    simulatorBtn.onclick = async () => {
+      console.log('💳 Simulateur Hexapay clicked');
+
+      try {
+        const result = await window.photoAPI.simulator.runHexapay();
+        console.log('💳 Résultat simulateur:', result);
+
+        if (result.status === 'success') {
+          console.log('✅ Simulateur lancé avec PID:', result.pid);
+        } else {
+          console.error('❌ Erreur simulateur:', result.error);
+          alert('Erreur: ' + result.error);
+        }
+      } catch (err) {
+        console.error('Erreur lancement simulateur:', err);
+        alert('Erreur: ' + err.message);
       }
     };
   }

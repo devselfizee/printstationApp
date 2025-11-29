@@ -135,6 +135,11 @@ const photoAPI = {
     isFullscreen: () => ipcRenderer.invoke('window:is-fullscreen'),
   },
 
+  // Simulator
+  simulator: {
+    runHexapay: () => ipcRenderer.invoke('simulator:run-hexapay'),
+  },
+
   // Listeners
   onPhotoProgress: (callback) => ipcRenderer.on('photos:progress', (event, data) => callback(data)),
   onPhotoComplete: (callback) => ipcRenderer.on('photos:complete', (event, data) => callback(data)),

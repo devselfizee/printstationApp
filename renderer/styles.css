@@ -331,6 +331,16 @@ visibility:hidden; opacity:0;
   background: rgba(94, 183, 255, 0.3);
 }
 
+.qr-btn-simulator {
+  background: rgba(255, 183, 94, 0.2);
+  border-color: rgba(255, 183, 94, 0.5);
+  font-size: 12px;
+}
+
+.qr-btn-simulator:hover {
+  background: rgba(255, 183, 94, 0.3);
+}
+
 .qr-btn-universe {
   font-size: 11px;
 }
