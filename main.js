@@ -2397,6 +2397,7 @@ async function syncOrderToRemoteAPI(orderId) {
     const itemsWithPhotoUrls = await Promise.all(
       (orderWithItems.items || []).map(async (item) => {
         let photoUrl = null;
+        let datePhoto = null;
 
         if (item.photo_id) {
           try {
@@ -2413,6 +2414,10 @@ async function syncOrderToRemoteAPI(orderId) {
               } else {
                 console.log('[Sync]   ⚠️  Photo ID:', item.photo_id, '→ remote_url est vide ou null');
               }
+              if (photo.date_photo) {
+                datePhoto = photo.date_photo;
+                console.log('[Sync]   📅 Date photo:', datePhoto);
+              }
             } else {
               console.log('[Sync]   ❌ Photo ID:', item.photo_id, '→ Photo non trouvée dans la DB');
             }
@@ -2425,7 +2430,8 @@ async function syncOrderToRemoteAPI(orderId) {
 
         return {
           ...item,
-          photo_url: photoUrl
+          photo_url: photoUrl,
+          date_photo: datePhoto
         };
       })
     );
@@ -2447,7 +2453,8 @@ async function syncOrderToRemoteAPI(orderId) {
         unit_price: Math.round((item.unit_price || 0) * 100), // Convertir en centimes
         total_price: Math.round((item.total_price || 0) * 100), // Convertir en centimes
         photo_id: item.photo_id || null, // ID de la photo
-        photo_url: item.photo_url || null // URL distante de la photo depuis la table photos
+        photo_url: item.photo_url || null, // URL distante de la photo depuis la table photos
+        date_photo: item.date_photo || null // Date de la photo
       }))
     };
 
@@ -2467,7 +2474,8 @@ async function syncOrderToRemoteAPI(orderId) {
         unit_price: `${item.unit_price / 100}€`,
         total_price: `${item.total_price / 100}€`,
         photo_id: item.photo_id,
-        photo_url: item.photo_url
+        photo_url: item.photo_url,
+        date_photo: item.date_photo
       });
     });
     console.log('[Sync] ═══════════════════════════════════════════════════');
