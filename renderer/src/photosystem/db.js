@@ -927,7 +927,7 @@ export async function getOrderStatusHistory(orderId) {
 }
 
 /**
- * Récupérer les statistiques des commandes
+ * Récupérer les statistiques des commandes (uniquement les completed)
  */
 export async function getOrderStats(startDate = null, endDate = null) {
   let query = `
@@ -942,18 +942,19 @@ export async function getOrderStats(startDate = null, endDate = null) {
       SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
       SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled
     FROM orders
+    WHERE status = 'completed'
   `;
 
   const params = [];
 
   if (startDate && endDate) {
-    query += ` WHERE created_at BETWEEN ? AND ?`;
+    query += ` AND created_at BETWEEN ? AND ?`;
     params.push(startDate, endDate);
   } else if (startDate) {
-    query += ` WHERE created_at >= ?`;
+    query += ` AND created_at >= ?`;
     params.push(startDate);
   } else if (endDate) {
-    query += ` WHERE created_at <= ?`;
+    query += ` AND created_at <= ?`;
     params.push(endDate);
   }
 
@@ -972,18 +973,20 @@ export async function getOrderStats(startDate = null, endDate = null) {
 }
 
 /**
- * Récupérer les produits les plus vendus
+ * Récupérer les produits les plus vendus (uniquement des commandes completed)
  */
 export async function getTopProducts(limit = 10) {
   return allAsync(
-    `SELECT 
-       product_id,
-       product_name,
-       SUM(quantity) as total_quantity,
-       COUNT(DISTINCT order_id) as order_count,
-       SUM(total_price) as total_revenue
-     FROM order_items
-     GROUP BY product_id, product_name
+    `SELECT
+       oi.product_id,
+       oi.product_name,
+       SUM(oi.quantity) as total_quantity,
+       COUNT(DISTINCT oi.order_id) as order_count,
+       SUM(oi.total_price) as total_revenue
+     FROM order_items oi
+     INNER JOIN orders o ON oi.order_id = o.id
+     WHERE o.status = 'completed'
+     GROUP BY oi.product_id, oi.product_name
      ORDER BY total_quantity DESC
      LIMIT ?`,
     [limit]
