@@ -195,42 +195,9 @@ export const renderQR = (root) => {
   qrHome.innerHTML = `
     ${statsHtml}
     <div class="qr-spacer"></div>
-    <div class="qr-buttons-container">
-      <div class="qr-buttons-row">
-        <button class="qr-btn qr-btn-scanner" id="scanBtn">📱 Scanner QR</button>
-      </div>
-    </div>
   `;
 
   root.appendChild(qrHome);
-
-  // ===== EVENT LISTENERS =====
-  const scanBtn = $('#scanBtn');
-  if (scanBtn) {
-    // scanBtn.onclick = () => {
-    //   console.log('🎯 Scan button clicked');
-    //   window.handleQRScan(JSON.stringify({
-    //     universe: 'B',
-    //     participantId: 'participant_' + Date.now(),
-    //   }));
-    // };
-
-    scanBtn.onclick = async () => {
-      console.log('🎯 Scan button clicked');
-
-      const qrData = {
-        universe: 'B',
-        participantId: 'participant_' + Date.now(),
-      };
-
-      try {
-        const result = await window.photoAPI.scanQR(JSON.stringify(qrData));
-        console.log('📷 Résultat du scan:', result);
-      } catch (err) {
-        console.error('Erreur pendant le scan:', err);
-      }
-    };
-  }
 
   // ===== CHARGER LES STATS =====
   loadStats();
