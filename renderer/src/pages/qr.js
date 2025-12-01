@@ -80,17 +80,34 @@ async function processPhysicalScan(rawData) {
   console.log('[QR] 📦 Données brutes:', rawData);
 
   try {
+    // ⭐ Vérifier si c'est une URL et extraire le basename
+    let processedData = rawData.trim();
+
+    if (processedData.startsWith('http://') || processedData.startsWith('https://')) {
+      console.log('[QR] 🌐 URL détectée, extraction du basename...');
+      try {
+        const url = new URL(processedData);
+        const pathParts = url.pathname.split('/').filter(p => p.length > 0);
+        if (pathParts.length > 0) {
+          processedData = pathParts[pathParts.length - 1];
+          console.log('[QR] ✅ Basename extrait:', processedData);
+        }
+      } catch (urlError) {
+        console.warn('[QR] ⚠️ Erreur parsing URL, utilisation des données brutes');
+      }
+    }
+
     // Essayer de parser comme JSON d'abord (format: {"universe":"B","participantId":"xxx"})
     let qrData;
 
     try {
-      qrData = JSON.parse(rawData);
+      qrData = JSON.parse(processedData);
       console.log('[QR] ✅ Format JSON détecté:', qrData);
     } catch {
       // Si ce n'est pas du JSON, traiter comme un ID simple (format: B123456 ou juste 123456)
       console.log('[QR] 📝 Format simple détecté, analyse...');
 
-      const upperData = rawData.trim().toUpperCase();
+      const upperData = processedData.toUpperCase();
       const firstChar = upperData.charAt(0);
 
       // Vérifier si le premier caractère est une lettre d'univers (A-E)
