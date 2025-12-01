@@ -324,6 +324,10 @@ class HexapayWatchdog {
       const nowRunning = await this.isHexapayRunning();
       if (nowRunning) {
         log('info', '✅ Hexapay.exe lancé avec succès');
+
+        // Envoyer CBinfos pour fermer la popup de licence
+        await this.sendCBInfosToCloseLicensePopup();
+
         return true;
       } else {
         log('error', '❌ Hexapay.exe n\'a pas pu démarrer');
@@ -332,6 +336,29 @@ class HexapayWatchdog {
     } catch (err) {
       log('error', '❌ Erreur lors du lancement de hexapay.exe', { error: err.message });
       return false;
+    }
+  }
+
+  async sendCBInfosToCloseLicensePopup() {
+    try {
+      log('info', '📤 Envoi de CBinfos pour fermer la popup de licence...');
+
+      // Attendre un peu que hexapay soit prêt à recevoir des commandes
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      const client = getHexapayClient();
+      if (client && client.activated) {
+        const result = await client.CBInfos();
+        if (result.success) {
+          log('info', '✅ CBinfos envoyé - popup licence fermée', { registered: result.registered });
+        } else {
+          log('warn', '⚠️ CBinfos échoué', { error: result.error });
+        }
+      } else {
+        log('warn', '⚠️ Client Hexapay non initialisé, CBinfos sera envoyé après initialisation');
+      }
+    } catch (err) {
+      log('warn', '⚠️ Erreur lors de l\'envoi de CBinfos', { error: err.message });
     }
   }
 
