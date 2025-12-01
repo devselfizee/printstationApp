@@ -1349,20 +1349,26 @@ app.whenReady().then(async () => {
     // Démarrer le watchdog (vérifie et lance hexapay.exe si nécessaire)
     await watchdog.start();
 
-    // Envoyer CBinfos après un délai pour fermer la popup de licence
-    setTimeout(async () => {
+    // Envoyer CBinfos plusieurs fois pour fermer les popups (licence, COM port, etc.)
+    const sendCBInfosToClosePopup = async (attempt) => {
       try {
-        log('info', '📤 Envoi de CBinfos pour fermer la popup de licence...');
+        log('info', `📤 Envoi de CBinfos (tentative ${attempt}) pour fermer les popups...`);
         const result = await client.CBInfos();
         if (result.success) {
-          log('info', '✅ CBinfos envoyé - popup licence fermée', { registered: result.registered });
+          log('info', `✅ CBinfos #${attempt} envoyé`, { registered: result.registered });
         } else {
-          log('warn', '⚠️ CBinfos échoué', { error: result.error });
+          log('warn', `⚠️ CBinfos #${attempt} échoué`, { error: result.error });
         }
       } catch (err) {
-        log('warn', '⚠️ Erreur CBinfos:', { error: err.message });
+        log('warn', `⚠️ Erreur CBinfos #${attempt}:`, { error: err.message });
       }
-    }, 5000); // Attendre 5 secondes après le démarrage
+    };
+
+    // Envoyer CBinfos à 3s, 6s, 10s et 15s pour attraper tous les popups
+    setTimeout(() => sendCBInfosToClosePopup(1), 3000);
+    setTimeout(() => sendCBInfosToClosePopup(2), 6000);
+    setTimeout(() => sendCBInfosToClosePopup(3), 10000);
+    setTimeout(() => sendCBInfosToClosePopup(4), 15000);
 
     // Créer la fenêtre
     // createWindow();
