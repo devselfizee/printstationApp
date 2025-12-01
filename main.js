@@ -12,7 +12,7 @@ console.log(`[${new Date().toISOString()}] 🚀 PrintStation démarrage - Versio
 // DEBUT HEXAPAY TOOLS
 import dgram from 'dgram';
 import os from 'os';
-import { exec } from 'child_process';
+import { exec, spawn } from 'child_process';
 import { promisify } from 'util';
 const execAsync = promisify(exec);
 const HEXAPAY_CONFIG = {
@@ -20,6 +20,8 @@ const HEXAPAY_CONFIG = {
   serverPort: 50001,
   clientPort: 50000
 };
+// Chemin vers hexapay.exe (configurable via .env)
+const HEXAPAY_EXE_PATH = process.env.HEXAPAY_EXE_PATH || 'C:\\Hexapay\\hexapay.exe';
 // Timeouts optimisés pour production (en ms)
 const TIMEOUTS = {
   ACK: 1000,              // ACK_TIMEOUT_VALUE = 1s
@@ -274,24 +276,81 @@ class HexapayWatchdog {
   async start() {
     this.isRunning = true;
     log('info', '👁️ Watchdog started');
+
+    // Vérifier et lancer hexapay.exe au démarrage si nécessaire
+    await this.ensureHexapayRunning();
+
     this.check();
+  }
+
+  async ensureHexapayRunning() {
+    const running = await this.isHexapayRunning();
+    if (!running) {
+      log('warn', '⚠️ Hexapay.exe non détecté au démarrage, tentative de lancement...');
+      await this.startHexapay();
+    } else {
+      log('info', '✅ Hexapay.exe déjà en cours d\'exécution');
+    }
+  }
+
+  async startHexapay() {
+    if (process.platform !== 'win32') {
+      log('warn', '⚠️ Lancement automatique de hexapay.exe uniquement sur Windows');
+      return false;
+    }
+
+    try {
+      // Vérifier si le fichier existe
+      if (!fs.existsSync(HEXAPAY_EXE_PATH)) {
+        log('error', '❌ Hexapay.exe non trouvé', { path: HEXAPAY_EXE_PATH });
+        return false;
+      }
+
+      log('info', '🚀 Lancement de hexapay.exe...', { path: HEXAPAY_EXE_PATH });
+
+      // Lancer hexapay.exe en arrière-plan (détaché)
+      const hexapayProcess = spawn(HEXAPAY_EXE_PATH, [], {
+        detached: true,
+        stdio: 'ignore',
+        cwd: path.dirname(HEXAPAY_EXE_PATH)
+      });
+
+      hexapayProcess.unref();
+
+      // Attendre un peu pour que le processus démarre
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Vérifier si le lancement a réussi
+      const nowRunning = await this.isHexapayRunning();
+      if (nowRunning) {
+        log('info', '✅ Hexapay.exe lancé avec succès');
+        return true;
+      } else {
+        log('error', '❌ Hexapay.exe n\'a pas pu démarrer');
+        return false;
+      }
+    } catch (err) {
+      log('error', '❌ Erreur lors du lancement de hexapay.exe', { error: err.message });
+      return false;
+    }
   }
 
   async check() {
     if (!this.isRunning) return;
 
     const running = await this.isHexapayRunning();
-    
+
     if (!running) {
       this.consecutiveFailures++;
-      log('error', '❌ Hexapay.exe not running!', { 
+      log('error', '❌ Hexapay.exe not running!', {
         consecutiveFailures: this.consecutiveFailures,
         maxFailures: this.maxFailures
       });
-      
+
       if (this.consecutiveFailures >= this.maxFailures) {
-        log('error', '🚨 CRITICAL: Hexapay.exe down for too long!');
-        // TODO: Envoyer alerte, tenter redémarrage, etc.
+        log('error', '🚨 CRITICAL: Hexapay.exe down for too long, tentative de redémarrage...');
+        await this.startHexapay();
+        this.consecutiveFailures = 0;
       }
     } else {
       if (this.consecutiveFailures > 0) {
