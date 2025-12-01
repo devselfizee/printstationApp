@@ -1342,13 +1342,28 @@ app.whenReady().then(async () => {
     // Initialiser le client Hexapay
     const client = getHexapayClient();
     await client.init();
-    
+
     // Récupération après crash
     await recovery.recover(client);
-    
-    // Démarrer le watchdog
+
+    // Démarrer le watchdog (vérifie et lance hexapay.exe si nécessaire)
     await watchdog.start();
-    
+
+    // Envoyer CBinfos après un délai pour fermer la popup de licence
+    setTimeout(async () => {
+      try {
+        log('info', '📤 Envoi de CBinfos pour fermer la popup de licence...');
+        const result = await client.CBInfos();
+        if (result.success) {
+          log('info', '✅ CBinfos envoyé - popup licence fermée', { registered: result.registered });
+        } else {
+          log('warn', '⚠️ CBinfos échoué', { error: result.error });
+        }
+      } catch (err) {
+        log('warn', '⚠️ Erreur CBinfos:', { error: err.message });
+      }
+    }, 5000); // Attendre 5 secondes après le démarrage
+
     // Créer la fenêtre
     // createWindow();
 
