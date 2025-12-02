@@ -1,6 +1,6 @@
 {
-  "name": "printstation",
-  "version": "1.0.0",
+  "name": "Eclipso",
+  "version": "1.0.7",
   "main": "main.js",
   "type": "module",
   "scripts": {
