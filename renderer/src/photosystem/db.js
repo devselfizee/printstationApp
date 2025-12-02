@@ -216,6 +216,7 @@ async function createTables() {
       size_bytes INTEGER,
       incrustation_id TEXT,
       date_photo DATETIME,
+      photo_merge_id TEXT,
       status TEXT DEFAULT 'pending',
       retry_count INTEGER DEFAULT 0,
       corruption_count INTEGER DEFAULT 0,
@@ -380,6 +381,19 @@ async function migrateSyncColumns() {
   } catch (error) {
     console.error('[DB] Erreur migration date_photo:', error);
   }
+
+  // Migration: Ajouter photo_merge_id à la table photos
+  try {
+    const photosTableInfo2 = await allAsync('PRAGMA table_info(photos)');
+    const photosColumnNames2 = photosTableInfo2.map(col => col.name);
+
+    if (!photosColumnNames2.includes('photo_merge_id')) {
+      await execAsync('ALTER TABLE photos ADD COLUMN photo_merge_id TEXT');
+      console.log('[DB] ✅ Colonne photo_merge_id ajoutée à photos');
+    }
+  } catch (error) {
+    console.error('[DB] Erreur migration photo_merge_id:', error);
+  }
 }
 
 /**
@@ -542,14 +556,15 @@ export async function addPhoto(photo) {
     size,
     incrustationId,
     datePhoto,
+    photoMergeId,
   } = photo;
 
   return runAsync(
     `INSERT OR REPLACE INTO photos (
       id, participant_id, file_name, remote_url, checksum,
-      size_bytes, incrustation_id, date_photo, status, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP)`,
-    [id, participantId, fileName, url, checksum, size, incrustationId || null, datePhoto || null]
+      size_bytes, incrustation_id, date_photo, photo_merge_id, status, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP)`,
+    [id, participantId, fileName, url, checksum, size, incrustationId || null, datePhoto || null, photoMergeId || null]
   );
 }
 

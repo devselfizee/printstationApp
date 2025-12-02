@@ -84,6 +84,7 @@ export class DatabaseInitializer {
         md5_hash TEXT,
         size INTEGER,
         date_photo DATETIME,
+        photo_merge_id TEXT,
         downloaded BOOLEAN DEFAULT 0,
         attempts INTEGER DEFAULT 0,
         last_attempt DATETIME,

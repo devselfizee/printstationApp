@@ -325,6 +325,7 @@ async function processRemotePhoto(remotePhoto) {
       size: remotePhoto.size,
       incrustationId: remotePhoto.incrustationId || remotePhoto.incrustation_id || null,
       datePhoto: remotePhoto.datePhoto || remotePhoto.date_photo || null,
+      photoMergeId: remotePhoto.photoMergeId || remotePhoto.photo_merge_id || null,
     };
 
     console.log(`[PhotoSync] ➕ ${remotePhoto.id}`);
