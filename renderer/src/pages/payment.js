@@ -90,6 +90,17 @@ async function initiatePaymentFlow(totalAmount, root) {
     const confirm = await window.hexapay.confirmPayment(totalAmount);
     if (!confirm.success) throw new Error(confirm.error);
 
+    // 6. DEBUG: Vérifier l'état actuel
+    console.log('[Payment] ═══════════════════════════════════════════════');
+    console.log('[Payment] 🔍 DEBUG - État après paiement Hexapay réussi');
+    console.log('[Payment] ═══════════════════════════════════════════════');
+    console.log('[Payment] state.localOrderId:', state.localOrderId);
+    console.log('[Payment] state.supabaseOrderId:', state.supabaseOrderId);
+    console.log('[Payment] window.photoAPI disponible:', !!window.photoAPI);
+    console.log('[Payment] window.photoAPI.orders:', !!window.photoAPI?.orders);
+    console.log('[Payment] updateRemote disponible:', !!window.photoAPI?.orders?.updateRemote);
+    console.log('[Payment] ═══════════════════════════════════════════════');
+
     // 6. Mettre à jour le statut de la commande LOCALE à "completed"
     if (state.localOrderId && window.photoAPI?.orders?.updateStatus) {
       try {
@@ -104,9 +115,13 @@ async function initiatePaymentFlow(totalAmount, root) {
     }
 
     // 7. Mettre à jour le statut de la commande sur Supabase (status=completed)
+    console.log('[Payment] 📝 Tentative de mise à jour Supabase...');
+    console.log('[Payment] Condition 1 - state.supabaseOrderId:', state.supabaseOrderId, '→', !!state.supabaseOrderId);
+    console.log('[Payment] Condition 2 - updateRemote disponible:', !!window.photoAPI?.orders?.updateRemote);
+
     if (state.supabaseOrderId && window.photoAPI?.orders?.updateRemote) {
       try {
-        console.log('[Payment] 📝 Mise à jour du statut sur Supabase (status=completed)...');
+        console.log('[Payment] ✅ Conditions remplies - Mise à jour du statut sur Supabase (status=completed)...');
         console.log('[Payment] Supabase Order ID:', state.supabaseOrderId);
 
         const updateResult = await window.photoAPI.orders.updateRemote(
@@ -127,7 +142,14 @@ async function initiatePaymentFlow(totalAmount, root) {
         // Ne pas bloquer le processus si la mise à jour échoue
       }
     } else {
-      console.warn('[Payment] ⚠️  Pas d\'ID Supabase ou API non disponible');
+      console.error('[Payment] ❌ CONDITIONS NON REMPLIES pour mise à jour Supabase:');
+      if (!state.supabaseOrderId) {
+        console.error('[Payment]   → state.supabaseOrderId est NULL ou UNDEFINED');
+        console.error('[Payment]   → La commande n\'a probablement pas été synchronisée dans cart.js');
+      }
+      if (!window.photoAPI?.orders?.updateRemote) {
+        console.error('[Payment]   → window.photoAPI.orders.updateRemote n\'est pas disponible');
+      }
     }
 
     // Succès -> page form
