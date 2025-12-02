@@ -1,6 +1,6 @@
 import { state } from '../state.js';
 import { t } from '../i18n.js';
-import { $, updateCartCount, addOne, toast } from '../utils.js';
+import { $, updateCartCount, addOne, toast, getQty, lineTotal } from '../utils.js';
 import { renderOffer } from './detail.js';
 
 export const showUpsell = (photo, product) => {
@@ -21,9 +21,37 @@ export const showUpsell = (photo, product) => {
   modal.classList.add('show');
   
   // Bouton "Ajouter" dans la modal
-  $('#addUpsellBtn').onclick = () => {
+  $('#addUpsellBtn').onclick = async () => {
+    // Ajouter au panier local
     state.cart = addOne(photo.id, product.id, state.cart, window.PRODUCTS);
     updateCartCount();
+
+    // 🆕 Enregistrer dans la DB
+    if (window.photoAPI?.cart && state.sessionId) {
+      try {
+        const qty = getQty(photo.id, product.id, state.cart);
+        const unitPrice = qty === 1 ? product.first : product.next;
+        const totalPrice = lineTotal(product, qty);
+
+        const result = await window.photoAPI.cart.addItemImmediate({
+          photoId: photo.id,
+          productId: product.id,
+          productName: product.title,
+          quantity: qty,
+          unitPrice: unitPrice,
+          totalPrice: totalPrice,
+          incrustationId: photo.incrustationId || null,
+          sessionId: state.sessionId
+        });
+
+        if (result?.status === 'success') {
+          console.log('✅ Upsell enregistré en DB:', result.itemId);
+        }
+      } catch (error) {
+        console.error('❌ Erreur enregistrement upsell:', error);
+      }
+    }
+
     toast(t('added'));
     closeModal();
     // Afficher le panier

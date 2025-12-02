@@ -324,6 +324,7 @@ async function processRemotePhoto(remotePhoto) {
       checksum: remotePhoto.checksum,
       size: remotePhoto.size,
       incrustationId: remotePhoto.incrustationId || remotePhoto.incrustation_id || null,
+      datePhoto: remotePhoto.datePhoto || remotePhoto.date_photo || null,
     };
 
     console.log(`[PhotoSync] ➕ ${remotePhoto.id}`);

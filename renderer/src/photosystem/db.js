@@ -119,10 +119,12 @@ async function seedDefaultData() {
       console.log('[DB] 📦 Création univers par défaut...');
       
       // Créer les 2 univers
-      await addUniverse('universe1', 'Mondes Disparus', '/assets/banniere-monde-perdu.jpg');
-      await addUniverse('universe2', "L'horizon de khepos", '/assets/banniere-kheops.jpg');
+      await addUniverse('A', "L'horizon de kheops", '/assets/banniere-kheops.jpg');
+      await addUniverse('B', 'Monde Disparus', '/assets/banniere-monde-perdu.jpg');
+      await addUniverse('C', 'Remparts', '/assets/banniere-monde-perdu.jpg');
+      await addUniverse('D', 'Impressionnistes', '/assets/banniere-kheops.jpg');
       
-      console.log('[DB] ✅ 2 univers créés (universe1: Mondes Disparus, universe2: L\'horizon de khepos)');
+      console.log("[DB] ✅ 2 univers créés (A: L'horizon de kheops, B: Mondes Disparus)");
     } else {
       console.log(`[DB] ✓ ${universes.length} univers déjà présents`);
     }
@@ -213,6 +215,7 @@ async function createTables() {
       checksum TEXT,
       size_bytes INTEGER,
       incrustation_id TEXT,
+      date_photo DATETIME,
       status TEXT DEFAULT 'pending',
       retry_count INTEGER DEFAULT 0,
       corruption_count INTEGER DEFAULT 0,
@@ -236,6 +239,10 @@ async function createTables() {
       optin BOOLEAN DEFAULT 0,
       payment_method TEXT,
       notes TEXT,
+      synced_to_remote BOOLEAN DEFAULT 0,
+      sync_attempts INTEGER DEFAULT 0,
+      last_sync_attempt DATETIME,
+      synced_at DATETIME,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       completed_at DATETIME,
@@ -300,6 +307,16 @@ async function createTables() {
     );`,
 
     `CREATE INDEX IF NOT EXISTS idx_sync_log_participant ON sync_log(participant_id);`,
+
+    `CREATE TABLE IF NOT EXISTS machine_config (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      kiosk_id TEXT NOT NULL,
+      sales_point_id TEXT NOT NULL,
+      machine_name TEXT,
+      setup_completed BOOLEAN DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );`,
   ];
 
   for (const stmt of statements) {
@@ -308,6 +325,60 @@ async function createTables() {
     } catch (error) {
       console.error('[DB] Erreur création table:', error);
     }
+  }
+
+  // Migration: Ajouter les colonnes de synchronisation si elles n'existent pas
+  await migrateSyncColumns();
+}
+
+/**
+ * Migrer les colonnes de synchronisation pour les bases existantes
+ */
+async function migrateSyncColumns() {
+  try {
+    // Vérifier si les colonnes existent déjà
+    const tableInfo = await allAsync('PRAGMA table_info(orders)');
+    const columnNames = tableInfo.map(col => col.name);
+
+    // Ajouter synced_to_remote si manquant
+    if (!columnNames.includes('synced_to_remote')) {
+      await execAsync('ALTER TABLE orders ADD COLUMN synced_to_remote BOOLEAN DEFAULT 0');
+      console.log('[DB] ✅ Colonne synced_to_remote ajoutée');
+    }
+
+    // Ajouter sync_attempts si manquant
+    if (!columnNames.includes('sync_attempts')) {
+      await execAsync('ALTER TABLE orders ADD COLUMN sync_attempts INTEGER DEFAULT 0');
+      console.log('[DB] ✅ Colonne sync_attempts ajoutée');
+    }
+
+    // Ajouter last_sync_attempt si manquant
+    if (!columnNames.includes('last_sync_attempt')) {
+      await execAsync('ALTER TABLE orders ADD COLUMN last_sync_attempt DATETIME');
+      console.log('[DB] ✅ Colonne last_sync_attempt ajoutée');
+    }
+
+    // Ajouter synced_at si manquant
+    if (!columnNames.includes('synced_at')) {
+      await execAsync('ALTER TABLE orders ADD COLUMN synced_at DATETIME');
+      console.log('[DB] ✅ Colonne synced_at ajoutée');
+    }
+
+  } catch (error) {
+    console.error('[DB] Erreur migration colonnes sync:', error);
+  }
+
+  // Migration: Ajouter date_photo à la table photos
+  try {
+    const photosTableInfo = await allAsync('PRAGMA table_info(photos)');
+    const photosColumnNames = photosTableInfo.map(col => col.name);
+
+    if (!photosColumnNames.includes('date_photo')) {
+      await execAsync('ALTER TABLE photos ADD COLUMN date_photo DATETIME');
+      console.log('[DB] ✅ Colonne date_photo ajoutée à photos');
+    }
+  } catch (error) {
+    console.error('[DB] Erreur migration date_photo:', error);
   }
 }
 
@@ -470,14 +541,15 @@ export async function addPhoto(photo) {
     checksum,
     size,
     incrustationId,
+    datePhoto,
   } = photo;
 
   return runAsync(
     `INSERT OR REPLACE INTO photos (
-      id, participant_id, file_name, remote_url, checksum, 
-      size_bytes, incrustation_id, status, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP)`,
-    [id, participantId, fileName, url, checksum, size, incrustationId || null]
+      id, participant_id, file_name, remote_url, checksum,
+      size_bytes, incrustation_id, date_photo, status, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP)`,
+    [id, participantId, fileName, url, checksum, size, incrustationId || null, datePhoto || null]
   );
 }
 
@@ -622,12 +694,12 @@ export async function addOrderItem(itemData) {
     totalPrice,
     incrustationId = null,
     sessionId = null,
-    status = 'en_cours'
+    status = 'pending'
   } = itemData;
 
   return runAsync(
     `INSERT INTO order_items (
-      order_id, photo_id, product_id, product_name, quantity, 
+      order_id, photo_id, product_id, product_name, quantity,
       unit_price, total_price, incrustation_id, session_id, status, created_at, updated_at
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
     [orderId, photoId, productId, productName, quantity, unitPrice, totalPrice, incrustationId, sessionId, status]
@@ -635,7 +707,7 @@ export async function addOrderItem(itemData) {
 }
 
 /**
- * Ajouter un produit immédiatement lors du clic "Ajouter" (statut: en_cours)
+ * Ajouter un produit immédiatement lors du clic "Ajouter" (statut: pending)
  */
 export async function addCartItemImmediate(itemData) {
   const {
@@ -651,10 +723,10 @@ export async function addCartItemImmediate(itemData) {
 
   const result = await runAsync(
     `INSERT INTO order_items (
-      photo_id, product_id, product_name, quantity, 
-      unit_price, total_price, incrustation_id, session_id, 
+      photo_id, product_id, product_name, quantity,
+      unit_price, total_price, incrustation_id, session_id,
       status, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'en_cours', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
     [photoId, productId, productName, quantity, unitPrice, totalPrice, incrustationId, sessionId]
   );
 
@@ -662,12 +734,12 @@ export async function addCartItemImmediate(itemData) {
 }
 
 /**
- * Annuler un produit du panier (change statut à "annulé")
+ * Annuler un produit du panier (change statut à "cancelled")
  */
 export async function cancelCartItem(itemId) {
   return runAsync(
-    `UPDATE order_items 
-     SET status = 'annulé', 
+    `UPDATE order_items
+     SET status = 'cancelled',
          cancelled_at = CURRENT_TIMESTAMP,
          updated_at = CURRENT_TIMESTAMP
      WHERE id = ?`,
@@ -681,16 +753,16 @@ export async function cancelCartItem(itemId) {
 export async function reactivateCartItem(photoId, productId, sessionId) {
   const result = await runAsync(
     `INSERT INTO order_items (
-      photo_id, product_id, product_name, quantity, 
+      photo_id, product_id, product_name, quantity,
       unit_price, total_price, incrustation_id, session_id,
       status, created_at, updated_at
     )
-    SELECT 
+    SELECT
       photo_id, product_id, product_name, quantity,
       unit_price, total_price, incrustation_id, ?,
-      'en_attente', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+      'pending', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
     FROM order_items
-    WHERE photo_id = ? AND product_id = ? AND status = 'annulé'
+    WHERE photo_id = ? AND product_id = ? AND status = 'cancelled'
     ORDER BY created_at DESC
     LIMIT 1`,
     [sessionId, photoId, productId]
@@ -704,24 +776,39 @@ export async function reactivateCartItem(photoId, productId, sessionId) {
  */
 export async function getSessionCartItems(sessionId) {
   return allAsync(
-    `SELECT * FROM order_items 
-     WHERE session_id = ? AND status = 'en_cours'
+    `SELECT * FROM order_items
+     WHERE session_id = ? AND status = 'pending'
      ORDER BY created_at DESC`,
     [sessionId]
   );
 }
 
 /**
- * Valider tous les produits en_attente d'une session (lors du paiement)
+ * Valider tous les produits pending d'une session (lors du paiement)
  */
 export async function validateSessionItems(sessionId, orderId) {
   return runAsync(
-    `UPDATE order_items 
-     SET status = 'validé',
+    `UPDATE order_items
+     SET status = 'completed',
          order_id = ?,
          validated_at = CURRENT_TIMESTAMP,
          updated_at = CURRENT_TIMESTAMP
-     WHERE session_id = ? AND status IN ('en_cours', 'en_attente')`,
+     WHERE session_id = ? AND status = 'pending'`,
+    [orderId, sessionId]
+  );
+}
+
+/**
+ * Annuler tous les produits d'une session et les lier à une commande annulée
+ */
+export async function cancelSessionItems(sessionId, orderId) {
+  return runAsync(
+    `UPDATE order_items
+     SET status = 'cancelled',
+         order_id = ?,
+         cancelled_at = CURRENT_TIMESTAMP,
+         updated_at = CURRENT_TIMESTAMP
+     WHERE session_id = ? AND status = 'pending'`,
     [orderId, sessionId]
   );
 }
@@ -756,11 +843,46 @@ export async function updateOrderStatus(orderId, newStatus, notes = null) {
  */
 export async function updateOrderItemStatus(itemId, newStatus) {
   return runAsync(
-    `UPDATE order_items 
-     SET status = ?, updated_at = CURRENT_TIMESTAMP 
+    `UPDATE order_items
+     SET status = ?, updated_at = CURRENT_TIMESTAMP
      WHERE id = ?`,
     [newStatus, itemId]
   );
+}
+
+/**
+ * Mettre à jour les détails d'une commande (email, optin, etc.)
+ */
+export async function updateOrderDetails(orderId, { email = null, optin = null, paymentMethod = null }) {
+  const updates = [];
+  const params = [];
+
+  if (email !== null) {
+    updates.push('email = ?');
+    params.push(email);
+  }
+
+  if (optin !== null) {
+    updates.push('optin = ?');
+    params.push(optin ? 1 : 0);
+  }
+
+  if (paymentMethod !== null) {
+    updates.push('payment_method = ?');
+    params.push(paymentMethod);
+  }
+
+  if (updates.length === 0) {
+    return { success: true, message: 'Aucun champ à mettre à jour' };
+  }
+
+  updates.push('updated_at = CURRENT_TIMESTAMP');
+  params.push(orderId);
+
+  const query = `UPDATE orders SET ${updates.join(', ')} WHERE id = ?`;
+  await runAsync(query, params);
+
+  return { success: true };
 }
 
 /**
@@ -820,7 +942,7 @@ export async function getOrderStatusHistory(orderId) {
 }
 
 /**
- * Récupérer les statistiques des commandes
+ * Récupérer les statistiques des commandes (uniquement les completed)
  */
 export async function getOrderStats(startDate = null, endDate = null) {
   let query = `
@@ -835,18 +957,19 @@ export async function getOrderStats(startDate = null, endDate = null) {
       SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
       SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled
     FROM orders
+    WHERE status = 'completed'
   `;
 
   const params = [];
 
   if (startDate && endDate) {
-    query += ` WHERE created_at BETWEEN ? AND ?`;
+    query += ` AND created_at BETWEEN ? AND ?`;
     params.push(startDate, endDate);
   } else if (startDate) {
-    query += ` WHERE created_at >= ?`;
+    query += ` AND created_at >= ?`;
     params.push(startDate);
   } else if (endDate) {
-    query += ` WHERE created_at <= ?`;
+    query += ` AND created_at <= ?`;
     params.push(endDate);
   }
 
@@ -865,18 +988,20 @@ export async function getOrderStats(startDate = null, endDate = null) {
 }
 
 /**
- * Récupérer les produits les plus vendus
+ * Récupérer les produits les plus vendus (uniquement des commandes completed)
  */
 export async function getTopProducts(limit = 10) {
   return allAsync(
-    `SELECT 
-       product_id,
-       product_name,
-       SUM(quantity) as total_quantity,
-       COUNT(DISTINCT order_id) as order_count,
-       SUM(total_price) as total_revenue
-     FROM order_items
-     GROUP BY product_id, product_name
+    `SELECT
+       oi.product_id,
+       oi.product_name,
+       SUM(oi.quantity) as total_quantity,
+       COUNT(DISTINCT oi.order_id) as order_count,
+       SUM(oi.total_price) as total_revenue
+     FROM order_items oi
+     INNER JOIN orders o ON oi.order_id = o.id
+     WHERE o.status = 'completed'
+     GROUP BY oi.product_id, oi.product_name
      ORDER BY total_quantity DESC
      LIMIT ?`,
     [limit]
@@ -936,13 +1061,13 @@ export async function getAllSessionItems(sessionId) {
 }
 
 /**
- * Récupérer uniquement les produits actifs d'une session (en_cours + en_attente)
+ * Récupérer uniquement les produits actifs d'une session (pending)
  */
 export async function getActiveSessionItems(sessionId) {
   return allAsync(
-    `SELECT * FROM order_items 
-     WHERE session_id = ? 
-       AND status IN ('en_cours', 'en_attente')
+    `SELECT * FROM order_items
+     WHERE session_id = ?
+       AND status = 'pending'
      ORDER BY created_at DESC`,
     [sessionId]
   );
@@ -955,11 +1080,10 @@ export async function getSessionStats(sessionId) {
   const stats = await getAsync(
     `SELECT
       COUNT(*) as total_items,
-      SUM(CASE WHEN status = 'en_cours' THEN 1 ELSE 0 END) as en_cours,
-      SUM(CASE WHEN status = 'en_attente' THEN 1 ELSE 0 END) as en_attente,
-      SUM(CASE WHEN status = 'annulé' THEN 1 ELSE 0 END) as annulé,
-      SUM(CASE WHEN status = 'validé' THEN 1 ELSE 0 END) as validé,
-      SUM(CASE WHEN status IN ('en_cours', 'en_attente') THEN total_price ELSE 0 END) as total_amount
+      SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
+      SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled,
+      SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
+      SUM(CASE WHEN status = 'pending' THEN total_price ELSE 0 END) as total_amount
      FROM order_items
      WHERE session_id = ?`,
     [sessionId]
@@ -967,10 +1091,9 @@ export async function getSessionStats(sessionId) {
 
   return stats || {
     total_items: 0,
-    en_cours: 0,
-    en_attente: 0,
-    annulé: 0,
-    validé: 0,
+    pending: 0,
+    cancelled: 0,
+    completed: 0,
     total_amount: 0
   };
 }
@@ -986,6 +1109,108 @@ export async function updateCartItemQuantity(itemId, newQuantity, newTotalPrice)
          updated_at = CURRENT_TIMESTAMP
      WHERE id = ?`,
     [newQuantity, newTotalPrice, itemId]
+  );
+}
+
+/**
+ * ===== CONFIGURATION MACHINE =====
+ */
+
+/**
+ * Récupérer la configuration de la machine
+ */
+export async function getMachineConfig() {
+  return getAsync('SELECT * FROM machine_config WHERE id = 1');
+}
+
+/**
+ * Vérifier si la configuration initiale est complète
+ */
+export async function isSetupCompleted() {
+  try {
+    const config = await getMachineConfig();
+    console.log('[DB] isSetupCompleted - config récupérée:', config);
+
+    // Vérifier si la config existe et a les champs requis
+    const isCompleted = !!(config && config.kiosk_id && config.sales_point_id);
+    console.log('[DB] isSetupCompleted - résultat:', isCompleted);
+
+    return isCompleted;
+  } catch (error) {
+    console.error('[DB] Erreur isSetupCompleted:', error);
+    return false;
+  }
+}
+
+/**
+ * Sauvegarder la configuration de la machine
+ */
+export async function saveMachineConfig(kioskId, salesPointId, machineName = null) {
+  return runAsync(
+    `INSERT OR REPLACE INTO machine_config (id, kiosk_id, sales_point_id, machine_name, setup_completed, updated_at)
+     VALUES (1, ?, ?, ?, 1, CURRENT_TIMESTAMP)`,
+    [kioskId, salesPointId, machineName]
+  );
+}
+
+/**
+ * Mettre à jour la configuration de la machine
+ */
+export async function updateMachineConfig(kioskId, salesPointId, machineName = null) {
+  return runAsync(
+    `UPDATE machine_config
+     SET kiosk_id = ?,
+         sales_point_id = ?,
+         machine_name = ?,
+         updated_at = CURRENT_TIMESTAMP
+     WHERE id = 1`,
+    [kioskId, salesPointId, machineName]
+  );
+}
+
+/**
+ * ===== SYNCHRONISATION REMOTE API =====
+ */
+
+/**
+ * Récupérer les commandes non synchronisées avec l'API distante
+ */
+export async function getUnsyncedOrders(maxAttempts = 5) {
+  return allAsync(
+    `SELECT * FROM orders
+     WHERE synced_to_remote = 0
+       AND sync_attempts < ?
+       AND status IN ('processing', 'cancelled')
+     ORDER BY created_at ASC`,
+    [maxAttempts]
+  );
+}
+
+/**
+ * Marquer une commande comme synchronisée
+ */
+export async function markOrderAsSynced(orderId) {
+  return runAsync(
+    `UPDATE orders
+     SET synced_to_remote = 1,
+         synced_at = CURRENT_TIMESTAMP,
+         updated_at = CURRENT_TIMESTAMP
+     WHERE id = ?`,
+    [orderId]
+  );
+}
+
+/**
+ * Incrémenter le compteur de tentatives de synchronisation
+ */
+export async function incrementSyncAttempts(orderId) {
+  return runAsync(
+    `UPDATE orders
+     SET sync_attempts = sync_attempts + 1,
+         last_sync_attempt = CURRENT_TIMESTAMP,
+         updated_at = CURRENT_TIMESTAMP
+     WHERE id = ?`,
+    [orderId]
   );
 }
 

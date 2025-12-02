@@ -8,7 +8,7 @@ export const renderListing = (root) => {
   main.className = 'main listing-enter';
   
   // ⭐ CORRECTION: Récupérer la bannière depuis UNIVERSES[universeId]
-  const universeId = state.universeId || state.universe?.id || 'universe1';
+  const universeId = state.universeId || state.universe?.id || 'B';
   const universeData = UNIVERSES[universeId];
   const banner = universeData?.banner || '';
   

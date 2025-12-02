@@ -83,6 +83,7 @@ export class DatabaseInitializer {
         url TEXT NOT NULL,
         md5_hash TEXT,
         size INTEGER,
+        date_photo DATETIME,
         downloaded BOOLEAN DEFAULT 0,
         attempts INTEGER DEFAULT 0,
         last_attempt DATETIME,

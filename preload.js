@@ -7,6 +7,38 @@
 
 const { contextBridge, ipcRenderer } = require('electron');
 
+// DEBUT HEXAPAY TOOLS
+console.log('[Preload] Loading Hexapay API...');
+try {
+  contextBridge.exposeInMainWorld('hexapay', {
+    checkReady: async () => {
+      console.log('[Preload] checkReady called');
+      return await ipcRenderer.invoke('hexapay:check-ready');
+    },
+    checkLicense: async () => {
+      console.log('[Preload] checkLicense called');
+      return await ipcRenderer.invoke('hexapay:check-license');
+    },
+    initiatePayment: async (amount) => {
+      console.log('[Preload] initiatePayment called with', amount);
+      return await ipcRenderer.invoke('hexapay:initiate-payment', amount);
+    },
+    confirmPayment: async (amount) => {
+      console.log('[Preload] confirmPayment called with', amount);
+      return await ipcRenderer.invoke('hexapay:confirm-payment', amount);
+    },
+    cancelPayment: async () => {
+      console.log('[Preload] cancelPayment called');
+      return await ipcRenderer.invoke('hexapay:cancel-payment');
+    }
+  });
+
+  console.log('[Preload] Hexapay API exposed successfully');
+} catch (err) {
+  console.error('[Preload] Error exposing API:', err);
+}
+// FIN HEXAPAY TOOLS
+
 // API sécurisée exposée au renderer
 const photoAPI = {
   // Photos
@@ -52,6 +84,7 @@ const photoAPI = {
     addItem: (itemData) => ipcRenderer.invoke('order:add-item', itemData),
     updateStatus: (orderId, status, notes) => ipcRenderer.invoke('order:update-status', orderId, status, notes),
     updateItemStatus: (itemId, status) => ipcRenderer.invoke('order:update-item-status', itemId, status),
+    updateDetails: (orderId, details) => ipcRenderer.invoke('order:update-details', orderId, details),
     getWithItems: (orderId) => ipcRenderer.invoke('order:get-with-items', orderId),
     getByParticipant: (participantId) => ipcRenderer.invoke('order:get-by-participant', participantId),
     getByStatus: (status) => ipcRenderer.invoke('order:get-by-status', status),
@@ -61,6 +94,9 @@ const photoAPI = {
     cancel: (orderId, reason) => ipcRenderer.invoke('order:cancel', orderId, reason),
     search: (searchTerm) => ipcRenderer.invoke('order:search', searchTerm),
     delete: (orderId) => ipcRenderer.invoke('order:delete', orderId),
+    syncRemote: (orderId) => ipcRenderer.invoke('order:sync-remote', orderId),
+    createRemote: (orderData) => ipcRenderer.invoke('order:create-remote', orderData),
+    updateRemote: (supabaseOrderId, email, localOrderId) => ipcRenderer.invoke('order:update-remote', supabaseOrderId, email, localOrderId),
   },
 
   // Cart (Panier temps réel)
@@ -73,7 +109,38 @@ const photoAPI = {
     getActiveSessionItems: (sessionId) => ipcRenderer.invoke('cart:get-active-session-items', sessionId),
     getSessionStats: (sessionId) => ipcRenderer.invoke('cart:get-session-stats', sessionId),
     validateSession: (sessionId, orderId) => ipcRenderer.invoke('cart:validate-session', sessionId, orderId),
+    cancelSession: (sessionId, orderId) => ipcRenderer.invoke('cart:cancel-session', sessionId, orderId),
     updateQuantity: (itemId, quantity, totalPrice) => ipcRenderer.invoke('cart:update-quantity', itemId, quantity, totalPrice),
+  },
+
+  // Machine Configuration
+  machine: {
+    getConfig: () => ipcRenderer.invoke('machine:get-config'),
+    isSetupCompleted: () => ipcRenderer.invoke('machine:is-setup-completed'),
+    saveConfig: (kioskId, salesPointId, machineName) => ipcRenderer.invoke('machine:save-config', kioskId, salesPointId, machineName),
+  },
+
+  // Products
+  products: {
+    fetch: () => ipcRenderer.invoke('products:fetch'),
+  },
+
+  // Participants
+  participants: {
+    addOrUpdate: (participantId, universeId, status) => ipcRenderer.invoke('participant:add-or-update', participantId, universeId, status),
+  },
+
+  // Window controls
+  window: {
+    toggleFullscreen: () => ipcRenderer.invoke('window:toggle-fullscreen'),
+    isFullscreen: () => ipcRenderer.invoke('window:is-fullscreen'),
+  },
+
+  // Simulator
+  simulator: {
+    runHexapay: () => ipcRenderer.invoke('simulator:run-hexapay'),
+    stopHexapay: () => ipcRenderer.invoke('simulator:stop-hexapay'),
+    isRunning: () => ipcRenderer.invoke('simulator:is-running'),
   },
 
   // Listeners
