@@ -2398,6 +2398,7 @@ async function syncOrderToRemoteAPI(orderId) {
       (orderWithItems.items || []).map(async (item) => {
         let photoUrl = null;
         let datePhoto = null;
+        let photoMergeId = null;
 
         if (item.photo_id) {
           try {
@@ -2418,6 +2419,10 @@ async function syncOrderToRemoteAPI(orderId) {
                 datePhoto = photo.date_photo;
                 console.log('[Sync]   📅 Date photo:', datePhoto);
               }
+              if (photo.photo_merge_id) {
+                photoMergeId = photo.photo_merge_id;
+                console.log('[Sync]   🔗 Photo merge ID:', photoMergeId);
+              }
             } else {
               console.log('[Sync]   ❌ Photo ID:', item.photo_id, '→ Photo non trouvée dans la DB');
             }
@@ -2431,7 +2436,8 @@ async function syncOrderToRemoteAPI(orderId) {
         return {
           ...item,
           photo_url: photoUrl,
-          date_photo: datePhoto
+          date_photo: datePhoto,
+          photo_merge_id: photoMergeId
         };
       })
     );
@@ -2454,7 +2460,8 @@ async function syncOrderToRemoteAPI(orderId) {
         total_price: Math.round((item.total_price || 0) * 100), // Convertir en centimes
         photo_id: item.photo_id || null, // ID de la photo
         photo_url: item.photo_url || null, // URL distante de la photo depuis la table photos
-        date_photo: item.date_photo || null // Date de la photo
+        date_photo: item.date_photo || null, // Date de la photo
+        photo_merge_id: item.photo_merge_id || null // ID de fusion de la photo
       }))
     };
 
@@ -2475,7 +2482,8 @@ async function syncOrderToRemoteAPI(orderId) {
         total_price: `${item.total_price / 100}€`,
         photo_id: item.photo_id,
         photo_url: item.photo_url,
-        date_photo: item.date_photo
+        date_photo: item.date_photo,
+        photo_merge_id: item.photo_merge_id
       });
     });
     console.log('[Sync] ═══════════════════════════════════════════════════');
@@ -2498,7 +2506,8 @@ async function syncOrderToRemoteAPI(orderId) {
       console.log(`\n   Article ${idx + 1}:`);
       console.log(`   ├─ Product ID: ${item.product_id}`);
       console.log(`   ├─ Photo ID: ${item.photo_id || '❌ MANQUANT'}`);
-      console.log(`   └─ Photo URL: ${item.photo_url || '❌ MANQUANT'}`);
+      console.log(`   ├─ Photo URL: ${item.photo_url || '❌ MANQUANT'}`);
+      console.log(`   └─ Photo Merge ID: ${item.photo_merge_id || '(vide)'}`);
       if (item.photo_url) {
         console.log('      ✅ Photo URL est présent!');
       } else {
@@ -2545,6 +2554,7 @@ async function syncOrderToRemoteAPI(orderId) {
       console.log(`    - Prix total: ${(item.total_price / 100).toFixed(2)} €`);
       console.log(`    - Photo ID: ${item.photo_id || 'N/A'}`);
       console.log(`    - Photo URL: ${item.photo_url || 'N/A'}`);
+      console.log(`    - Photo Merge ID: ${item.photo_merge_id || 'N/A'}`);
     });
     console.log('═'.repeat(80));
     console.log('⏳ Envoi en cours vers Supabase...');
@@ -2774,6 +2784,7 @@ async function createCompletedOrderRemote(localOrderId) {
       (orderWithItems.items || []).map(async (item) => {
         let photoUrl = null;
         let datePhoto = null;
+        let photoMergeId = null;
 
         if (item.photo_id) {
           try {
@@ -2785,6 +2796,9 @@ async function createCompletedOrderRemote(localOrderId) {
               if (photo.date_photo) {
                 datePhoto = photo.date_photo;
               }
+              if (photo.photo_merge_id) {
+                photoMergeId = photo.photo_merge_id;
+              }
             }
           } catch (err) {
             console.error('[CreateCompletedOrder] Erreur récupération photo:', item.photo_id, err);
@@ -2793,7 +2807,8 @@ async function createCompletedOrderRemote(localOrderId) {
         return {
           ...item,
           photo_url: photoUrl,
-          date_photo: datePhoto
+          date_photo: datePhoto,
+          photo_merge_id: photoMergeId
         };
       })
     );
@@ -2819,7 +2834,8 @@ async function createCompletedOrderRemote(localOrderId) {
         total_price: Math.round((item.total_price || 0) * 100),
         photo_id: item.photo_id || null,
         photo_url: item.photo_url || null,
-        date_photo: item.date_photo || null
+        date_photo: item.date_photo || null,
+        photo_merge_id: item.photo_merge_id || null
       }))
     };
 
