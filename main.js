@@ -2736,6 +2736,135 @@ async function createOrderRemote(orderData) {
 }
 
 /**
+ * Créer une commande COMPLETED directement sur l'API Supabase
+ * Appelé depuis payment.js après un paiement Hexapay réussi
+ * @param {string} localOrderId - ID de la commande locale
+ */
+async function createCompletedOrderRemote(localOrderId) {
+  if (!API_SYNC_CONFIG.enabled) {
+    console.log('[CreateCompletedOrder] API désactivée');
+    return { status: 'skipped', message: 'API désactivée' };
+  }
+
+  if (!photoSystemReady || !photoSystem?.db) {
+    return { status: 'error', error: 'PhotoSystem non disponible' };
+  }
+
+  try {
+    console.log('[CreateCompletedOrder] ═══════════════════════════════════════════════');
+    console.log('[CreateCompletedOrder] 📦 CRÉATION DE COMMANDE COMPLETED SUR SUPABASE');
+    console.log('[CreateCompletedOrder] ═══════════════════════════════════════════════');
+    console.log('[CreateCompletedOrder] Local Order ID:', localOrderId);
+
+    // Récupérer la commande locale avec ses items
+    const orderWithItems = await photoSystem.db.getOrderWithItems(localOrderId);
+
+    if (!orderWithItems) {
+      throw new Error(`Commande locale ${localOrderId} non trouvée`);
+    }
+
+    console.log('[CreateCompletedOrder] Commande locale récupérée:');
+    console.log('[CreateCompletedOrder]   - participant_id:', orderWithItems.participant_id);
+    console.log('[CreateCompletedOrder]   - universe_id:', orderWithItems.universe_id);
+    console.log('[CreateCompletedOrder]   - total_amount:', orderWithItems.total_amount);
+    console.log('[CreateCompletedOrder]   - items:', orderWithItems.items?.length, 'item(s)');
+
+    // Récupérer les informations des photos pour chaque item
+    const itemsWithPhotoUrls = await Promise.all(
+      (orderWithItems.items || []).map(async (item) => {
+        let photoUrl = null;
+        let datePhoto = null;
+
+        if (item.photo_id) {
+          try {
+            const photo = await photoSystem.db.getPhoto(item.photo_id);
+            if (photo) {
+              if (photo.remote_url) {
+                photoUrl = photo.remote_url;
+              }
+              if (photo.date_photo) {
+                datePhoto = photo.date_photo;
+              }
+            }
+          } catch (err) {
+            console.error('[CreateCompletedOrder] Erreur récupération photo:', item.photo_id, err);
+          }
+        }
+        return {
+          ...item,
+          photo_url: photoUrl,
+          date_photo: datePhoto
+        };
+      })
+    );
+
+    // S'assurer que total_amount est toujours un nombre valide
+    const totalAmount = orderWithItems.final_amount || orderWithItems.total_amount || 0;
+
+    // Construire le payload pour l'API
+    const payload = {
+      customer_name: orderWithItems.participant_id || 'Anonymous',
+      customer_email: orderWithItems.email || '',
+      customer_address: null,
+      total_amount: Math.round(totalAmount * 100), // Convertir en centimes
+      sales_point_id: API_SYNC_CONFIG.salesPointId,
+      kiosk_id: API_SYNC_CONFIG.kioskId,
+      memory_session_id: null,
+      universe_id: orderWithItems.universe_id || null,
+      status: 'completed', // ← STATUS COMPLETED
+      order_items: itemsWithPhotoUrls.map(item => ({
+        product_id: item.product_id,
+        quantity: item.quantity,
+        unit_price: Math.round((item.unit_price || 0) * 100),
+        total_price: Math.round((item.total_price || 0) * 100),
+        photo_id: item.photo_id || null,
+        photo_url: item.photo_url || null,
+        date_photo: item.date_photo || null
+      }))
+    };
+
+    console.log('[CreateCompletedOrder] ═══════════════════════════════════════════════');
+    console.log('[CreateCompletedOrder] 📤 PAYLOAD FINAL À ENVOYER (status=completed):');
+    console.log(JSON.stringify(payload, null, 2));
+    console.log('[CreateCompletedOrder] ═══════════════════════════════════════════════');
+
+    // Récupérer un token d'authentification
+    const authToken = await getAuthToken();
+
+    // Créer la commande sur Supabase
+    const response = await makeHttpsRequestWithRetry(
+      API_SYNC_CONFIG.url,
+      payload,
+      'POST',
+      {
+        'apikey': API_SYNC_CONFIG.supabaseAnonKey
+      },
+      authToken
+    );
+
+    console.log('[CreateCompletedOrder] ✅ Commande COMPLETED créée sur Supabase');
+    console.log('[CreateCompletedOrder] Réponse:', JSON.stringify(response, null, 2));
+    console.log('[CreateCompletedOrder] Order ID Supabase:', response.order?.id);
+
+    // Marquer la commande locale comme synchronisée
+    await photoSystem.db.markOrderAsSynced(localOrderId);
+
+    return {
+      status: 'success',
+      response,
+      supabaseOrderId: response.order?.id
+    };
+
+  } catch (error) {
+    console.error('[CreateCompletedOrder] ❌ Erreur création commande completed:', error);
+    return {
+      status: 'error',
+      error: error.message
+    };
+  }
+}
+
+/**
  * Mettre à jour une commande sur l'API Supabase (status=completed + email)
  * Appelé depuis form.js lors du clic sur "Terminer"
  *
@@ -3091,6 +3220,17 @@ ipcMain.handle('order:create-remote', async (event, orderData) => {
 // Handler IPC pour mettre à jour une commande sur Supabase (status=completed + email)
 ipcMain.handle('order:update-remote', async (event, supabaseOrderId, email, localOrderId) => {
   return await updateOrderRemote(supabaseOrderId, email, localOrderId);
+});
+
+// Handler IPC pour créer une commande COMPLETED sur Supabase (après paiement Hexapay)
+ipcMain.handle('order:create-completed-remote', async (event, localOrderId) => {
+  console.log('[IPC] ═══════════════════════════════════════════════');
+  console.log('[IPC] order:create-completed-remote appelé');
+  console.log('[IPC] localOrderId:', localOrderId);
+  const result = await createCompletedOrderRemote(localOrderId);
+  console.log('[IPC] Résultat:', JSON.stringify(result, null, 2));
+  console.log('[IPC] ═══════════════════════════════════════════════');
+  return result;
 });
 
 /**
