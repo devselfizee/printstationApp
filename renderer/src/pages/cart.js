@@ -282,20 +282,34 @@ attachFooterListeners({
           console.log('[Cart] ✅ Commande locale créée:', orderId);
 
           // 3. Créer les order_items dans la DB locale
+          console.log('[Cart] 📝 Création des order_items...');
+          console.log('[Cart] Nombre d\'items dans state.cart:', state.cart.length);
+
           for (const cartItem of state.cart) {
             const product = window.PRODUCTS[cartItem.productId];
             const unitPrice = cartItem.qty === 1 ? product.first : product.next;
             const totalPrice = lineTotal(product, cartItem.qty);
 
+            console.log('[Cart] Ajout item:', {
+              orderId,
+              photoId: cartItem.photoId,
+              productId: cartItem.productId,
+              productName: product.title,
+              quantity: cartItem.qty
+            });
+
             await window.photoAPI.orders.addItem({
               orderId: orderId,
               photoId: cartItem.photoId,
               productId: cartItem.productId,
+              productName: product.title,
               quantity: cartItem.qty,
               unitPrice: unitPrice,
               totalPrice: totalPrice
             });
           }
+
+          console.log('[Cart] ✅ Order_items créés');
 
           // 4. Synchroniser avec Supabase (status=pending)
           console.log('[Cart] 🔄 Synchronisation avec Supabase...');

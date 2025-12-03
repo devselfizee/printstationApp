@@ -118,6 +118,25 @@ async function initiatePaymentFlow(totalAmount, root) {
       }
     }
 
+    // 6.5. IMPORTANT: Lier les order_items à la commande AVANT de sync vers Supabase
+    if (state.sessionId && state.localOrderId && window.photoAPI?.cart?.validateSession) {
+      try {
+        console.log('[Payment] 🔗 Liaison des order_items à la commande...');
+        console.log('[Payment] Session ID:', state.sessionId);
+        console.log('[Payment] Local Order ID:', state.localOrderId);
+
+        await window.photoAPI.cart.validateSession(state.sessionId, state.localOrderId);
+        console.log('[Payment] ✅ Order_items liés à la commande');
+      } catch (linkError) {
+        console.error('[Payment] ❌ Erreur liaison order_items:', linkError);
+      }
+    } else {
+      console.warn('[Payment] ⚠️ Impossible de lier les order_items:');
+      console.warn('[Payment]   - sessionId:', state.sessionId);
+      console.warn('[Payment]   - localOrderId:', state.localOrderId);
+      console.warn('[Payment]   - validateSession disponible:', !!window.photoAPI?.cart?.validateSession);
+    }
+
     // 7. Créer la commande sur Supabase avec status=completed
     console.log('[Payment] 📝 Création de la commande COMPLETED sur Supabase...');
     console.log('[Payment] Local Order ID:', state.localOrderId);
