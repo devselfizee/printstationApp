@@ -144,6 +144,58 @@ const photoAPI = {
     isRunning: () => ipcRenderer.invoke('simulator:is-running'),
   },
 
+  // Logger - Système de logging centralisé
+  logger: {
+    // Log générique
+    log: (level, category, message, data) =>
+      ipcRenderer.invoke('logger:log', { level, category, message, data }),
+
+    // Raccourcis par niveau
+    info: (category, message, data) =>
+      ipcRenderer.invoke('logger:log', { level: 'info', category, message, data }),
+    warn: (category, message, data) =>
+      ipcRenderer.invoke('logger:log', { level: 'warn', category, message, data }),
+    error: (category, message, data) =>
+      ipcRenderer.invoke('logger:log', { level: 'error', category, message, data }),
+    debug: (category, message, data) =>
+      ipcRenderer.invoke('logger:log', { level: 'debug', category, message, data }),
+
+    // Logs spécifiques
+    pageChange: (fromPage, toPage, data) =>
+      ipcRenderer.invoke('logger:page-change', { fromPage, toPage, data }),
+    qrScan: (scanData) =>
+      ipcRenderer.invoke('logger:qr-scan', scanData),
+    qrScanInvalid: (rawData, reason) =>
+      ipcRenderer.invoke('logger:qr-scan-invalid', { rawData, reason }),
+    cartAdd: (photoId, productId, productName, quantity, price) =>
+      ipcRenderer.invoke('logger:cart-add', { photoId, productId, productName, quantity, price }),
+    cartRemove: (photoId, productId) =>
+      ipcRenderer.invoke('logger:cart-remove', { photoId, productId }),
+    cartClear: (reason) =>
+      ipcRenderer.invoke('logger:cart-clear', reason),
+    orderCreate: (orderId, items, total) =>
+      ipcRenderer.invoke('logger:order-create', { orderId, items, total }),
+    orderComplete: (orderId, supabaseId) =>
+      ipcRenderer.invoke('logger:order-complete', { orderId, supabaseId }),
+    orderCancel: (orderId, reason) =>
+      ipcRenderer.invoke('logger:order-cancel', { orderId, reason }),
+    hexapayStart: (amount, orderId) =>
+      ipcRenderer.invoke('logger:hexapay-start', { amount, orderId }),
+    hexapaySuccess: (amount, orderId, transactionId) =>
+      ipcRenderer.invoke('logger:hexapay-success', { amount, orderId, transactionId }),
+    hexapayFailure: (amount, orderId, error) =>
+      ipcRenderer.invoke('logger:hexapay-failure', { amount, orderId, error }),
+    hexapayCancel: (amount, orderId) =>
+      ipcRenderer.invoke('logger:hexapay-cancel', { amount, orderId }),
+    adminAccess: (action) =>
+      ipcRenderer.invoke('logger:admin-access', action),
+    event: (category, eventName, data) =>
+      ipcRenderer.invoke('logger:event', { category, eventName, data }),
+
+    // Utilitaires
+    getLogPath: () => ipcRenderer.invoke('logger:get-log-path'),
+  },
+
   // Listeners
   onPhotoProgress: (callback) => ipcRenderer.on('photos:progress', (event, data) => callback(data)),
   onPhotoComplete: (callback) => ipcRenderer.on('photos:complete', (event, data) => callback(data)),

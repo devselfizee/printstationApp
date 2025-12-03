@@ -70,6 +70,11 @@ export const renderPayment = (root) => {
 };
 
 async function initiatePaymentFlow(totalAmount, root) {
+  // Log du démarrage du paiement
+  if (window.photoAPI?.logger) {
+    window.photoAPI.logger.hexapayStart(totalAmount, state.localOrderId);
+  }
+
   try {
     // 1. Vérifier lecteur
     const ready = await window.hexapay.checkReady();
@@ -129,14 +134,32 @@ async function initiatePaymentFlow(totalAmount, root) {
           console.log('[Payment] Supabase Order ID:', createResult.supabaseOrderId);
           // Stocker l'ID Supabase pour référence future
           state.supabaseOrderId = createResult.supabaseOrderId;
+
+          // Log du paiement réussi
+          if (window.photoAPI?.logger) {
+            window.photoAPI.logger.hexapaySuccess(totalAmount, state.localOrderId, createResult.supabaseOrderId);
+            window.photoAPI.logger.orderComplete(state.localOrderId, createResult.supabaseOrderId);
+          }
         } else if (createResult?.status === 'skipped') {
           console.log('[Payment] ⏭️  Création ignorée:', createResult.message);
+          // Log du paiement réussi (sans Supabase)
+          if (window.photoAPI?.logger) {
+            window.photoAPI.logger.hexapaySuccess(totalAmount, state.localOrderId, null);
+          }
         } else {
           console.warn('[Payment] ⚠️  Erreur création API:', createResult?.error);
+          // Log du paiement réussi malgré erreur Supabase
+          if (window.photoAPI?.logger) {
+            window.photoAPI.logger.hexapaySuccess(totalAmount, state.localOrderId, null);
+          }
         }
       } catch (createError) {
         console.error('[Payment] ❌ Erreur lors de la création sur Supabase:', createError);
         // Ne pas bloquer le processus si la création échoue
+        // Log du paiement réussi malgré erreur Supabase
+        if (window.photoAPI?.logger) {
+          window.photoAPI.logger.hexapaySuccess(totalAmount, state.localOrderId, null);
+        }
       }
     } else {
       console.error('[Payment] ❌ CONDITIONS NON REMPLIES pour création Supabase:');
@@ -146,6 +169,10 @@ async function initiatePaymentFlow(totalAmount, root) {
       if (!window.photoAPI?.orders?.createCompletedRemote) {
         console.error('[Payment]   → window.photoAPI.orders.createCompletedRemote n\'est pas disponible');
       }
+      // Log du paiement réussi sans Supabase
+      if (window.photoAPI?.logger) {
+        window.photoAPI.logger.hexapaySuccess(totalAmount, state.localOrderId, null);
+      }
     }
 
     // Succès -> page form
@@ -154,6 +181,10 @@ async function initiatePaymentFlow(totalAmount, root) {
 
   } catch (error) {
     console.error('Payment failed:', error);
+    // Log de l'échec du paiement
+    if (window.photoAPI?.logger) {
+      window.photoAPI.logger.hexapayFailure(totalAmount, state.localOrderId, error.message);
+    }
     toast(`Erreur: ${error.message}`);
     state.page = 'cart';
     window.render();

@@ -6,6 +6,18 @@ import * as dotenv from 'dotenv';
 import https from 'https';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// ============================================
+// SYSTÈME DE LOGGING CENTRALISÉ
+// ============================================
+import logger from './services/LoggerService.js';
+
+// Récupérer la version depuis package.json
+const packageJson = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
+const APP_VERSION = packageJson.version;
+
+// Initialiser le logger avec la version de l'app
+logger.init(APP_VERSION);
+
 // Log immédiat au lancement de l'application
 console.log(`[${new Date().toISOString()}] 🚀 PrintStation démarrage - Version: ${app.getVersion()} - Env: ${app.isPackaged ? 'production' : 'development'}`);
 
@@ -1469,6 +1481,9 @@ app.on('window-all-closed', () => {
   watchdog.stop();
   // FIN HEXAPAY TOOLS
 
+  // Log de fermeture de l'application
+  logger.logAppClose('window-all-closed');
+
   if (process.platform !== 'darwin') {
     app.quit();
   }
@@ -1841,6 +1856,114 @@ ipcMain.handle('admin:purchase-report', () => {
     return [];
   }
   return photoSystem.admin.getPurchaseReport();
+});
+
+/**
+ * ===== IPC HANDLERS - LOGGER =====
+ */
+
+// Log générique depuis le renderer
+ipcMain.handle('logger:log', (event, { level, category, message, data }) => {
+  switch (level) {
+    case 'info':
+      logger.info(category, message, data);
+      break;
+    case 'warn':
+      logger.warn(category, message, data);
+      break;
+    case 'error':
+      logger.error(category, message, data);
+      break;
+    case 'debug':
+      logger.debug(category, message, data);
+      break;
+    default:
+      logger.info(category, message, data);
+  }
+  return { status: 'success' };
+});
+
+// Logs spécifiques
+ipcMain.handle('logger:page-change', (event, { fromPage, toPage, data }) => {
+  logger.logPageChange(fromPage, toPage, data);
+  return { status: 'success' };
+});
+
+ipcMain.handle('logger:qr-scan', (event, scanData) => {
+  logger.logQRScan(scanData);
+  return { status: 'success' };
+});
+
+ipcMain.handle('logger:qr-scan-invalid', (event, { rawData, reason }) => {
+  logger.logQRScanInvalid(rawData, reason);
+  return { status: 'success' };
+});
+
+ipcMain.handle('logger:cart-add', (event, { photoId, productId, productName, quantity, price }) => {
+  logger.logCartAdd(photoId, productId, productName, quantity, price);
+  return { status: 'success' };
+});
+
+ipcMain.handle('logger:cart-remove', (event, { photoId, productId }) => {
+  logger.logCartRemove(photoId, productId);
+  return { status: 'success' };
+});
+
+ipcMain.handle('logger:cart-clear', (event, reason) => {
+  logger.logCartClear(reason);
+  return { status: 'success' };
+});
+
+ipcMain.handle('logger:order-create', (event, { orderId, items, total }) => {
+  logger.logOrderCreate(orderId, items, total);
+  return { status: 'success' };
+});
+
+ipcMain.handle('logger:order-complete', (event, { orderId, supabaseId }) => {
+  logger.logOrderComplete(orderId, supabaseId);
+  return { status: 'success' };
+});
+
+ipcMain.handle('logger:order-cancel', (event, { orderId, reason }) => {
+  logger.logOrderCancel(orderId, reason);
+  return { status: 'success' };
+});
+
+ipcMain.handle('logger:hexapay-start', (event, { amount, orderId }) => {
+  logger.logHexapayStart(amount, orderId);
+  return { status: 'success' };
+});
+
+ipcMain.handle('logger:hexapay-success', (event, { amount, orderId, transactionId }) => {
+  logger.logHexapaySuccess(amount, orderId, transactionId);
+  return { status: 'success' };
+});
+
+ipcMain.handle('logger:hexapay-failure', (event, { amount, orderId, error }) => {
+  logger.logHexapayFailure(amount, orderId, error);
+  return { status: 'success' };
+});
+
+ipcMain.handle('logger:hexapay-cancel', (event, { amount, orderId }) => {
+  logger.logHexapayCancel(amount, orderId);
+  return { status: 'success' };
+});
+
+ipcMain.handle('logger:admin-access', (event, action) => {
+  logger.logAdminAccess(action);
+  return { status: 'success' };
+});
+
+ipcMain.handle('logger:event', (event, { category, eventName, data }) => {
+  logger.logEvent(category, eventName, data);
+  return { status: 'success' };
+});
+
+ipcMain.handle('logger:get-log-path', () => {
+  return {
+    logFile: logger.getLogFilePath(),
+    logDir: logger.getLogDir()
+  };
 });
 
 /**

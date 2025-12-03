@@ -89,6 +89,10 @@ el.innerHTML = `
         
         if (result?.status === 'success') {
           console.log('✅ Produit enregistré en DB:', result.itemId);
+          // Log ajout au panier
+          if (window.photoAPI?.logger) {
+            window.photoAPI.logger.cartAdd(photo.id, product.id, product.title, qty, totalPrice);
+          }
         } else {
           console.error('❌ Erreur enregistrement:', result);
         }
@@ -100,7 +104,7 @@ el.innerHTML = `
       console.error('  - photoAPI.cart:', !!window.photoAPI?.cart);
       console.error('  - sessionId:', state.sessionId);
     }
-    
+
     // TOAST au click "Ajouter"
     toast(t('added'));
     const parent = el.parentElement;
@@ -130,6 +134,10 @@ el.innerHTML = `
           if (item) {
             await window.photoAPI.cart.cancelItem(item.id);
             console.log('✅ Produit annulé dans DB:', item.id);
+            // Log retrait du panier
+            if (window.photoAPI?.logger) {
+              window.photoAPI.logger.cartRemove(photo.id, product.id);
+            }
           }
         } catch (error) {
           console.error('❌ Erreur annulation produit:', error);

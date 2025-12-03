@@ -332,14 +332,19 @@ async function processPhysicalScan(rawData) {
   try {
     // ⭐ Vérifier si c'est une URL et extraire le basename
     let processedData = rawData.trim();
+    const lowerData = processedData.toLowerCase();
 
-    if (processedData.startsWith('http://') || processedData.startsWith('https://')) {
+    if (lowerData.startsWith('http://') || lowerData.startsWith('https://')) {
       console.log('[QR] 🌐 URL détectée, extraction du basename...');
       try {
         const url = new URL(processedData);
         const pathParts = url.pathname.split('/').filter(p => p.length > 0);
         if (pathParts.length > 0) {
-          processedData = pathParts[pathParts.length - 1];
+          // Extraire le basename et supprimer les paramètres de requête éventuels
+          let basename = pathParts[pathParts.length - 1];
+          // Supprimer tout ce qui suit un ? ou #
+          basename = basename.split('?')[0].split('#')[0];
+          processedData = basename;
           console.log('[QR] ✅ Basename extrait:', processedData);
         }
       } catch (urlError) {
@@ -363,6 +368,10 @@ async function processPhysicalScan(rawData) {
 
       if (!isValidFirstChar || !isValidLength) {
         console.log('[QR] ❌ QR Code invalide - affichage du modal');
+        // Log du scan invalide
+        if (window.photoAPI?.logger) {
+          window.photoAPI.logger.qrScanInvalid(rawData, `Premier caractère: ${firstChar}, Longueur: ${upperData.length}`);
+        }
         showInvalidQRModal();
         return;
       }
@@ -410,6 +419,16 @@ async function processPhysicalScan(rawData) {
         console.log('[QR] 👤 Participant:', result.participantId);
         console.log('[QR] 📸 Photos:', result.photos?.length || 0);
 
+        // Log du scan réussi
+        if (window.photoAPI?.logger) {
+          window.photoAPI.logger.qrScan({
+            participantId: result.participantId,
+            universe: result.universeId || qrData.universe,
+            photosCount: result.photos?.length || 0,
+            rawData: rawData
+          });
+        }
+
         // Vérifier si le participant a des photos
         if (!result.photos || result.photos.length === 0) {
           console.log('[QR] ⚠️ Aucune photo disponible pour ce participant');
@@ -429,6 +448,10 @@ async function processPhysicalScan(rawData) {
         }
       } else {
         console.error('[QR] ❌ Erreur scan:', result.error);
+        // Log de l'erreur de scan
+        if (window.photoAPI?.logger) {
+          window.photoAPI.logger.error('QR_SCAN', 'Erreur scan QR', { error: result.error, rawData });
+        }
         alert(`Erreur lors du scan: ${result.error}`);
       }
     } else {
