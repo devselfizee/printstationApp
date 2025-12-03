@@ -135,31 +135,37 @@ function showWarningModal() {
 
   warningModal = document.createElement('div');
   warningModal.id = 'inactivity-warning-modal';
+  warningModal.className = 'admin-login-modal'; // Réutiliser le style admin
   warningModal.innerHTML = `
-    <div class="inactivity-warning-overlay">
+    <div class="inactivity-warning-container">
       <div class="inactivity-warning-box">
         <div class="inactivity-warning-icon">⏰</div>
-        <div class="inactivity-warning-title">Êtes-vous toujours là ?</div>
-        <div class="inactivity-warning-message">
-          Retour à l'accueil dans <span id="inactivity-countdown">${countdown}</span> secondes
+        <h2>Êtes-vous toujours là ?</h2>
+        <div class="inactivity-countdown-display">
+          <span id="inactivity-countdown">${countdown}</span>
         </div>
-        <button class="inactivity-warning-btn" id="inactivity-continue-btn">
-          Continuer mes achats
-        </button>
+        <div class="inactivity-warning-message">
+          Retour à l'accueil dans ${countdown} secondes
+        </div>
+        <div class="admin-buttons">
+          <button class="admin-btn-ok" id="inactivity-continue-btn">
+            Continuer mes achats
+          </button>
+        </div>
       </div>
     </div>
     <style>
-      .inactivity-warning-overlay {
+      .inactivity-warning-container {
         position: fixed;
         top: 0;
         left: 0;
         width: 100%;
         height: 100%;
-        background: rgba(0, 0, 0, 0.8);
+        background: rgba(0, 0, 0, 0.85);
         display: flex;
         align-items: center;
         justify-content: center;
-        z-index: 99999;
+        z-index: 10001;
         animation: fadeIn 0.3s ease;
       }
       @keyframes fadeIn {
@@ -167,54 +173,71 @@ function showWarningModal() {
         to { opacity: 1; }
       }
       .inactivity-warning-box {
-        background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%);
-        border-radius: 24px;
-        padding: 50px 60px;
+        background: rgba(30, 58, 95, 0.95);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        padding: 40px 60px;
         text-align: center;
         color: white;
         box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-        max-width: 500px;
+        min-width: 400px;
+      }
+      .inactivity-warning-box h2 {
+        margin: 0 0 20px 0;
+        font-size: 28px;
       }
       .inactivity-warning-icon {
-        font-size: 80px;
-        margin-bottom: 20px;
+        font-size: 64px;
+        margin-bottom: 15px;
         animation: pulse 1s infinite;
       }
       @keyframes pulse {
         0%, 100% { transform: scale(1); }
         50% { transform: scale(1.1); }
       }
-      .inactivity-warning-title {
-        font-size: 32px;
-        font-weight: bold;
-        margin-bottom: 15px;
-      }
-      .inactivity-warning-message {
-        font-size: 22px;
-        margin-bottom: 30px;
-        opacity: 0.9;
+      .inactivity-countdown-display {
+        background: rgba(255, 255, 255, 0.1);
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        width: 100px;
+        height: 100px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 20px auto;
       }
       #inactivity-countdown {
+        font-size: 48px;
         font-weight: bold;
-        font-size: 28px;
         color: #fbbf24;
       }
-      .inactivity-warning-btn {
-        background: #10b981;
-        border: none;
-        border-radius: 12px;
-        color: white;
-        font-size: 22px;
+      .inactivity-warning-message {
+        font-size: 18px;
+        margin-bottom: 25px;
+        opacity: 0.8;
+      }
+      .inactivity-warning-box .admin-buttons {
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        margin-top: 20px;
+      }
+      .inactivity-warning-box .admin-btn-ok {
+        background: rgba(100, 255, 100, 0.3);
+        border: 1px solid rgba(100, 255, 100, 0.5);
+        border-radius: 8px;
+        color: #fff;
+        font-size: 18px;
         font-weight: bold;
-        padding: 18px 40px;
+        padding: 14px 40px;
         cursor: pointer;
-        transition: all 0.2s ease;
+        transition: all 0.15s ease;
       }
-      .inactivity-warning-btn:hover {
-        background: #059669;
-        transform: scale(1.05);
+      .inactivity-warning-box .admin-btn-ok:hover {
+        background: rgba(100, 255, 100, 0.5);
       }
-      .inactivity-warning-btn:active {
+      .inactivity-warning-box .admin-btn-ok:active {
         transform: scale(0.98);
       }
     </style>
