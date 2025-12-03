@@ -1429,48 +1429,7 @@ app.on('ready', async () => {
 
   createWindow();
   createMenu();
-
-  // Auto-démarrer le simulateur en mode dev si la checkbox est cochée par défaut
-  const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
-  if (isDev) {
-    autoStartSimulator();
-  }
 });
-
-/**
- * Auto-démarre le simulateur Hexapay en mode dev
- */
-async function autoStartSimulator() {
-  console.log('[Simulator] Auto-démarrage du simulateur Hexapay...');
-  try {
-    const { spawn } = await import('child_process');
-    const nodePath = process.execPath.includes('electron')
-      ? 'node'
-      : process.execPath;
-
-    simulatorProcess = spawn(nodePath, ['simulator.js'], {
-      cwd: process.cwd(),
-      stdio: ['ignore', 'pipe', 'pipe']
-    });
-
-    simulatorProcess.stdout.on('data', (data) => {
-      console.log(`[Simulator] ${data.toString().trim()}`);
-    });
-
-    simulatorProcess.stderr.on('data', (data) => {
-      console.error(`[Simulator Error] ${data.toString().trim()}`);
-    });
-
-    simulatorProcess.on('close', (code) => {
-      console.log(`[Simulator] Processus terminé avec code ${code}`);
-      simulatorProcess = null;
-    });
-
-    console.log('[Simulator] ✅ Simulateur auto-lancé avec PID:', simulatorProcess.pid);
-  } catch (err) {
-    console.error('[Simulator] Erreur auto-démarrage:', err);
-  }
-}
 
 app.on('window-all-closed', () => {
   // DEBUT HEXAPAY TOOLS
@@ -3382,88 +3341,6 @@ ipcMain.handle('window:is-fullscreen', async (event) => {
     return { status: 'success', fullscreen: mainWindow.isFullScreen() };
   }
   return { status: 'error', error: 'Window not available' };
-});
-
-/**
- * ===== HANDLER SIMULATOR HEXAPAY =====
- */
-let simulatorProcess = null;
-
-ipcMain.handle('simulator:run-hexapay', async (event) => {
-  console.log('[IPC] Lancement du simulateur Hexapay...');
-
-  try {
-    // Si le simulateur est déjà lancé, ne pas en relancer un autre
-    if (simulatorProcess && !simulatorProcess.killed) {
-      console.log('[IPC] ⚠️ Simulateur déjà en cours (PID:', simulatorProcess.pid, ')');
-      return { status: 'already_running', pid: simulatorProcess.pid };
-    }
-
-    const simulatorPath = path.join(__dirname, 'simulator.js');
-
-    // Vérifier si le fichier existe
-    if (!fs.existsSync(simulatorPath)) {
-      console.error('[IPC] ❌ Fichier simulator.js non trouvé:', simulatorPath);
-      return { status: 'error', error: 'Fichier simulator.js non trouvé' };
-    }
-
-    // Lancer le simulateur (attaché au processus parent)
-    const { spawn } = await import('child_process');
-    simulatorProcess = spawn('node', ['simulator.js'], {
-      cwd: __dirname,
-      stdio: 'inherit' // Affiche les logs du simulateur dans la console
-    });
-
-    simulatorProcess.on('close', (code) => {
-      console.log('[IPC] Simulateur fermé avec code:', code);
-      simulatorProcess = null;
-    });
-
-    simulatorProcess.on('error', (err) => {
-      console.error('[IPC] Erreur simulateur:', err);
-      simulatorProcess = null;
-    });
-
-    console.log('[IPC] ✅ Simulateur Hexapay lancé (PID:', simulatorProcess.pid, ')');
-    return { status: 'success', pid: simulatorProcess.pid };
-  } catch (error) {
-    console.error('[IPC] ❌ Erreur lancement simulateur:', error);
-    return { status: 'error', error: error.message };
-  }
-});
-
-// Fermer le simulateur quand l'application se ferme
-app.on('before-quit', () => {
-  if (simulatorProcess && !simulatorProcess.killed) {
-    console.log('[App] Fermeture du simulateur Hexapay...');
-    simulatorProcess.kill();
-  }
-});
-
-// Handler pour arrêter le simulateur manuellement
-ipcMain.handle('simulator:stop-hexapay', async (event) => {
-  console.log('[IPC] Arrêt du simulateur Hexapay...');
-
-  try {
-    if (simulatorProcess && !simulatorProcess.killed) {
-      simulatorProcess.kill();
-      simulatorProcess = null;
-      console.log('[IPC] ✅ Simulateur Hexapay arrêté');
-      return { status: 'success' };
-    } else {
-      console.log('[IPC] ⚠️ Aucun simulateur en cours');
-      return { status: 'not_running' };
-    }
-  } catch (error) {
-    console.error('[IPC] ❌ Erreur arrêt simulateur:', error);
-    return { status: 'error', error: error.message };
-  }
-});
-
-// Handler pour vérifier si le simulateur est en cours
-ipcMain.handle('simulator:is-running', async (event) => {
-  const isRunning = simulatorProcess && !simulatorProcess.killed;
-  return { status: 'success', running: isRunning, pid: isRunning ? simulatorProcess.pid : null };
 });
 
 /**
