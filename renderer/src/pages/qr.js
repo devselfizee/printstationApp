@@ -332,14 +332,19 @@ async function processPhysicalScan(rawData) {
   try {
     // ⭐ Vérifier si c'est une URL et extraire le basename
     let processedData = rawData.trim();
+    const lowerData = processedData.toLowerCase();
 
-    if (processedData.startsWith('http://') || processedData.startsWith('https://')) {
+    if (lowerData.startsWith('http://') || lowerData.startsWith('https://')) {
       console.log('[QR] 🌐 URL détectée, extraction du basename...');
       try {
         const url = new URL(processedData);
         const pathParts = url.pathname.split('/').filter(p => p.length > 0);
         if (pathParts.length > 0) {
-          processedData = pathParts[pathParts.length - 1];
+          // Extraire le basename et supprimer les paramètres de requête éventuels
+          let basename = pathParts[pathParts.length - 1];
+          // Supprimer tout ce qui suit un ? ou #
+          basename = basename.split('?')[0].split('#')[0];
+          processedData = basename;
           console.log('[QR] ✅ Basename extrait:', processedData);
         }
       } catch (urlError) {
