@@ -9,6 +9,130 @@ import { state } from '../state.js';
 import { $ } from '../utils.js';
 
 // ============================================
+// MODAL "PHOTOS NON DISPONIBLES"
+// ============================================
+function showNoPhotosModal() {
+  // Supprimer un modal existant si présent
+  const existingModal = document.getElementById('no-photos-modal');
+  if (existingModal) {
+    existingModal.remove();
+  }
+
+  const modal = document.createElement('div');
+  modal.id = 'no-photos-modal';
+  modal.className = 'no-photos-modal-overlay';
+  modal.innerHTML = `
+    <div class="no-photos-modal">
+      <div class="no-photos-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+          <circle cx="8.5" cy="8.5" r="1.5"></circle>
+          <polyline points="21 15 16 10 5 21"></polyline>
+          <line x1="2" y1="2" x2="22" y2="22" stroke-width="2"></line>
+        </svg>
+      </div>
+      <h2 class="no-photos-title">Photos non disponibles</h2>
+      <p class="no-photos-message">Les photos ne sont pas encore disponibles.</p>
+      <p class="no-photos-hint">Veuillez réessayer dans quelques instants.</p>
+      <button class="no-photos-btn" id="close-no-photos-modal">OK</button>
+    </div>
+  `;
+
+  // Ajouter les styles inline si pas déjà présents
+  if (!document.getElementById('no-photos-modal-styles')) {
+    const styles = document.createElement('style');
+    styles.id = 'no-photos-modal-styles';
+    styles.textContent = `
+      .no-photos-modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        animation: fadeIn 0.3s ease;
+      }
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      .no-photos-modal {
+        background: white;
+        border-radius: 20px;
+        padding: 40px 50px;
+        text-align: center;
+        max-width: 400px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        animation: slideUp 0.3s ease;
+      }
+      @keyframes slideUp {
+        from { transform: translateY(20px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+      }
+      .no-photos-icon {
+        color: #f59e0b;
+        margin-bottom: 20px;
+      }
+      .no-photos-icon svg {
+        filter: drop-shadow(0 4px 6px rgba(245, 158, 11, 0.3));
+      }
+      .no-photos-title {
+        font-size: 24px;
+        font-weight: 700;
+        color: #1f2937;
+        margin: 0 0 15px 0;
+      }
+      .no-photos-message {
+        font-size: 18px;
+        color: #4b5563;
+        margin: 0 0 10px 0;
+      }
+      .no-photos-hint {
+        font-size: 14px;
+        color: #9ca3af;
+        margin: 0 0 25px 0;
+      }
+      .no-photos-btn {
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+        color: white;
+        border: none;
+        padding: 14px 50px;
+        font-size: 18px;
+        font-weight: 600;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+      .no-photos-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+      }
+      .no-photos-btn:active {
+        transform: translateY(0);
+      }
+    `;
+    document.head.appendChild(styles);
+  }
+
+  document.body.appendChild(modal);
+
+  // Fermer le modal au clic sur le bouton ou l'overlay
+  document.getElementById('close-no-photos-modal').addEventListener('click', () => {
+    modal.remove();
+  });
+
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      modal.remove();
+    }
+  });
+}
+
+// ============================================
 // SCANNER QR PHYSIQUE - Écouteur clavier
 // ============================================
 let scannerBuffer = '';
@@ -138,6 +262,13 @@ async function processPhysicalScan(rawData) {
         console.log('[QR] ✅ Scan réussi!');
         console.log('[QR] 👤 Participant:', result.participantId);
         console.log('[QR] 📸 Photos:', result.photos?.length || 0);
+
+        // Vérifier si le participant a des photos
+        if (!result.photos || result.photos.length === 0) {
+          console.log('[QR] ⚠️ Aucune photo disponible pour ce participant');
+          showNoPhotosModal();
+          return;
+        }
 
         // Navigation vers la page listing
         if (window.state && window.render) {
