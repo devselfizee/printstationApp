@@ -11,8 +11,14 @@ const ADMIN_PASSWORD = 'admin123'; // À changer en ENV
 // Timeout d'inactivité (par défaut 20s, configurable via .env ADMIN_INACTIVITY_TIMEOUT_MS)
 const ADMIN_INACTIVITY_TIMEOUT = window.appConfig?.adminInactivityTimeout || 20000;
 
+// Timeout pour le warning avant retour (10 secondes avant la fin)
+const WARNING_BEFORE_TIMEOUT = 10000;
+
 let isLoginOpen = false;
 let inactivityTimer = null;
+let warningTimer = null;
+let adminWarningModal = null;
+let countdownInterval = null;
 
 // Layouts de claviers par langue (même style que form.js)
 const KEYBOARD_LAYOUTS = {
@@ -580,14 +586,31 @@ async function showAdminDashboard() {
 
   // Timer d'inactivité pour le dashboard
   let dashboardTimer = null;
+  let dashboardWarningTimer = null;
 
   function resetDashboardTimer() {
     if (dashboardTimer) {
       clearTimeout(dashboardTimer);
     }
+    if (dashboardWarningTimer) {
+      clearTimeout(dashboardWarningTimer);
+    }
+
+    // Fermer le warning s'il est affiché
+    closeAdminWarningModal();
+
+    // Timer pour afficher le warning
+    const warningTime = ADMIN_INACTIVITY_TIMEOUT - WARNING_BEFORE_TIMEOUT;
+    if (warningTime > 0) {
+      dashboardWarningTimer = setTimeout(() => {
+        showAdminWarningModal(closeDashboardAndGoHome);
+      }, warningTime);
+    }
+
+    // Timer principal pour retour à l'accueil
     dashboardTimer = setTimeout(() => {
-      console.log('[Admin] ⏰ Timeout inactivité - fermeture dashboard');
-      closeDashboard();
+      console.log('[Admin] ⏰ Timeout inactivité - retour accueil');
+      closeDashboardAndGoHome();
     }, ADMIN_INACTIVITY_TIMEOUT);
   }
 
@@ -597,17 +620,40 @@ async function showAdminDashboard() {
       clearTimeout(dashboardTimer);
       dashboardTimer = null;
     }
+    if (dashboardWarningTimer) {
+      clearTimeout(dashboardWarningTimer);
+      dashboardWarningTimer = null;
+    }
+    closeAdminWarningModal();
     document.removeEventListener('keydown', escapeHandler);
     document.removeEventListener('click', activityHandler);
     document.removeEventListener('mousemove', activityHandler);
     dashboard.remove();
   }
 
+  function closeDashboardAndGoHome() {
+    closeDashboard();
+    // Retour à l'accueil
+    if (window.backToQR) {
+      window.backToQR();
+    } else if (window.state) {
+      window.state.page = 'qr';
+      if (window.render) {
+        window.render();
+      }
+    }
+  }
+
   // Démarrer le timer
   resetDashboardTimer();
 
   // Reset timer sur activité (clic, mouvement souris, touche)
-  function activityHandler() {
+  function activityHandler(e) {
+    // Ignorer les clics sur le modal warning
+    if (adminWarningModal && e.target.closest('#admin-warning-modal')) {
+      return;
+    }
+    closeAdminWarningModal();
     resetDashboardTimer();
   }
 
@@ -621,11 +667,175 @@ async function showAdminDashboard() {
 
   // Fermer avec Escape
   const escapeHandler = (e) => {
-    resetDashboardTimer(); // Reset on any key
+    // Reset timer sur activité
+    closeAdminWarningModal();
+    resetDashboardTimer();
     if (e.key === 'Escape' && $('#admin-dashboard')) {
       closeDashboard();
     }
   };
 
   document.addEventListener('keydown', escapeHandler);
+}
+
+/**
+ * Afficher le modal de warning pour l'admin
+ */
+function showAdminWarningModal(onTimeoutCallback) {
+  if (adminWarningModal) return;
+
+  let countdown = Math.ceil(WARNING_BEFORE_TIMEOUT / 1000);
+
+  adminWarningModal = document.createElement('div');
+  adminWarningModal.id = 'admin-warning-modal';
+  adminWarningModal.innerHTML = `
+    <div class="inactivity-warning-container">
+      <div class="inactivity-warning-box">
+        <div class="inactivity-warning-icon">⏰</div>
+        <h2>Êtes-vous toujours là ?</h2>
+        <div class="inactivity-countdown-display">
+          <span id="admin-warning-countdown">${countdown}</span>
+        </div>
+        <div class="inactivity-warning-message">
+          Retour à l'accueil dans ${countdown} secondes
+        </div>
+        <div class="admin-buttons">
+          <button class="admin-btn-ok" id="admin-warning-continue-btn">
+            Continuer
+          </button>
+        </div>
+      </div>
+    </div>
+    <style>
+      #admin-warning-modal .inactivity-warning-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.85);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10003;
+        animation: adminFadeIn 0.3s ease;
+      }
+      @keyframes adminFadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      #admin-warning-modal .inactivity-warning-box {
+        background: rgba(30, 58, 95, 0.95);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        padding: 40px 60px;
+        text-align: center;
+        color: white;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        min-width: 400px;
+      }
+      #admin-warning-modal .inactivity-warning-box h2 {
+        margin: 0 0 20px 0;
+        font-size: 28px;
+      }
+      #admin-warning-modal .inactivity-warning-icon {
+        font-size: 64px;
+        margin-bottom: 15px;
+        animation: adminPulse 1s infinite;
+      }
+      @keyframes adminPulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+      }
+      #admin-warning-modal .inactivity-countdown-display {
+        background: rgba(255, 255, 255, 0.1);
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        width: 100px;
+        height: 100px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 20px auto;
+      }
+      #admin-warning-countdown {
+        font-size: 48px;
+        font-weight: bold;
+        color: #fbbf24;
+      }
+      #admin-warning-modal .inactivity-warning-message {
+        font-size: 18px;
+        margin-bottom: 25px;
+        opacity: 0.8;
+      }
+      #admin-warning-modal .admin-buttons {
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        margin-top: 20px;
+      }
+      #admin-warning-modal .admin-btn-ok {
+        background: rgba(100, 255, 100, 0.3);
+        border: 1px solid rgba(100, 255, 100, 0.5);
+        border-radius: 8px;
+        color: #fff;
+        font-size: 18px;
+        font-weight: bold;
+        padding: 14px 40px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+      }
+      #admin-warning-modal .admin-btn-ok:hover {
+        background: rgba(100, 255, 100, 0.5);
+      }
+      #admin-warning-modal .admin-btn-ok:active {
+        transform: scale(0.98);
+      }
+    </style>
+  `;
+
+  document.body.appendChild(adminWarningModal);
+
+  // Bouton continuer
+  const continueBtn = document.getElementById('admin-warning-continue-btn');
+  if (continueBtn) {
+    continueBtn.addEventListener('click', () => {
+      closeAdminWarningModal();
+    });
+  }
+
+  // Countdown
+  const countdownEl = document.getElementById('admin-warning-countdown');
+  const messageEl = adminWarningModal.querySelector('.inactivity-warning-message');
+
+  countdownInterval = setInterval(() => {
+    countdown--;
+    if (countdownEl) {
+      countdownEl.textContent = countdown;
+    }
+    if (messageEl) {
+      messageEl.textContent = `Retour à l'accueil dans ${countdown} seconde${countdown > 1 ? 's' : ''}`;
+    }
+    if (countdown <= 0) {
+      clearInterval(countdownInterval);
+      countdownInterval = null;
+    }
+  }, 1000);
+
+  console.log('[Admin] Warning affiché');
+}
+
+/**
+ * Fermer le modal de warning admin
+ */
+function closeAdminWarningModal() {
+  if (adminWarningModal) {
+    adminWarningModal.remove();
+    adminWarningModal = null;
+  }
+  if (countdownInterval) {
+    clearInterval(countdownInterval);
+    countdownInterval = null;
+  }
 }
