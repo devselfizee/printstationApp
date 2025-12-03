@@ -28,9 +28,22 @@ window.state = state;
 window.PRODUCTS = PRODUCTS;
 window.UNIVERSES = UNIVERSES;
 
+// Variable pour tracker la page précédente
+let previousPage = null;
+
 function render() {
   const app = $('#app');
   if (!app) return;
+
+  // Log du changement de page
+  if (window.photoAPI?.logger && state.page !== previousPage) {
+    window.photoAPI.logger.pageChange(previousPage, state.page, {
+      participantId: state.participantId || null,
+      universeId: state.universeId || state.universe?.id || null,
+      cartItems: state.cart?.length || 0
+    });
+    previousPage = state.page;
+  }
 
   // Nettoyer la page QR si on la quitte
   if (window.cleanupQRPage && state.page !== 'qr') {

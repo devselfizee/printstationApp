@@ -368,6 +368,10 @@ async function processPhysicalScan(rawData) {
 
       if (!isValidFirstChar || !isValidLength) {
         console.log('[QR] ❌ QR Code invalide - affichage du modal');
+        // Log du scan invalide
+        if (window.photoAPI?.logger) {
+          window.photoAPI.logger.qrScanInvalid(rawData, `Premier caractère: ${firstChar}, Longueur: ${upperData.length}`);
+        }
         showInvalidQRModal();
         return;
       }
@@ -415,6 +419,16 @@ async function processPhysicalScan(rawData) {
         console.log('[QR] 👤 Participant:', result.participantId);
         console.log('[QR] 📸 Photos:', result.photos?.length || 0);
 
+        // Log du scan réussi
+        if (window.photoAPI?.logger) {
+          window.photoAPI.logger.qrScan({
+            participantId: result.participantId,
+            universe: result.universeId || qrData.universe,
+            photosCount: result.photos?.length || 0,
+            rawData: rawData
+          });
+        }
+
         // Vérifier si le participant a des photos
         if (!result.photos || result.photos.length === 0) {
           console.log('[QR] ⚠️ Aucune photo disponible pour ce participant');
@@ -434,6 +448,10 @@ async function processPhysicalScan(rawData) {
         }
       } else {
         console.error('[QR] ❌ Erreur scan:', result.error);
+        // Log de l'erreur de scan
+        if (window.photoAPI?.logger) {
+          window.photoAPI.logger.error('QR_SCAN', 'Erreur scan QR', { error: result.error, rawData });
+        }
         alert(`Erreur lors du scan: ${result.error}`);
       }
     } else {

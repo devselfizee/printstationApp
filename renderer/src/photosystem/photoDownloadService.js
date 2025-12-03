@@ -15,6 +15,7 @@ import crypto from 'crypto';
 import path from 'path';
 import os from 'os';
 import * as db from './db.js';
+import logger from '../../../services/LoggerService.js';
 
 function getMediasDir() {
   const platform = process.platform;
@@ -233,8 +234,9 @@ async function processQueue() {
  */
 async function downloadPhoto(queueItem) {
   const { id: photoId, url, checksum, participantId } = queueItem;
-  
+
   console.log(`[PhotoDownload] 📥 Téléchargement ${photoId}...`);
+  logger.logPhotoDownloadStart(photoId, url);
   
   try {
     const diskCheck = await checkDiskSpace();
@@ -296,14 +298,16 @@ async function downloadPhoto(queueItem) {
     downloadStats.lastUpdate = new Date();
 
     console.log(`[PhotoDownload] ✅ ${photoId} téléchargé et validé (${formatBytes(stats.size)})`);
+    logger.logPhotoDownloadSuccess(photoId, localPath, stats.size);
 
   } catch (error) {
     downloadStats.totalAttempts++;
-    
+
     const photo = await db.getPhoto(photoId);
     const retryCount = (photo?.retry_count || 0) + 1;
 
     console.error(`[PhotoDownload] ❌ ${photoId} erreur: ${error.message} (retry ${retryCount})`);
+    logger.logPhotoDownloadError(photoId, `${error.message} (retry ${retryCount})`);
 
     if (retryCount >= CONFIG.MAX_RETRIES_PER_PHOTO) {
       await db.markPhotoError(photoId, error.message);
