@@ -133,6 +133,132 @@ function showNoPhotosModal() {
 }
 
 // ============================================
+// MODAL "QR CODE INVALIDE"
+// ============================================
+function showInvalidQRModal() {
+  // Supprimer un modal existant si présent
+  const existingModal = document.getElementById('invalid-qr-modal');
+  if (existingModal) {
+    existingModal.remove();
+  }
+
+  const modal = document.createElement('div');
+  modal.id = 'invalid-qr-modal';
+  modal.className = 'invalid-qr-modal-overlay';
+  modal.innerHTML = `
+    <div class="invalid-qr-modal">
+      <div class="invalid-qr-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 3h6v6H3z"></path>
+          <path d="M15 3h6v6h-6z"></path>
+          <path d="M3 15h6v6H3z"></path>
+          <path d="M15 15h6v6h-6z"></path>
+          <line x1="9" y1="9" x2="15" y2="15" stroke-width="2.5" stroke="#ef4444"></line>
+          <line x1="15" y1="9" x2="9" y2="15" stroke-width="2.5" stroke="#ef4444"></line>
+        </svg>
+      </div>
+      <h2 class="invalid-qr-title">Oups !</h2>
+      <p class="invalid-qr-message">Ce QR Code n'est pas valide.</p>
+      <p class="invalid-qr-hint">Veuillez scanner un QR Code valide.</p>
+      <button class="invalid-qr-btn" id="close-invalid-qr-modal">OK</button>
+    </div>
+  `;
+
+  // Ajouter les styles inline si pas déjà présents
+  if (!document.getElementById('invalid-qr-modal-styles')) {
+    const styles = document.createElement('style');
+    styles.id = 'invalid-qr-modal-styles';
+    styles.textContent = `
+      .invalid-qr-modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        animation: fadeInInvalid 0.3s ease;
+      }
+      @keyframes fadeInInvalid {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      .invalid-qr-modal {
+        background: white;
+        border-radius: 20px;
+        padding: 40px 50px;
+        text-align: center;
+        max-width: 400px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        animation: slideUpInvalid 0.3s ease;
+      }
+      @keyframes slideUpInvalid {
+        from { transform: translateY(20px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+      }
+      .invalid-qr-icon {
+        color: #6b7280;
+        margin-bottom: 20px;
+      }
+      .invalid-qr-icon svg {
+        filter: drop-shadow(0 4px 6px rgba(107, 114, 128, 0.3));
+      }
+      .invalid-qr-title {
+        font-size: 28px;
+        font-weight: 700;
+        color: #ef4444;
+        margin: 0 0 15px 0;
+      }
+      .invalid-qr-message {
+        font-size: 18px;
+        color: #4b5563;
+        margin: 0 0 10px 0;
+      }
+      .invalid-qr-hint {
+        font-size: 14px;
+        color: #9ca3af;
+        margin: 0 0 25px 0;
+      }
+      .invalid-qr-btn {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        color: white;
+        border: none;
+        padding: 14px 50px;
+        font-size: 18px;
+        font-weight: 600;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+      .invalid-qr-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+      }
+      .invalid-qr-btn:active {
+        transform: translateY(0);
+      }
+    `;
+    document.head.appendChild(styles);
+  }
+
+  document.body.appendChild(modal);
+
+  // Fermer le modal au clic sur le bouton ou l'overlay
+  document.getElementById('close-invalid-qr-modal').addEventListener('click', () => {
+    modal.remove();
+  });
+
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      modal.remove();
+    }
+  });
+}
+
+// ============================================
 // SCANNER QR PHYSIQUE - Écouteur clavier
 // ============================================
 let scannerBuffer = '';
@@ -218,6 +344,27 @@ async function processPhysicalScan(rawData) {
         }
       } catch (urlError) {
         console.warn('[QR] ⚠️ Erreur parsing URL, utilisation des données brutes');
+      }
+    }
+
+    // ⭐ Validation du QR Code (sauf si c'est du JSON)
+    // Règles: première lettre doit être A, B, C, D ou E et longueur > 6
+    const isJSON = processedData.startsWith('{') || processedData.startsWith('[');
+    if (!isJSON) {
+      const upperData = processedData.toUpperCase();
+      const firstChar = upperData.charAt(0);
+      const isValidFirstChar = ['A', 'B', 'C', 'D', 'E'].includes(firstChar);
+      const isValidLength = upperData.length > 6;
+
+      console.log('[QR] 🔍 Validation QR Code:');
+      console.log('[QR]   - Données:', upperData);
+      console.log('[QR]   - Premier caractère:', firstChar, '→', isValidFirstChar ? '✅' : '❌');
+      console.log('[QR]   - Longueur:', upperData.length, '→', isValidLength ? '✅' : '❌');
+
+      if (!isValidFirstChar || !isValidLength) {
+        console.log('[QR] ❌ QR Code invalide - affichage du modal');
+        showInvalidQRModal();
+        return;
       }
     }
 
