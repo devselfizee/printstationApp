@@ -348,13 +348,13 @@ async function processPhysicalScan(rawData) {
     }
 
     // ⭐ Validation du QR Code (sauf si c'est du JSON)
-    // Règles: première lettre doit être A, B, C, D ou E et longueur > 6
+    // Règles: première lettre doit être A, B, C, D ou E et longueur = 6
     const isJSON = processedData.startsWith('{') || processedData.startsWith('[');
     if (!isJSON) {
       const upperData = processedData.toUpperCase();
       const firstChar = upperData.charAt(0);
       const isValidFirstChar = ['A', 'B', 'C', 'D', 'E'].includes(firstChar);
-      const isValidLength = upperData.length > 6;
+      const isValidLength = upperData.length === 6;
 
       console.log('[QR] 🔍 Validation QR Code:');
       console.log('[QR]   - Données:', upperData);
