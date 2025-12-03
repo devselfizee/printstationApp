@@ -204,3 +204,24 @@ const photoAPI = {
 
 // Exposer à window
 contextBridge.exposeInMainWorld('photoAPI', photoAPI);
+
+// Configuration de l'application (avec valeurs par défaut)
+// Ces valeurs peuvent être récupérées depuis le processus main
+const appConfig = {
+  // Timeout d'inactivité global pour le kiosk (60s par défaut)
+  inactivityTimeout: 60000,
+  // Timeout d'inactivité pour l'admin (20s par défaut)
+  adminInactivityTimeout: 20000,
+};
+
+// Récupérer la config depuis main.js de manière asynchrone
+ipcRenderer.invoke('app:get-config').then((config) => {
+  if (config) {
+    Object.assign(appConfig, config);
+    console.log('[Preload] Config chargée:', appConfig);
+  }
+}).catch((err) => {
+  console.warn('[Preload] Config non disponible, utilisation des valeurs par défaut');
+});
+
+contextBridge.exposeInMainWorld('appConfig', appConfig);

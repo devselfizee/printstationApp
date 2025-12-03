@@ -1547,6 +1547,18 @@ function createMenu() {
 }
 
 /**
+ * ===== IPC HANDLERS - APP CONFIG =====
+ */
+
+// Retourner la configuration de l'application
+ipcMain.handle('app:get-config', () => {
+  return {
+    inactivityTimeout: parseInt(process.env.INACTIVITY_TIMEOUT_MS) || 60000,
+    adminInactivityTimeout: parseInt(process.env.ADMIN_INACTIVITY_TIMEOUT_MS) || 20000,
+  };
+});
+
+/**
  * ===== IPC HANDLERS - PHOTOS =====
  */
 

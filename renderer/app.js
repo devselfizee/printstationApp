@@ -15,6 +15,7 @@ import { goBack } from './src/navigation.js';
 import { initAdminButton } from './src/admin-system.js';
 import { initDevSimulator } from './src/dev-simulator.js';
 import { showSetupModal } from './src/pages/setup.js';
+import { initInactivityTimer, startInactivityTimer, stopInactivityTimer } from './src/inactivity-timer.js';
 
 // À appeler SEULEMENT sur la page QR
 if (state.page === 'qr') {
@@ -23,6 +24,7 @@ if (state.page === 'qr') {
 
 // Au démarrage
 initAdminButton();
+initInactivityTimer();
 
 window.state = state;
 window.PRODUCTS = PRODUCTS;
@@ -85,8 +87,11 @@ function render() {
   else if (state.page === 'payment') renderPayment(app);
   else if (state.page === 'form') renderForm(app);
   else if (state.page === 'thanks') renderThanks(app);
-  
+
   updateCartCount();
+
+  // Gérer le timer d'inactivité selon la page
+  startInactivityTimer();
 }
 
 function scanQR() {
