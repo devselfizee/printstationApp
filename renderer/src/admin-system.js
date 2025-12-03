@@ -717,7 +717,7 @@ function showAdminWarningModal(onTimeoutCallback) {
         display: flex;
         align-items: center;
         justify-content: center;
-        z-index: 10003;
+        z-index: 99999;
         animation: adminFadeIn 0.3s ease;
       }
       @keyframes adminFadeIn {
