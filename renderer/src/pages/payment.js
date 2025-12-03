@@ -137,57 +137,58 @@ async function initiatePaymentFlow(totalAmount, root) {
       console.warn('[Payment]   - validateSession disponible:', !!window.photoAPI?.cart?.validateSession);
     }
 
-    // 7. Créer la commande sur Supabase avec status=completed
-    console.log('[Payment] 📝 Création de la commande COMPLETED sur Supabase...');
+    // 7. MISE À JOUR de la commande existante sur Supabase (status=completed)
+    // NOTE: La commande a déjà été créée dans cart.js avec status=pending
+    // On la met juste à jour au lieu d'en créer une nouvelle
+    console.log('[Payment] 📝 Mise à jour de la commande sur Supabase (status=completed)...');
     console.log('[Payment] Local Order ID:', state.localOrderId);
-    console.log('[Payment] createCompletedRemote disponible:', !!window.photoAPI?.orders?.createCompletedRemote);
+    console.log('[Payment] Supabase Order ID existant:', state.supabaseOrderId);
 
-    if (state.localOrderId && window.photoAPI?.orders?.createCompletedRemote) {
+    if (state.supabaseOrderId && window.photoAPI?.orders?.updateRemote) {
       try {
-        console.log('[Payment] ✅ Appel de createCompletedRemote...');
+        console.log('[Payment] ✅ Appel de updateRemote pour mettre à jour status=completed...');
 
-        const createResult = await window.photoAPI.orders.createCompletedRemote(state.localOrderId);
+        // Mettre à jour la commande existante sur Supabase
+        const updateResult = await window.photoAPI.orders.updateRemote(
+          state.supabaseOrderId,
+          null, // Pas d'email pour l'instant (sera ajouté dans form.js)
+          state.localOrderId
+        );
 
-        if (createResult?.status === 'success') {
-          console.log('[Payment] ✅ Commande COMPLETED créée sur Supabase');
-          console.log('[Payment] Supabase Order ID:', createResult.supabaseOrderId);
-          // Stocker l'ID Supabase pour référence future
-          state.supabaseOrderId = createResult.supabaseOrderId;
+        if (updateResult?.status === 'success') {
+          console.log('[Payment] ✅ Commande mise à jour sur Supabase (status=completed)');
+          console.log('[Payment] Réponse:', updateResult.response);
 
           // Log du paiement réussi
           if (window.photoAPI?.logger) {
-            window.photoAPI.logger.hexapaySuccess(totalAmount, state.localOrderId, createResult.supabaseOrderId);
-            window.photoAPI.logger.orderComplete(state.localOrderId, createResult.supabaseOrderId);
+            window.photoAPI.logger.hexapaySuccess(totalAmount, state.localOrderId, state.supabaseOrderId);
+            window.photoAPI.logger.orderComplete(state.localOrderId, state.supabaseOrderId);
           }
-        } else if (createResult?.status === 'skipped') {
-          console.log('[Payment] ⏭️  Création ignorée:', createResult.message);
+        } else if (updateResult?.status === 'skipped') {
+          console.log('[Payment] ⏭️  Mise à jour ignorée:', updateResult.message);
           // Log du paiement réussi (sans Supabase)
           if (window.photoAPI?.logger) {
-            window.photoAPI.logger.hexapaySuccess(totalAmount, state.localOrderId, null);
+            window.photoAPI.logger.hexapaySuccess(totalAmount, state.localOrderId, state.supabaseOrderId);
           }
         } else {
-          console.warn('[Payment] ⚠️  Erreur création API:', createResult?.error);
+          console.warn('[Payment] ⚠️  Erreur mise à jour API:', updateResult?.error);
           // Log du paiement réussi malgré erreur Supabase
           if (window.photoAPI?.logger) {
-            window.photoAPI.logger.hexapaySuccess(totalAmount, state.localOrderId, null);
+            window.photoAPI.logger.hexapaySuccess(totalAmount, state.localOrderId, state.supabaseOrderId);
           }
         }
-      } catch (createError) {
-        console.error('[Payment] ❌ Erreur lors de la création sur Supabase:', createError);
-        // Ne pas bloquer le processus si la création échoue
+      } catch (updateError) {
+        console.error('[Payment] ❌ Erreur lors de la mise à jour sur Supabase:', updateError);
+        // Ne pas bloquer le processus si la mise à jour échoue
         // Log du paiement réussi malgré erreur Supabase
         if (window.photoAPI?.logger) {
-          window.photoAPI.logger.hexapaySuccess(totalAmount, state.localOrderId, null);
+          window.photoAPI.logger.hexapaySuccess(totalAmount, state.localOrderId, state.supabaseOrderId);
         }
       }
     } else {
-      console.error('[Payment] ❌ CONDITIONS NON REMPLIES pour création Supabase:');
-      if (!state.localOrderId) {
-        console.error('[Payment]   → state.localOrderId est NULL ou UNDEFINED');
-      }
-      if (!window.photoAPI?.orders?.createCompletedRemote) {
-        console.error('[Payment]   → window.photoAPI.orders.createCompletedRemote n\'est pas disponible');
-      }
+      console.warn('[Payment] ⚠️ Pas d\'ID Supabase existant ou API non disponible:');
+      console.warn('[Payment]   - supabaseOrderId:', state.supabaseOrderId);
+      console.warn('[Payment]   - updateRemote disponible:', !!window.photoAPI?.orders?.updateRemote);
       // Log du paiement réussi sans Supabase
       if (window.photoAPI?.logger) {
         window.photoAPI.logger.hexapaySuccess(totalAmount, state.localOrderId, null);
