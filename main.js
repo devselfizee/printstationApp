@@ -1571,58 +1571,6 @@ function createMenu() {
         },
         { type: 'separator' },
         {
-          label: 'Simuler le paiement',
-          type: 'checkbox',
-          checked: true,
-          click: async (menuItem) => {
-            if (menuItem.checked) {
-              // Démarrer le simulateur
-              console.log('[Menu] Démarrage du simulateur Hexapay...');
-              if (simulatorProcess && !simulatorProcess.killed) {
-                console.log('[Menu] Simulateur déjà en cours');
-                return;
-              }
-              try {
-                const { spawn } = await import('child_process');
-                const nodePath = process.execPath.includes('electron')
-                  ? 'node'
-                  : process.execPath;
-
-                simulatorProcess = spawn(nodePath, ['simulator.js'], {
-                  cwd: process.cwd(),
-                  stdio: ['ignore', 'pipe', 'pipe']
-                });
-
-                simulatorProcess.stdout.on('data', (data) => {
-                  console.log(`[Simulator] ${data.toString().trim()}`);
-                });
-
-                simulatorProcess.stderr.on('data', (data) => {
-                  console.error(`[Simulator Error] ${data.toString().trim()}`);
-                });
-
-                simulatorProcess.on('close', (code) => {
-                  console.log(`[Simulator] Processus terminé avec code ${code}`);
-                  simulatorProcess = null;
-                });
-
-                console.log('[Menu] ✅ Simulateur lancé avec PID:', simulatorProcess.pid);
-              } catch (err) {
-                console.error('[Menu] Erreur lancement simulateur:', err);
-              }
-            } else {
-              // Arrêter le simulateur
-              console.log('[Menu] Arrêt du simulateur Hexapay...');
-              if (simulatorProcess && !simulatorProcess.killed) {
-                simulatorProcess.kill();
-                simulatorProcess = null;
-                console.log('[Menu] ✅ Simulateur arrêté');
-              }
-            }
-          },
-        },
-        { type: 'separator' },
-        {
           label: 'Status PhotoSystem',
           click: () => {
             console.log('[DevTools] PhotoSystem Ready:', photoSystemReady);
