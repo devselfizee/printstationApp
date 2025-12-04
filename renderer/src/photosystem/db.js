@@ -523,7 +523,7 @@ export async function getPhotosByStatus(status, limit = 1000) {
  */
 export async function getPhotosForParticipant(participantId) {
   return allAsync(
-    'SELECT * FROM photos WHERE participant_id = ? ORDER BY created_at DESC',
+    'SELECT * FROM photos WHERE participant_id = ? ORDER BY date_photo DESC',
     [participantId]
   );
 }
