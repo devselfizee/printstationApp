@@ -1413,10 +1413,19 @@ app.on('ready', async () => {
         photoSystemReady = true;
 
         // Charger la configuration machine depuis la DB
-        await loadMachineConfig();
+        const configComplete = await loadMachineConfig();
 
-        // Démarrer le système de retry pour les commandes non synchronisées
-        startSyncRetrySystem();
+        // Démarrer les services de sync UNIQUEMENT si la config est complète
+        if (configComplete) {
+          console.log('[Main] → Démarrage des services de synchronisation');
+          if (photoSystem.startSyncServices) {
+            photoSystem.startSyncServices();
+          }
+          // Démarrer le système de retry pour les commandes non synchronisées
+          startSyncRetrySystem();
+        } else {
+          console.log('[Main] ⚠️  Services de sync en attente - Configuration requise');
+        }
       }
     } catch (error) {
       console.warn('[Main] Erreur initialisation photos:', error.message);
@@ -3193,13 +3202,13 @@ async function retrySyncPendingOrders() {
 async function loadMachineConfig() {
   if (!photoSystemReady || !photoSystem?.db) {
     console.log('[Config] PhotoSystem non disponible - Utilisation du .env');
-    return;
+    return false;
   }
 
   try {
     const config = await photoSystem.db.getMachineConfig();
 
-    if (config) {
+    if (config && config.kiosk_id && config.sales_point_id) {
       // Charger la config depuis la DB
       API_SYNC_CONFIG.kioskId = config.kiosk_id;
       API_SYNC_CONFIG.salesPointId = config.sales_point_id;
@@ -3209,13 +3218,15 @@ async function loadMachineConfig() {
         salesPointId: config.sales_point_id,
         machineName: config.machine_name || 'Non défini'
       });
+      return true; // Config complète
     } else {
-      console.log('[Config] ⚠️  Aucune configuration trouvée - Utilisation du .env (fallback)');
-      // Utiliser les valeurs du .env comme fallback
+      console.log('[Config] ⚠️  Configuration incomplète - En attente de setup');
+      return false; // Config incomplète
     }
   } catch (error) {
     console.error('[Config] ❌ Erreur chargement config:', error);
     console.log('[Config] Utilisation du .env comme fallback');
+    return false;
   }
 }
 
@@ -3320,6 +3331,14 @@ ipcMain.handle('machine:save-config', async (event, kioskId, salesPointId, machi
     API_SYNC_CONFIG.salesPointId = salesPointId;
 
     console.log('[IPC] ✅ Configuration machine enregistrée:', { kioskId, salesPointId, machineName });
+
+    // Démarrer les services de sync maintenant que la config est complète
+    if (photoSystem.startSyncServices) {
+      console.log('[IPC] → Démarrage des services de synchronisation après config');
+      photoSystem.startSyncServices();
+    }
+    startSyncRetrySystem();
+
     return { status: 'success' };
   } catch (error) {
     console.error('[IPC] Erreur sauvegarde config machine:', error);

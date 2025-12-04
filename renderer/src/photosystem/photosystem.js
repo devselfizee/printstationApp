@@ -21,6 +21,8 @@ let isInitialized = false;
 /**
  * Initialiser le système de gestion des photos
  * À appeler au démarrage de l'application
+ * Note: Les services de sync ne démarrent PAS automatiquement
+ * Appeler startSyncServices() après vérification de la configuration
  */
 export async function initializePhotoSystem() {
   console.log('[PhotoSystem] Initialisation...');
@@ -40,15 +42,12 @@ export async function initializePhotoSystem() {
     // 3. Initialiser les répertoires
     console.log('[PhotoSystem] → Création répertoires');
     await universeService.initUniverseDirectories();
-    await downloadService.startDownloadService(); // Crée aussi les répertoires
 
-    // 4. Démarrer les services
-    console.log('[PhotoSystem] → Démarrage services');
-    syncService.startSyncService();
-    downloadService.startDownloadService();
+    // Note: Les services de sync ne démarrent PAS ici
+    // Ils seront démarrés via startSyncServices() après vérification de la config
 
     isInitialized = true;
-    console.log('[PhotoSystem] ✓ Système prêt');
+    console.log('[PhotoSystem] ✓ Système prêt (sync en attente de configuration)');
 
     return {
       status: 'success',
@@ -77,6 +76,23 @@ export function shutdownPhotoSystem() {
 
   isInitialized = false;
   console.log('[PhotoSystem] ✓ Arrêt complet');
+}
+
+/**
+ * Démarrer les services de synchronisation
+ * À appeler UNIQUEMENT après que la configuration machine soit enregistrée
+ */
+export function startSyncServices() {
+  if (!isInitialized) {
+    console.warn('[PhotoSystem] Impossible de démarrer sync - système non initialisé');
+    return false;
+  }
+
+  console.log('[PhotoSystem] → Démarrage services de synchronisation');
+  syncService.startSyncService();
+  downloadService.startDownloadService();
+  console.log('[PhotoSystem] ✓ Services de sync démarrés');
+  return true;
 }
 
 /**
