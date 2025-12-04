@@ -265,6 +265,7 @@ export function parseQRCode(qrContent) {
 export default {
   initialize: initializePhotoSystem,
   shutdown: shutdownPhotoSystem,
+  startSyncServices,
   onQRCodeScanned,
   getPhotos,
   getProgress,
