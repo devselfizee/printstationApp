@@ -3327,6 +3327,67 @@ ipcMain.handle('machine:save-config', async (event, kioskId, salesPointId, machi
   }
 });
 
+// Récupérer les infos d'un kiosk depuis l'API
+ipcMain.handle('machine:fetch-kiosk', async (event, kioskId) => {
+  console.log('[IPC] machine:fetch-kiosk appelé avec kioskId:', kioskId);
+
+  if (!kioskId) {
+    return { status: 'error', error: 'kiosk_id requis' };
+  }
+
+  try {
+    // Construire l'URL de l'API
+    const baseUrl = process.env.BASE_URL || 'https://ygetxuvqrknbggplzmvy.supabase.co/functions/v1';
+    const apiUrl = `${baseUrl}/manage-kiosks?id=${encodeURIComponent(kioskId)}`;
+
+    console.log('[IPC] Appel API:', apiUrl);
+
+    // Obtenir le token d'authentification
+    const authToken = await getAuthToken();
+    if (!authToken) {
+      console.warn('[IPC] Pas de token d\'authentification, tentative sans auth');
+    }
+
+    const headers = {
+      'Content-Type': 'application/json',
+      'apikey': API_SYNC_CONFIG.supabaseAnonKey
+    };
+
+    if (authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`;
+    }
+
+    const response = await fetch(apiUrl, {
+      method: 'GET',
+      headers
+    });
+
+    console.log('[IPC] Réponse API status:', response.status);
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        return { status: 'not_found', message: 'Kiosk non trouvé' };
+      }
+      const errorText = await response.text();
+      console.error('[IPC] Erreur API:', errorText);
+      return { status: 'error', error: `Erreur API: ${response.status}` };
+    }
+
+    const data = await response.json();
+    console.log('[IPC] Données kiosk reçues:', data);
+
+    // Retourner les données du kiosk
+    return {
+      status: 'success',
+      kiosk: data
+    };
+
+  } catch (error) {
+    console.error('[IPC] Erreur fetch kiosk:', error);
+    return { status: 'error', error: error.message };
+  }
+});
+
 /**
  * ===== HANDLERS IPC PRODUITS =====
  */

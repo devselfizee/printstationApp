@@ -119,6 +119,7 @@ const photoAPI = {
     getConfig: () => ipcRenderer.invoke('machine:get-config'),
     isSetupCompleted: () => ipcRenderer.invoke('machine:is-setup-completed'),
     saveConfig: (kioskId, salesPointId, machineName) => ipcRenderer.invoke('machine:save-config', kioskId, salesPointId, machineName),
+    fetchKiosk: (kioskId) => ipcRenderer.invoke('machine:fetch-kiosk', kioskId),
   },
 
   // Products
