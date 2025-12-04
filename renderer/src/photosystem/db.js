@@ -313,6 +313,7 @@ async function createTables() {
       kiosk_id TEXT NOT NULL,
       sales_point_id TEXT NOT NULL,
       machine_name TEXT,
+      tva REAL DEFAULT 20,
       setup_completed BOOLEAN DEFAULT 1,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -379,6 +380,19 @@ async function migrateSyncColumns() {
     }
   } catch (error) {
     console.error('[DB] Erreur migration date_photo:', error);
+  }
+
+  // Migration: Ajouter tva à la table machine_config
+  try {
+    const machineConfigInfo = await allAsync('PRAGMA table_info(machine_config)');
+    const machineConfigColumns = machineConfigInfo.map(col => col.name);
+
+    if (!machineConfigColumns.includes('tva')) {
+      await execAsync('ALTER TABLE machine_config ADD COLUMN tva REAL DEFAULT 20');
+      console.log('[DB] ✅ Colonne tva ajoutée à machine_config');
+    }
+  } catch (error) {
+    console.error('[DB] Erreur migration tva:', error);
   }
 }
 
@@ -1145,26 +1159,27 @@ export async function isSetupCompleted() {
 /**
  * Sauvegarder la configuration de la machine
  */
-export async function saveMachineConfig(kioskId, salesPointId, machineName = null) {
+export async function saveMachineConfig(kioskId, salesPointId, machineName = null, tva = 20) {
   return runAsync(
-    `INSERT OR REPLACE INTO machine_config (id, kiosk_id, sales_point_id, machine_name, setup_completed, updated_at)
-     VALUES (1, ?, ?, ?, 1, CURRENT_TIMESTAMP)`,
-    [kioskId, salesPointId, machineName]
+    `INSERT OR REPLACE INTO machine_config (id, kiosk_id, sales_point_id, machine_name, tva, setup_completed, updated_at)
+     VALUES (1, ?, ?, ?, ?, 1, CURRENT_TIMESTAMP)`,
+    [kioskId, salesPointId, machineName, tva]
   );
 }
 
 /**
  * Mettre à jour la configuration de la machine
  */
-export async function updateMachineConfig(kioskId, salesPointId, machineName = null) {
+export async function updateMachineConfig(kioskId, salesPointId, machineName = null, tva = 20) {
   return runAsync(
     `UPDATE machine_config
      SET kiosk_id = ?,
          sales_point_id = ?,
          machine_name = ?,
+         tva = ?,
          updated_at = CURRENT_TIMESTAMP
      WHERE id = 1`,
-    [kioskId, salesPointId, machineName]
+    [kioskId, salesPointId, machineName, tva]
   );
 }
 

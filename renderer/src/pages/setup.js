@@ -81,14 +81,15 @@ export const showSetupModal = () => {
         const kiosk = result.kiosk;
         const salesPointId = kiosk.sales_point_id || '';
         const machineName = kiosk.name || null;
+        const tva = kiosk.vat_rate || 20;
 
-        console.log('[Setup Modal] Kiosk trouvé - sales_point_id:', salesPointId, ', name:', machineName);
+        console.log('[Setup Modal] Kiosk trouvé - sales_point_id:', salesPointId, ', name:', machineName, ', tva:', tva);
 
         // Sauvegarder la configuration
         saveButton.textContent = '⏳ Enregistrement...';
-        await window.photoAPI.machine.saveConfig(kioskId, salesPointId, machineName);
+        await window.photoAPI.machine.saveConfig(kioskId, salesPointId, machineName, tva);
 
-        console.log('[Setup Modal] ✅ Configuration enregistrée:', { kioskId, salesPointId, machineName });
+        console.log('[Setup Modal] ✅ Configuration enregistrée:', { kioskId, salesPointId, machineName, tva });
 
         // Succès
         saveButton.textContent = '✅ Configuration enregistrée !';

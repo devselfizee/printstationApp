@@ -1261,6 +1261,7 @@ const API_SYNC_CONFIG = {
   supabaseAnonKey: process.env.API_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlnZXR4dXZxcmtuYmdncGx6bXZ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ1MzIxODQsImV4cCI6MjA1MDEwODE4NH0.ZRggq8dGNI0QjxP8QOqOaZs73MVGMUyX5xJZfF5X2q8',
   salesPointId: process.env.SALES_POINT_ID || 'default-sales-point-uuid',
   kioskId: process.env.KIOSK_ID || 'default-kiosk-uuid',
+  tva: 20, // Taux de TVA par défaut (en %)
   enabled: process.env.ENABLE_API_SYNC !== 'false', // Activé par défaut
   retryIntervalMs: parseInt(process.env.SYNC_RETRY_INTERVAL_MS) || 60000, // 1 minute par défaut
   maxAttempts: parseInt(process.env.SYNC_MAX_ATTEMPTS) || 5 // 5 tentatives max
@@ -2440,8 +2441,19 @@ async function syncOrderToRemoteAPI(orderId) {
     // 'processing' → 'pending', 'cancelled' → 'cancelled', etc.
     const apiStatus = orderWithItems.status === 'cancelled' ? 'cancelled' : 'pending';
 
-    // S'assurer que total_amount est toujours un nombre valide
+    // S'assurer que total_amount est toujours un nombre valide (TTC)
     const totalAmount = orderWithItems.final_amount || orderWithItems.total_amount || 0;
+
+    // Calcul des montants HT et TVA
+    const tvaRate = API_SYNC_CONFIG.tva || 20;
+    const subtotal_ht_raw = totalAmount / (1 + tvaRate / 100);
+    const vat_amount_raw = totalAmount - subtotal_ht_raw;
+
+    console.log('[Sync] Calcul TVA:');
+    console.log('[Sync]   - TVA rate:', tvaRate, '%');
+    console.log('[Sync]   - subtotal_ht (HT):', subtotal_ht_raw.toFixed(2), '€');
+    console.log('[Sync]   - vat_amount (TVA):', vat_amount_raw.toFixed(2), '€');
+    console.log('[Sync]   - total_amount (TTC):', totalAmount.toFixed(2), '€');
 
     // Récupérer les informations des photos pour chaque item
     console.log('[Sync] 📸 Récupération des URLs des photos...');
@@ -2492,7 +2504,9 @@ async function syncOrderToRemoteAPI(orderId) {
       customer_name: orderWithItems.participant_id || 'Anonymous',
       customer_email: orderWithItems.email || 'no-email@cancelled.order', // Email par défaut pour commandes annulées
       customer_address: null,
-      total_amount: Math.round(totalAmount * 100), // Convertir en centimes
+      subtotal_ht: Math.round(subtotal_ht_raw * 100), // Prix HT en centimes
+      vat_amount: Math.round(vat_amount_raw * 100), // Montant TVA en centimes
+      total_amount: Math.round(totalAmount * 100), // Prix TTC en centimes
       sales_point_id: API_SYNC_CONFIG.salesPointId,
       kiosk_id: API_SYNC_CONFIG.kioskId,
       memory_session_id: null, // null car le participant_id local n'existe pas dans Supabase
@@ -2716,20 +2730,33 @@ async function createOrderRemote(orderData) {
 
     // Transformer les données au format attendu par l'API
     const customer_name = orderData.participantId || 'Anonymous';
-    const total_amount_raw = orderData.totalAmount;
-    const total_amount = Math.round(orderData.totalAmount * 100); // Convertir en centimes
+    const total_amount_raw = orderData.totalAmount; // Prix TTC
+
+    // Calcul des montants HT et TVA
+    const tvaRate = API_SYNC_CONFIG.tva || 20;
+    const subtotal_ht_raw = total_amount_raw / (1 + tvaRate / 100);
+    const vat_amount_raw = total_amount_raw - subtotal_ht_raw;
+
+    // Convertir en centimes
+    const subtotal_ht = Math.round(subtotal_ht_raw * 100);
+    const vat_amount = Math.round(vat_amount_raw * 100);
+    const total_amount = Math.round(total_amount_raw * 100);
 
     console.log('[CreateOrder] Préparation du payload:');
     console.log('[CreateOrder]   - customer_name (de participantId):', customer_name);
     console.log('[CreateOrder]   - universe_id (de orderData):', orderData.universeId);
-    console.log('[CreateOrder]   - total_amount_raw (avant conversion):', total_amount_raw);
-    console.log('[CreateOrder]   - total_amount (en centimes):', total_amount);
+    console.log('[CreateOrder]   - TVA rate:', tvaRate, '%');
+    console.log('[CreateOrder]   - subtotal_ht (HT en centimes):', subtotal_ht);
+    console.log('[CreateOrder]   - vat_amount (TVA en centimes):', vat_amount);
+    console.log('[CreateOrder]   - total_amount (TTC en centimes):', total_amount);
 
     const payload = {
       customer_name: customer_name,
       customer_email: '', // Chaîne vide pour cette étape (pas encore d'email)
       customer_address: null,
-      total_amount: total_amount, // Convertir en centimes
+      subtotal_ht: subtotal_ht, // Prix HT en centimes
+      vat_amount: vat_amount, // Montant TVA en centimes
+      total_amount: total_amount, // Prix TTC en centimes
       sales_point_id: API_SYNC_CONFIG.salesPointId,
       kiosk_id: API_SYNC_CONFIG.kioskId,
       memory_session_id: null,
@@ -2849,15 +2876,33 @@ async function createCompletedOrderRemote(localOrderId) {
       })
     );
 
-    // S'assurer que total_amount est toujours un nombre valide
+    // S'assurer que total_amount est toujours un nombre valide (TTC)
     const totalAmount = orderWithItems.final_amount || orderWithItems.total_amount || 0;
+
+    // Calcul des montants HT et TVA
+    const tvaRate = API_SYNC_CONFIG.tva || 20;
+    const subtotal_ht_raw = totalAmount / (1 + tvaRate / 100);
+    const vat_amount_raw = totalAmount - subtotal_ht_raw;
+
+    // Convertir en centimes
+    const subtotal_ht = Math.round(subtotal_ht_raw * 100);
+    const vat_amount = Math.round(vat_amount_raw * 100);
+    const total_amount = Math.round(totalAmount * 100);
+
+    console.log('[CreateCompletedOrder] Calcul TVA:');
+    console.log('[CreateCompletedOrder]   - TVA rate:', tvaRate, '%');
+    console.log('[CreateCompletedOrder]   - subtotal_ht (HT en centimes):', subtotal_ht);
+    console.log('[CreateCompletedOrder]   - vat_amount (TVA en centimes):', vat_amount);
+    console.log('[CreateCompletedOrder]   - total_amount (TTC en centimes):', total_amount);
 
     // Construire le payload pour l'API
     const payload = {
       customer_name: orderWithItems.participant_id || 'Anonymous',
       customer_email: orderWithItems.email || '',
       customer_address: null,
-      total_amount: Math.round(totalAmount * 100), // Convertir en centimes
+      subtotal_ht: subtotal_ht, // Prix HT en centimes
+      vat_amount: vat_amount, // Montant TVA en centimes
+      total_amount: total_amount, // Prix TTC en centimes
       sales_point_id: API_SYNC_CONFIG.salesPointId,
       kiosk_id: API_SYNC_CONFIG.kioskId,
       memory_session_id: null,
@@ -3212,11 +3257,13 @@ async function loadMachineConfig() {
       // Charger la config depuis la DB
       API_SYNC_CONFIG.kioskId = config.kiosk_id;
       API_SYNC_CONFIG.salesPointId = config.sales_point_id;
+      API_SYNC_CONFIG.tva = config.tva || 20;
 
       console.log('[Config] ✅ Configuration chargée depuis la DB:', {
         kioskId: config.kiosk_id,
         salesPointId: config.sales_point_id,
-        machineName: config.machine_name || 'Non défini'
+        machineName: config.machine_name || 'Non défini',
+        tva: API_SYNC_CONFIG.tva
       });
       return true; // Config complète
     } else {
@@ -3319,18 +3366,19 @@ ipcMain.handle('machine:is-setup-completed', async (event) => {
   }
 });
 
-ipcMain.handle('machine:save-config', async (event, kioskId, salesPointId, machineName) => {
+ipcMain.handle('machine:save-config', async (event, kioskId, salesPointId, machineName, tva = 20) => {
   if (!photoSystemReady || !photoSystem?.db) {
     return { status: 'error', error: 'PhotoSystem non disponible' };
   }
   try {
-    await photoSystem.db.saveMachineConfig(kioskId, salesPointId, machineName);
+    await photoSystem.db.saveMachineConfig(kioskId, salesPointId, machineName, tva);
 
     // Mettre à jour la configuration globale
     API_SYNC_CONFIG.kioskId = kioskId;
     API_SYNC_CONFIG.salesPointId = salesPointId;
+    API_SYNC_CONFIG.tva = tva;
 
-    console.log('[IPC] ✅ Configuration machine enregistrée:', { kioskId, salesPointId, machineName });
+    console.log('[IPC] ✅ Configuration machine enregistrée:', { kioskId, salesPointId, machineName, tva });
 
     // Démarrer les services de sync maintenant que la config est complète
     if (photoSystem.startSyncServices) {
@@ -3413,10 +3461,22 @@ ipcMain.handle('machine:fetch-kiosk', async (event, kioskId) => {
       return { status: 'not_found', message: 'Kiosk invalide - sales_point_id manquant' };
     }
 
-    // Retourner les données du kiosk
+    // Extraire le vat_rate depuis sales_points si disponible
+    let vatRate = 20; // Valeur par défaut
+    if (kioskData.sales_points && kioskData.sales_points.vat_rate !== undefined) {
+      vatRate = kioskData.sales_points.vat_rate;
+      console.log('[IPC] VAT rate récupéré depuis sales_points:', vatRate);
+    } else {
+      console.log('[IPC] VAT rate non trouvé, utilisation de la valeur par défaut:', vatRate);
+    }
+
+    // Retourner les données du kiosk avec vat_rate
     return {
       status: 'success',
-      kiosk: kioskData
+      kiosk: {
+        ...kioskData,
+        vat_rate: vatRate
+      }
     };
 
   } catch (error) {
