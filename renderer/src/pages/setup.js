@@ -164,39 +164,16 @@ export const showSetupModal = () => {
       console.log('[Setup Modal] Données kiosk:', JSON.stringify(result.kiosk, null, 2));
 
       if (result.status === 'success' && result.kiosk) {
-        // Gérer différentes structures de réponse API possibles
-        let kioskData = result.kiosk;
+        const kiosk = result.kiosk;
 
-        // Si c'est un tableau, prendre le premier élément
-        if (Array.isArray(kioskData)) {
-          console.log('[Setup Modal] Réponse est un tableau, on prend le premier élément');
-          kioskData = kioskData[0];
-        }
-
-        // Si les données sont dans un objet imbriqué (data, kiosk, etc.)
-        if (kioskData && kioskData.data) {
-          console.log('[Setup Modal] Données imbriquées dans .data');
-          kioskData = kioskData.data;
-        }
-
-        console.log('[Setup Modal] kioskData final:', JSON.stringify(kioskData, null, 2));
-        console.log('[Setup Modal] sales_point_id:', kioskData?.sales_point_id);
-        console.log('[Setup Modal] name:', kioskData?.name);
+        console.log('[Setup Modal] sales_point_id:', kiosk.sales_point_id);
+        console.log('[Setup Modal] name:', kiosk.name);
 
         // Auto-remplir les champs
-        if (kioskData?.sales_point_id) {
-          salesPointIdInput.value = kioskData.sales_point_id;
-          console.log('[Setup Modal] sales_point_id rempli:', salesPointIdInput.value);
-        } else {
-          console.warn('[Setup Modal] sales_point_id non trouvé dans la réponse');
-        }
+        salesPointIdInput.value = kiosk.sales_point_id || '';
+        machineNameInput.value = kiosk.name || '';
 
-        if (kioskData?.name) {
-          machineNameInput.value = kioskData.name;
-          console.log('[Setup Modal] machine_name rempli:', machineNameInput.value);
-        } else {
-          console.warn('[Setup Modal] name non trouvé dans la réponse');
-        }
+        console.log('[Setup Modal] Champs remplis - sales_point_id:', salesPointIdInput.value, ', machine:', machineNameInput.value);
 
         kioskStatus.textContent = '✅ Kiosque trouvé ! Champs auto-remplis.';
         kioskStatus.className = 'setup-status success';
