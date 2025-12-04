@@ -228,10 +228,23 @@ async function fetchAllPhotosFromAPI(lastSync) {
     // apiUrl = `${apiUrl}/checkPhotos.php`;
     apiUrl = `${apiUrl}/checkPhotos`;
   }
-  
+
   const url = new URL(apiUrl);
   if (lastSync) {
     url.searchParams.append('lastSync', lastSync);
+  }
+
+  // Ajouter le pos_id (sales_point_id) depuis la config machine
+  try {
+    const machineConfig = await db.getMachineConfig();
+    if (machineConfig && machineConfig.sales_point_id) {
+      url.searchParams.append('pos_id', machineConfig.sales_point_id);
+      console.log('[PhotoSync] pos_id ajouté:', machineConfig.sales_point_id);
+    } else {
+      console.warn('[PhotoSync] ⚠️ sales_point_id non configuré');
+    }
+  } catch (error) {
+    console.error('[PhotoSync] Erreur récupération config:', error.message);
   }
 
   const controller = new AbortController();
