@@ -3374,12 +3374,30 @@ ipcMain.handle('machine:fetch-kiosk', async (event, kioskId) => {
     }
 
     const data = await response.json();
-    console.log('[IPC] Données kiosk reçues:', data);
+    console.log('[IPC] Données kiosk reçues (raw):', JSON.stringify(data, null, 2));
+
+    // Extraire le kiosk de la réponse (peut être dans data, data.kiosk, ou data.data)
+    let kioskData = data;
+    if (data && data.kiosk) {
+      kioskData = data.kiosk;
+      console.log('[IPC] Kiosk extrait de data.kiosk');
+    } else if (data && data.data) {
+      kioskData = data.data;
+      console.log('[IPC] Kiosk extrait de data.data');
+    }
+
+    console.log('[IPC] Données kiosk finales:', JSON.stringify(kioskData, null, 2));
+
+    // Vérifier que les champs requis sont présents
+    if (!kioskData || !kioskData.sales_point_id) {
+      console.warn('[IPC] Kiosk trouvé mais sales_point_id manquant');
+      return { status: 'not_found', message: 'Kiosk invalide - sales_point_id manquant' };
+    }
 
     // Retourner les données du kiosk
     return {
       status: 'success',
-      kiosk: data
+      kiosk: kioskData
     };
 
   } catch (error) {
