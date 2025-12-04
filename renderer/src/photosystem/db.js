@@ -231,6 +231,8 @@ async function createTables() {
       id TEXT PRIMARY KEY,
       participant_id TEXT NOT NULL,
       universe_id TEXT NOT NULL,
+      subtotal_ht REAL DEFAULT 0,
+      vat_amount REAL DEFAULT 0,
       total_amount REAL NOT NULL DEFAULT 0,
       discount_amount REAL DEFAULT 0,
       final_amount REAL NOT NULL DEFAULT 0,
@@ -393,6 +395,24 @@ async function migrateSyncColumns() {
     }
   } catch (error) {
     console.error('[DB] Erreur migration tva:', error);
+  }
+
+  // Migration: Ajouter subtotal_ht et vat_amount à la table orders
+  try {
+    const ordersTableInfo = await allAsync('PRAGMA table_info(orders)');
+    const ordersColumnNames = ordersTableInfo.map(col => col.name);
+
+    if (!ordersColumnNames.includes('subtotal_ht')) {
+      await execAsync('ALTER TABLE orders ADD COLUMN subtotal_ht REAL DEFAULT 0');
+      console.log('[DB] ✅ Colonne subtotal_ht ajoutée à orders');
+    }
+
+    if (!ordersColumnNames.includes('vat_amount')) {
+      await execAsync('ALTER TABLE orders ADD COLUMN vat_amount REAL DEFAULT 0');
+      console.log('[DB] ✅ Colonne vat_amount ajoutée à orders');
+    }
+  } catch (error) {
+    console.error('[DB] Erreur migration subtotal_ht/vat_amount:', error);
   }
 }
 
@@ -676,6 +696,8 @@ export async function createOrder(orderData) {
     orderId,
     participantId,
     universeId,
+    subtotalHt = 0,
+    vatAmount = 0,
     totalAmount,
     discountAmount = 0,
     finalAmount,
@@ -687,10 +709,10 @@ export async function createOrder(orderData) {
 
   return runAsync(
     `INSERT INTO orders (
-      id, participant_id, universe_id, total_amount, discount_amount, 
+      id, participant_id, universe_id, subtotal_ht, vat_amount, total_amount, discount_amount,
       final_amount, email, optin, payment_method, notes, status, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
-    [orderId, participantId, universeId, totalAmount, discountAmount, finalAmount, email, optin ? 1 : 0, paymentMethod, notes]
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+    [orderId, participantId, universeId, subtotalHt, vatAmount, totalAmount, discountAmount, finalAmount, email, optin ? 1 : 0, paymentMethod, notes]
   );
 }
 
