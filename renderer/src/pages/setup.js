@@ -40,32 +40,34 @@ export const showSetupModal = () => {
             <input
               type="text"
               id="modal-sales-point-id"
-              placeholder="Ex: store-001"
+              placeholder="Rempli automatiquement après vérification"
               required
+              readonly
             />
           </div>
 
           <div class="setup-form-group">
-            <label>Nom de la Machine (optionnel)</label>
+            <label>Nom de la Machine</label>
             <input
               type="text"
               id="modal-machine-name"
-              placeholder="Ex: Kiosque Principal"
+              placeholder="Rempli automatiquement après vérification"
+              readonly
             />
           </div>
 
           <div id="modal-error-message" class="setup-error"></div>
 
           <div class="setup-info">
-            ℹ️ Ces informations seront utilisées pour identifier cette machine lors des synchronisations avec l'API
+            ℹ️ Entrez l'ID du kiosque et cliquez sur "Vérifier" pour charger automatiquement les informations
           </div>
 
-          <button id="modal-save-config" class="setup-btn-save">
+          <button id="modal-save-config" class="setup-btn-save" disabled>
             💾 Enregistrer la configuration
           </button>
 
           <div class="setup-required-note">
-            * Champs obligatoires
+            * Veuillez d'abord vérifier le kiosque
           </div>
         </div>
       </div>
@@ -110,6 +112,15 @@ export const showSetupModal = () => {
       .setup-status.loading {
         color: #fbbf24;
       }
+      .setup-btn-save:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      #modal-sales-point-id:read-only,
+      #modal-machine-name:read-only {
+        background: rgba(255, 255, 255, 0.05);
+        color: rgba(255, 255, 255, 0.7);
+      }
     </style>
   `;
 
@@ -124,6 +135,9 @@ export const showSetupModal = () => {
   const errorMessage = document.getElementById('modal-error-message');
   const kioskStatus = document.getElementById('modal-kiosk-status');
 
+  // Variable pour tracker si le kiosk est vérifié
+  let isKioskVerified = false;
+
   // Fonction pour vérifier le kiosk via l'API
   async function verifyKiosk() {
     const kioskId = kioskIdInput.value.trim();
@@ -131,6 +145,8 @@ export const showSetupModal = () => {
     if (!kioskId) {
       kioskStatus.textContent = '⚠️ Veuillez entrer un ID de kiosque';
       kioskStatus.className = 'setup-status error';
+      isKioskVerified = false;
+      saveButton.disabled = true;
       return;
     }
 
@@ -139,38 +155,65 @@ export const showSetupModal = () => {
       verifyButton.textContent = '⏳ ...';
       kioskStatus.textContent = '🔄 Vérification en cours...';
       kioskStatus.className = 'setup-status loading';
+      isKioskVerified = false;
+      saveButton.disabled = true;
 
       const result = await window.photoAPI.machine.fetchKiosk(kioskId);
 
       console.log('[Setup Modal] Résultat API kiosk:', result);
+      console.log('[Setup Modal] Données kiosk:', JSON.stringify(result.kiosk, null, 2));
 
       if (result.status === 'success' && result.kiosk) {
         const kiosk = result.kiosk;
 
+        console.log('[Setup Modal] sales_point_id:', kiosk.sales_point_id);
+        console.log('[Setup Modal] name:', kiosk.name);
+
         // Auto-remplir les champs
         if (kiosk.sales_point_id) {
           salesPointIdInput.value = kiosk.sales_point_id;
+          console.log('[Setup Modal] sales_point_id rempli:', salesPointIdInput.value);
+        } else {
+          console.warn('[Setup Modal] sales_point_id non trouvé dans la réponse');
         }
+
         if (kiosk.name) {
           machineNameInput.value = kiosk.name;
+          console.log('[Setup Modal] machine_name rempli:', machineNameInput.value);
+        } else {
+          console.warn('[Setup Modal] name non trouvé dans la réponse');
         }
 
         kioskStatus.textContent = '✅ Kiosque trouvé ! Champs auto-remplis.';
         kioskStatus.className = 'setup-status success';
+        isKioskVerified = true;
+        saveButton.disabled = false;
 
       } else if (result.status === 'not_found') {
         kioskStatus.textContent = '⚠️ Kiosque non trouvé dans la base de données';
         kioskStatus.className = 'setup-status error';
+        isKioskVerified = false;
+        saveButton.disabled = true;
+        // Vider les champs
+        salesPointIdInput.value = '';
+        machineNameInput.value = '';
 
       } else {
         kioskStatus.textContent = `❌ Erreur: ${result.error || 'Erreur inconnue'}`;
         kioskStatus.className = 'setup-status error';
+        isKioskVerified = false;
+        saveButton.disabled = true;
+        // Vider les champs
+        salesPointIdInput.value = '';
+        machineNameInput.value = '';
       }
 
     } catch (error) {
       console.error('[Setup Modal] Erreur vérification kiosk:', error);
       kioskStatus.textContent = `❌ Erreur: ${error.message}`;
       kioskStatus.className = 'setup-status error';
+      isKioskVerified = false;
+      saveButton.disabled = true;
 
     } finally {
       verifyButton.disabled = false;
@@ -181,7 +224,23 @@ export const showSetupModal = () => {
   // Événement clic sur le bouton vérifier
   verifyButton.onclick = verifyKiosk;
 
+  // Réinitialiser la vérification si l'ID du kiosk change
+  kioskIdInput.addEventListener('input', () => {
+    isKioskVerified = false;
+    saveButton.disabled = true;
+    kioskStatus.textContent = '';
+    kioskStatus.className = 'setup-status';
+    salesPointIdInput.value = '';
+    machineNameInput.value = '';
+  });
+
   saveButton.onclick = async () => {
+    if (!isKioskVerified) {
+      errorMessage.textContent = '⚠️ Veuillez d\'abord vérifier le kiosque';
+      errorMessage.style.display = 'block';
+      return;
+    }
+
     const kioskId = kioskIdInput.value.trim();
     const salesPointId = salesPointIdInput.value.trim();
     const machineName = machineNameInput.value.trim() || null;
