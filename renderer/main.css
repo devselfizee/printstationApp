@@ -32,3 +32,8 @@
 .offer .visu {
 	height: 170px;
 }
+
+.cart-product-thumb {
+	width: 120px;
+	height: 120px;
+}
