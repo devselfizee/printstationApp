@@ -7,7 +7,7 @@ export const renderThanks = (root) => {
   thanks.className = 'thanks-page';
   thanks.innerHTML = `
     <div class="thanks-content">
-      <img src="../assets/logo.png" alt="Eclipso" class="thanks-logo">
+      <img src="./assets/logo.png" alt="Eclipso" class="thanks-logo">
       <h2>Eclipso vous remercie</h2>
       <p class="thanks-message">A très bientôt pour de nouvelles expériences immersives.<br>Rendez-vous au comptoir pour récupérer votre commande.</p>
       <p class="thanks-email">${state.email ? t('receipt') + ' ' + state.email : ''}</p>
