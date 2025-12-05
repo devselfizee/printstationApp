@@ -53,11 +53,11 @@ export const UNIVERSES = {
   C: {
     id: 'C',
     name: 'Remparts',
-    banner: './assets/banniere-monde-perdu.jpg',
+    banner: './assets/banniere-remparts.jpg',
     photos: [
-      { id: 'p7', title: 'Scène 1 - Dinosaures', src: './assets/disparu-photo1.jpg' },
-      { id: 'p8', title: 'Scène 2 - Paysage', src: './assets/disparu-photo2.jpg' },
-      { id: 'p9', title: 'Scène 3 - Forêt', src: './assets/disparu-photo3.jpg' }
+      { id: 'p7', title: '', src: './assets/disparu-photo1.jpg' },
+      { id: 'p8', title: '', src: './assets/disparu-photo2.jpg' },
+      { id: 'p9', title: '', src: './assets/disparu-photo3.jpg' }
     ],
     productVisuals: {
       print: {
@@ -71,11 +71,29 @@ export const UNIVERSES = {
   D: {
     id: 'D',
     name: 'Impressionnistes',
-    banner: './assets/banniere-monde-perdu.jpg',
+    banner: './assets/banniere-impressionnistes.jpg',
     photos: [
-      { id: 'p10', title: 'Scène 1 - Dinosaures', src: './assets/disparu-photo1.jpg' },
-      { id: 'p11', title: 'Scène 2 - Paysage', src: './assets/disparu-photo2.jpg' },
-      { id: 'p12', title: 'Scène 3 - Forêt', src: './assets/disparu-photo3.jpg' }
+      { id: 'p10', title: '', src: './assets/disparu-photo1.jpg' },
+      { id: 'p11', title: '', src: './assets/disparu-photo2.jpg' },
+      { id: 'p12', title: '', src: './assets/disparu-photo3.jpg' }
+    ],
+    productVisuals: {
+      print: {
+        image: './assets/chevalet-disparu.png'
+      },
+      magnet: {
+        image: './assets/porte-cle-disparu.png'
+      }
+    }
+  },
+  E: {
+    id: 'E',
+    name: 'Batisseurs',
+    banner: './assets/banniere-batisseurs.jpg',
+    photos: [
+      { id: 'p13', title: '', src: './assets/disparu-photo1.jpg' },
+      { id: 'p14', title: '', src: './assets/disparu-photo2.jpg' },
+      { id: 'p15', title: '', src: './assets/disparu-photo3.jpg' }
     ],
     productVisuals: {
       print: {
