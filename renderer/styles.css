@@ -254,12 +254,29 @@ visibility:hidden; opacity:0;
 .footer-bar .btn-continue {
   background: #10b981;
   color: #fff;
+  position: relative;
 }
 
 .footer-bar .btn-continue:hover {
   background: #059669;
   box-shadow: 0 12px 24px rgba(16, 185, 129, 0.3);
   transform: translateY(-2px);
+}
+
+.footer-bar .btn-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 8px;
+  margin-left: 10px;
+  border-radius: 999px;
+  background: #fff;
+  color: #10b981;
+  font-weight: 900;
+  font-size: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .footer-bar .btn:disabled {

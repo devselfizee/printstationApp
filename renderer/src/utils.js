@@ -105,7 +105,7 @@ export const getFooterHTML = (config = {}) => {
     ` : ''}
     <div class="buttons">
       <button class="btn btn-cancel">${cancelLabel}</button>
-      <button class="btn btn-continue${isCartEmpty ? ' disabled' : ''}" ${isCartEmpty ? 'disabled' : ''}>${continueLabel}</button>
+      <button class="btn btn-continue${isCartEmpty ? ' disabled' : ''}" ${isCartEmpty ? 'disabled' : ''}>${continueLabel}${totalQty > 0 ? `<span class="btn-badge">${totalQty}</span>` : ''}</button>
     </div>`;
 };
 
