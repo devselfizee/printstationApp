@@ -175,9 +175,9 @@ export const renderDetail = (root) => {
     });
 
   // Ajouter un séparateur entre les produits et les autres photos
-  const sep = document.createElement('div');
-  sep.style.height = '40px';
-  section.appendChild(sep);
+  // const sep = document.createElement('div');
+  // sep.style.height = '40px';
+  // section.appendChild(sep);
   
   const wrap = document.createElement('div');
   wrap.className = 'other';
