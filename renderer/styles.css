@@ -976,6 +976,8 @@ visibility:hidden; opacity:0;
 .thanks-content img{ width:80px; height:auto; margin:0 auto 20px; }
 .thanks-content h2{ font-size:48px; font-weight:900; margin:20px 0; letter-spacing:.1em; }
 .thanks-content p{ font-size:18px; margin:12px 0; color:rgba(255,255,255,.8); }
+.thanks-message{ font-size:28px; font-weight:600; line-height:1.5; margin:30px 0; color:#fff; }
+.thanks-email{ font-size:18px; color:rgba(255,255,255,.7); margin-top:20px; }
 .thanks-btn{ margin-top:32px; padding:14px 28px; border:none; border-radius:12px; background:var(--brand); color:#fff; font-weight:900; font-size:16px; cursor:pointer; transition: all .2s ease; }
 .thanks-btn:hover{ box-shadow: 0 12px 24px rgba(94,183,255,.3); }
 .thanks-timer{ margin-top:20px; font-size:14px; color:rgba(255,255,255,.6); }
