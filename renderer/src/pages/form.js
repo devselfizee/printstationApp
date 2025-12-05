@@ -67,7 +67,20 @@ export const renderForm = (root) => {
       <div class="form-email">
         <div class="input" id="inputWrap"><input id="email" type="email" placeholder="${t('email')}" value="${state.email || ''}"/></div>
         <div class="chips">${(EMAIL_SUGGESTIONS[state.lang] || EMAIL_SUGGESTIONS.fr).map(d => `<button class="chip" data-d="${d}">${d}</button>`).join('')}</div>
-        <label class="optin"><input id="optin" type="checkbox" ${state.optin ? 'checked' : ''}/> <span>${t('optin')}</span></label>
+
+        <div class="optin-card" id="optinCard">
+          <div class="optin-content">
+            <div class="optin-icon">🎁</div>
+            <div class="optin-text">
+              <div class="optin-title">${t('optin')}</div>
+              <div class="optin-subtitle">Promotions exclusives et nouveautés</div>
+            </div>
+          </div>
+          <label class="optin-toggle">
+            <input id="optin" type="checkbox" ${state.optin ? 'checked' : ''}/>
+            <span class="optin-slider"></span>
+          </label>
+        </div>
       </div>
     </div>
     <div class="kb" id="kb"></div>`;
@@ -328,5 +341,29 @@ attachFooterListeners({
     };
   });
 
+  // Optin card - rendre cliquable et gérer l'état actif
+  const optinCard = $('#optinCard');
+  const optinCheckbox = $('#optin');
 
+  const updateOptinState = () => {
+    if (optinCheckbox.checked) {
+      optinCard.classList.add('active');
+    } else {
+      optinCard.classList.remove('active');
+    }
+  };
+
+  // Initialiser l'état
+  updateOptinState();
+
+  // Clic sur la carte toggle le checkbox
+  optinCard.onclick = (e) => {
+    // Ne pas toggle si on clique directement sur le toggle
+    if (e.target.closest('.optin-toggle')) return;
+    optinCheckbox.checked = !optinCheckbox.checked;
+    updateOptinState();
+  };
+
+  // Changement du checkbox met à jour la carte
+  optinCheckbox.onchange = updateOptinState;
 };

@@ -772,21 +772,134 @@ visibility:hidden; opacity:0;
   transform: translateY(0); 
 }
 
-.optin { 
-  display: flex; 
-  align-items: center; 
-  gap: 12px; 
-  margin: 12px 0; 
-  font-size: 16px; 
+/* OPTIN CARD - Style moderne et visible */
+.optin-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border: 2px solid #0ea5e9;
+  border-radius: 16px;
+  padding: 20px 24px;
+  margin: 24px 0;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.15);
+}
+
+.optin-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(14, 165, 233, 0.25);
+  border-color: #0284c7;
+}
+
+.optin-card.active {
+  background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+  border-color: #22c55e;
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.2);
+}
+
+.optin-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.optin-icon {
+  font-size: 36px;
+  line-height: 1;
+}
+
+.optin-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.optin-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0c4a6e;
+}
+
+.optin-card.active .optin-title {
+  color: #166534;
+}
+
+.optin-subtitle {
+  font-size: 14px;
+  color: #0369a1;
+  font-weight: 500;
+}
+
+.optin-card.active .optin-subtitle {
+  color: #15803d;
+}
+
+/* Toggle Switch */
+.optin-toggle {
+  position: relative;
+  display: inline-block;
+  width: 70px;
+  height: 38px;
+  flex-shrink: 0;
+}
+
+.optin-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.optin-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #cbd5e1;
+  transition: 0.4s;
+  border-radius: 38px;
+}
+
+.optin-slider:before {
+  position: absolute;
+  content: "";
+  height: 30px;
+  width: 30px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: 0.4s;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.optin-toggle input:checked + .optin-slider {
+  background-color: #22c55e;
+}
+
+.optin-toggle input:checked + .optin-slider:before {
+  transform: translateX(32px);
+}
+
+/* Legacy optin styles (backup) */
+.optin {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 12px 0;
+  font-size: 16px;
   font-weight: 600;
 }
 
-.optin input { 
-  width: 24px; 
-  height: 24px; 
-  accent-color: var(--brand); 
-  border-radius: 4px; 
-  cursor: pointer; 
+.optin input {
+  width: 24px;
+  height: 24px;
+  accent-color: var(--brand);
+  border-radius: 4px;
+  cursor: pointer;
 }
 
 /* KEYBOARD - Touches uniformes */
