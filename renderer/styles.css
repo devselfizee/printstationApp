@@ -491,7 +491,7 @@ visibility:hidden; opacity:0;
 .listing-enter .footer-bar { margin-top: 30px; }
 .grid{ display:grid; margin-top:0px; grid-template-columns: repeat(3, 1fr); gap:32px; }
 #grid{ grid-template-columns: repeat(3, 1fr); gap:32px; }
-.other .grid{ grid-template-columns: repeat(4, 1fr); gap:16px; }
+.other .grid{ grid-template-columns: repeat(5, 1fr); gap:16px; }
 .card{ border-radius:18px; overflow:hidden; background:#fff; border:1px solid #e5e7eb; box-shadow:var(--shadow); opacity:0; transform: translateY(14px); cursor:pointer; transition: all .2s ease; }
 .card:hover{ transform:translateY(0px); box-shadow: 0 16px 40px rgba(17,24,39,.12); }
 .landscape{ aspect-ratio:4/3; display:grid; place-items:center; border:5px solid #fff; padding:20px 8px 0px 8px; margin-bottom:0px; }
@@ -529,7 +529,8 @@ visibility:hidden; opacity:0;
 .cmd svg{ width:18px; height:18px; }
 .detail-enter .section { padding:48px 0 20px }
 .other .section h2{ font-size:22px; letter-spacing:.08em; text-align:left; margin-bottom:4px; }
-.other .grid{ grid-template-columns: repeat(5, 1fr); gap:16px; }
+/*.other .grid{ grid-template-columns: repeat(5, 1fr); gap:16px; }*/
+.other .grid{ grid-template-columns: repeat(4, 1fr); gap:16px; }
 .other .card .body{ display:none; }
 .other .card { background:none; padding:0; border:none; }
 .other .card .landscape { padding:0; border:none}
