@@ -127,7 +127,9 @@ visibility:hidden; opacity:0;
 
 
 
-.main{ position:relative; flex:1; margin-top:90px; background:var(--panel); /*border: var(--borderW) solid #fff; border-radius:24px;*/ overflow-y:auto; overflow-x:hidden; padding:0 30px 30px 30px; /*var(--edge) 80px;*/ z-index:10; }
+.main{ position:relative; flex:1; margin-top:90px; background:var(--panel); /*border: var(--borderW) solid #fff; border-radius:24px;*/ overflow:hidden; padding:0; z-index:10; display:flex; flex-direction:column; }
+
+.main > section { flex:1; overflow-y:auto; overflow-x:hidden; padding:0 30px 30px 30px; }
 
 .app.no-header .main {
   margin-top: 0;
@@ -172,11 +174,10 @@ visibility:hidden; opacity:0;
   box-shadow: 0 12px 30px rgba(17, 24, 39, 0.1);
 }*/
 .footer-bar {
-  /* Footer sticky en bas du conteneur .main */
-  position: sticky;
-  bottom: 0;
-  margin-top: auto;
-  width: 100%;
+  /* Footer fixe en bas du conteneur .main */
+  flex-shrink: 0;
+  margin: 0 25px 5px 25px;
+  width: calc(100% - 50px);
   height: 130px;
   background: var(--e-navy);
   padding: 20px 25px;
