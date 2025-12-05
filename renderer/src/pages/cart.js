@@ -56,16 +56,33 @@ export const renderCart = (root) => {
         }
       }
 
-      const thumbHTML = imageUrl
-        ? `<img src="${imageUrl}" alt="${photoTitle}" style="width:150px;height:150px;object-fit:contain;">`
-        : `<div style="width:150px;height:150px;background:#f0f0f0;display:grid;place-items:center;color:#999;font-size:12px;">N/A</div>`;
-      
+      // Vignette produit
+      const productThumbHTML = imageUrl
+        ? `<img src="${imageUrl}" alt="${product.title}" class="cart-product-img">`
+        : `<div class="cart-product-placeholder">N/A</div>`;
+
+      // Vignette photo commandée
+      const photoThumbHTML = photo?.source
+        ? `<img src="${photo.source}" alt="${photoTitle}" class="cart-photo-img">`
+        : '';
+
       const row = document.createElement('div');
       row.className = 'line';
-      row.innerHTML = `<div class="thumb" style="display:grid;place-items:center;">${thumbHTML}</div>
-        <div><div class="title">${product.title}</div><div class="meta">${photoTitle}</div></div>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <button class="key" data-a="minus">−</button><div class="title">${line.qty}</div><button class="key" data-a="plus">+</button><button class="key" data-a="del">✕</button><div style="width:70px;text-align:right;font-weight:800;">${lineTotal(product, line.qty).toFixed(2)}€</div>
+      row.innerHTML = `
+        <div class="cart-thumbs">
+          <div class="cart-photo-thumb">${photoThumbHTML}</div>
+          <div class="cart-product-thumb">${productThumbHTML}</div>
+        </div>
+        <div class="cart-info">
+          <div class="title">${product.title}</div>
+          <div class="meta">${photoTitle}</div>
+        </div>
+        <div class="cart-actions">
+          <button class="key" data-a="minus">−</button>
+          <div class="title">${line.qty}</div>
+          <button class="key" data-a="plus">+</button>
+          <button class="key" data-a="del">✕</button>
+          <div class="cart-price">${lineTotal(product, line.qty).toFixed(2)}€</div>
         </div>`;
 
       lines.appendChild(row);
