@@ -184,8 +184,8 @@ export const showCancelOrderModal = (onCancel) => {
       <h3 class="quit-confirm-title">Attention</h3>
       <p class="quit-confirm-message">Des articles se trouvent déjà dans votre panier. Souhaitez-vous vraiment annuler la commande ?</p>
       <div class="quit-confirm-buttons">
-        <button class="btn btn-confirm-quit btn-cancel-order">Annuler la commande</button>
-        <button class="btn btn-cancel-modal btn-continue-shopping">Continuer mes achats</button>
+        <button class="btn btn-confirm-quit btn-cancel-order">Annuler</button>
+        <button class="btn btn-cancel-modal btn-continue-shopping">Poursuivre</button>
       </div>
     </div>
   `;
