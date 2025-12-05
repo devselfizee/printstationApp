@@ -2502,7 +2502,7 @@ async function syncOrderToRemoteAPI(orderId) {
     // Transformer les données au format attendu par l'API
     const payload = {
       customer_name: orderWithItems.participant_id || 'Anonymous',
-      customer_email: orderWithItems.email || 'no-email@cancelled.order', // Email par défaut pour commandes annulées
+      customer_email: orderWithItems.email || null, // Email peut être null
       customer_address: null,
       subtotal_ht: Math.round(subtotal_ht_raw * 100), // Prix HT en centimes
       vat_amount: Math.round(vat_amount_raw * 100), // Montant TVA en centimes
@@ -2898,7 +2898,7 @@ async function createCompletedOrderRemote(localOrderId) {
     // Construire le payload pour l'API
     const payload = {
       customer_name: orderWithItems.participant_id || 'Anonymous',
-      customer_email: orderWithItems.email || '',
+      customer_email: orderWithItems.email || null,
       customer_address: null,
       subtotal_ht: subtotal_ht, // Prix HT en centimes
       vat_amount: vat_amount, // Montant TVA en centimes
@@ -3025,8 +3025,8 @@ async function updateOrderRemote(supabaseOrderId, email, localOrderId) {
     // ÉTAPE 2: Construire le payload en réutilisant TOUTES les données existantes
     console.log('[UpdateOrder] ÉTAPE 2: Construction du payload de mise à jour...');
 
-    // Déterminer l'email à utiliser: formulaire > existant > vide
-    const finalEmail = email || existingOrder.customer_email || '';
+    // Déterminer l'email à utiliser: formulaire > existant > null
+    const finalEmail = email || existingOrder.customer_email || null;
 
     console.log('[UpdateOrder] Email final à utiliser:', finalEmail);
 
@@ -3396,7 +3396,7 @@ async function cancelOrderRemote(supabaseOrderId) {
 
     const payload = {
       customer_name: existingOrder.customer_name,
-      customer_email: existingOrder.customer_email || '',
+      customer_email: existingOrder.customer_email || null,
       customer_address: existingOrder.customer_address,
       total_amount: existingOrder.total_amount,
       sales_point_id: existingOrder.sales_point_id,
