@@ -974,6 +974,7 @@ visibility:hidden; opacity:0;
 .thanks-page{ position:absolute; inset:0; background:var(--e-navy); display:grid; place-items:center; padding:60px 40px; z-index:15; }
 .thanks-content{ text-align:center; color:#fff; }
 .thanks-content img{ width:80px; height:auto; margin:0 auto 20px; }
+.thanks-logo{ width:200px !important; height:auto; margin-bottom:30px; }
 .thanks-content h2{ font-size:48px; font-weight:900; margin:20px 0; letter-spacing:.1em; }
 .thanks-content p{ font-size:18px; margin:12px 0; color:rgba(255,255,255,.8); }
 .thanks-message{ font-size:28px; font-weight:600; line-height:1.5; margin:30px 0; color:#fff; }

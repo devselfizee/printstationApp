@@ -7,7 +7,7 @@ export const renderThanks = (root) => {
   thanks.className = 'thanks-page';
   thanks.innerHTML = `
     <div class="thanks-content">
-      <svg width="80" height="80" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="#5eb7ff"/><path d="M30 50 L45 65 L70 35" stroke="white" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <img src="../assets/logo.png" alt="Eclipso" class="thanks-logo">
       <h2>Eclipso vous remercie</h2>
       <p class="thanks-message">A très bientôt pour de nouvelles expériences immersives.<br>Rendez-vous au comptoir pour récupérer votre commande.</p>
       <p class="thanks-email">${state.email ? t('receipt') + ' ' + state.email : ''}</p>
