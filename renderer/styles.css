@@ -127,7 +127,7 @@ visibility:hidden; opacity:0;
 
 
 
-.main{ position:relative; flex:1; margin-top:90px; background:var(--panel); /*border: var(--borderW) solid #fff; border-radius:24px;*/ overflow-y:auto; overflow-x:hidden; padding:0 30px; /*var(--edge) 80px;*/ z-index:10; }
+.main{ position:relative; flex:1; margin-top:90px; background:var(--panel); /*border: var(--borderW) solid #fff; border-radius:24px;*/ overflow-y:auto; overflow-x:hidden; padding:0 30px 150px 30px; /*var(--edge) 80px;*/ z-index:10; }
 
 .app.no-header .main {
   margin-top: 0;
@@ -172,10 +172,12 @@ visibility:hidden; opacity:0;
   box-shadow: 0 12px 30px rgba(17, 24, 39, 0.1);
 }*/
 .footer-bar {
-  /* Footer dans le flux normal du document */
-  position: relative;
-  width: 100%;
-  margin-top: 20px;
+  /* Footer fixe en bas de la page */
+  position: fixed;
+  bottom: 0;
+  left: 25px;
+  right: 25px;
+  width: calc(100% - 50px);
   height: 130px;
   background: var(--e-navy);
   padding: 20px 25px;
@@ -184,8 +186,8 @@ visibility:hidden; opacity:0;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  box-shadow: 0 12px 30px rgba(17, 24, 39, 0.1);
-  border-radius: 12px;
+  box-shadow: 0 -4px 30px rgba(17, 24, 39, 0.15);
+  border-radius: 12px 12px 0 0;
 }
 .footer-bar .info {
   flex: 1;
@@ -275,7 +277,101 @@ visibility:hidden; opacity:0;
   background: #9ca3af;
 }
 
+/* === MODAL DE CONFIRMATION QUITTER === */
+.quit-confirm-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
 
+.quit-confirm-modal.visible {
+  opacity: 1;
+}
+
+.quit-confirm-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+}
+
+.quit-confirm-box {
+  position: relative;
+  background: #fff;
+  border-radius: 24px;
+  padding: 40px 50px;
+  max-width: 500px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+  transform: scale(0.9);
+  transition: transform 0.3s ease;
+}
+
+.quit-confirm-modal.visible .quit-confirm-box {
+  transform: scale(1);
+}
+
+.quit-confirm-icon {
+  font-size: 64px;
+  margin-bottom: 20px;
+}
+
+.quit-confirm-title {
+  font-size: 28px;
+  font-weight: 900;
+  color: var(--txt);
+  margin: 0 0 16px 0;
+}
+
+.quit-confirm-message {
+  font-size: 18px;
+  color: #6b7280;
+  line-height: 1.6;
+  margin: 0 0 32px 0;
+}
+
+.quit-confirm-buttons {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+}
+
+.quit-confirm-buttons .btn {
+  flex: 1;
+  padding: 16px 32px;
+  border: none;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+}
+
+.quit-confirm-buttons .btn-cancel-modal {
+  background: #e5e7eb;
+  color: var(--txt);
+}
+
+.quit-confirm-buttons .btn-cancel-modal:hover {
+  background: #d1d5db;
+}
+
+.quit-confirm-buttons .btn-confirm-quit {
+  background: #ef4444;
+  color: #fff;
+}
+
+.quit-confirm-buttons .btn-confirm-quit:hover {
+  background: #dc2626;
+  box-shadow: 0 8px 20px rgba(239, 68, 68, 0.3);
+}
 
 
 

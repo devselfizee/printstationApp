@@ -82,10 +82,10 @@ export const getFooterHTML = (config = {}) => {
   const { state } = window;
   const totalQty = state.cart.reduce((n, l) => n + l.qty, 0);
   const totalPrice = state.cart.length > 0 ? cartSubtotal(state.cart, window.PRODUCTS) : 0;
-  
+
   // Config par défaut
   const {
-    cancelLabel = 'Annuler',
+    cancelLabel = 'Quitter',
     continueLabel = 'Voir le panier',
     onCancel = null,
     onContinue = null,
@@ -116,26 +116,86 @@ export const updateFooterBar = (config = {}) => {
   attachFooterListeners(config);
 };
 
+/**
+ * Affiche un modal de confirmation pour quitter si le panier n'est pas vide
+ */
+export const showQuitConfirmModal = (onConfirm) => {
+  // Supprimer un modal existant
+  const existingModal = document.getElementById('quit-confirm-modal');
+  if (existingModal) existingModal.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'quit-confirm-modal';
+  modal.className = 'quit-confirm-modal';
+  modal.innerHTML = `
+    <div class="quit-confirm-overlay"></div>
+    <div class="quit-confirm-box">
+      <div class="quit-confirm-icon">🛒</div>
+      <h3 class="quit-confirm-title">Attention</h3>
+      <p class="quit-confirm-message">Des articles se trouvent déjà dans votre panier. Souhaitez-vous vraiment quitter la page ?</p>
+      <div class="quit-confirm-buttons">
+        <button class="btn btn-cancel-modal">Annuler</button>
+        <button class="btn btn-confirm-quit">Quitter</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  // Animations d'entrée
+  setTimeout(() => modal.classList.add('visible'), 10);
+
+  // Gestionnaires de boutons
+  modal.querySelector('.btn-cancel-modal').onclick = () => {
+    modal.classList.remove('visible');
+    setTimeout(() => modal.remove(), 300);
+  };
+
+  modal.querySelector('.btn-confirm-quit').onclick = () => {
+    modal.classList.remove('visible');
+    setTimeout(() => {
+      modal.remove();
+      onConfirm();
+    }, 300);
+  };
+
+  // Fermer en cliquant sur l'overlay
+  modal.querySelector('.quit-confirm-overlay').onclick = () => {
+    modal.classList.remove('visible');
+    setTimeout(() => modal.remove(), 300);
+  };
+};
+
 export const attachFooterListeners = (config = {}) => {
   setTimeout(() => {
     const { state } = window;
     const cancelBtn = document.querySelector('.btn-cancel');
     const continueBtn = document.querySelector('.btn-continue');
-    
-    // Handlers custom ou defaults
-    const onCancel = config.onCancel || (() => {
+
+    // Action par défaut pour quitter
+    const defaultQuitAction = () => {
       state.page = 'qr';
       state.universe = null;
       state.photos = [];
       state.cart = [];
       window.render();
+    };
+
+    // Handlers custom ou defaults
+    const onCancel = config.onCancel || (() => {
+      // Si le panier n'est pas vide, afficher le modal de confirmation
+      if (state.cart && state.cart.length > 0) {
+        showQuitConfirmModal(defaultQuitAction);
+      } else {
+        defaultQuitAction();
+      }
     });
-    
+
     const onContinue = config.onContinue || (() => {
       state.page = 'cart';
       window.render();
     });
-    
+
     if (cancelBtn) {
       cancelBtn.onclick = onCancel;
     }
