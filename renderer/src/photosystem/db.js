@@ -127,7 +127,7 @@ async function seedDefaultData() {
       
       console.log("[DB] ✅ 2 univers créés (A: L'horizon de kheops, B: Mondes Disparus)");
     } else {
-      await addUniverse('E', 'Batisseurs', '/assets/banniere-batisseurs.jpg');
+      // await addUniverse('E', 'Batisseurs', '/assets/banniere-batisseurs.jpg');
       console.log(`[DB] ✓ ${universes.length} univers déjà présents`);
     }
   } catch (error) {
