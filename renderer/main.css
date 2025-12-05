@@ -1,0 +1,17 @@
+.cart-btn {
+	display: none;
+}
+
+.landscape {
+	padding: 25px 25px 0px 25px;
+}
+.landscape img {
+    width: 80%;
+}
+
+.card .body {
+    padding: 10px 30px 30px;
+}
+.card .title {
+	display: none;
+}
