@@ -216,6 +216,7 @@ async function createTables() {
       size_bytes INTEGER,
       incrustation_id TEXT,
       date_photo DATETIME,
+      borne_info TEXT,
       status TEXT DEFAULT 'pending',
       retry_count INTEGER DEFAULT 0,
       corruption_count INTEGER DEFAULT 0,
@@ -380,8 +381,14 @@ async function migrateSyncColumns() {
       await execAsync('ALTER TABLE photos ADD COLUMN date_photo DATETIME');
       console.log('[DB] ✅ Colonne date_photo ajoutée à photos');
     }
+
+    // Ajouter borne_info si manquant
+    if (!photosColumnNames.includes('borne_info')) {
+      await execAsync('ALTER TABLE photos ADD COLUMN borne_info TEXT');
+      console.log('[DB] ✅ Colonne borne_info ajoutée à photos');
+    }
   } catch (error) {
-    console.error('[DB] Erreur migration date_photo:', error);
+    console.error('[DB] Erreur migration photos:', error);
   }
 
   // Migration: Ajouter tva à la table machine_config
@@ -576,14 +583,15 @@ export async function addPhoto(photo) {
     size,
     incrustationId,
     datePhoto,
+    borneInfo,
   } = photo;
 
   return runAsync(
     `INSERT OR REPLACE INTO photos (
       id, participant_id, file_name, remote_url, checksum,
-      size_bytes, incrustation_id, date_photo, status, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP)`,
-    [id, participantId, fileName, url, checksum, size, incrustationId || null, datePhoto || null]
+      size_bytes, incrustation_id, date_photo, borne_info, status, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP)`,
+    [id, participantId, fileName, url, checksum, size, incrustationId || null, datePhoto || null, borneInfo || null]
   );
 }
 
