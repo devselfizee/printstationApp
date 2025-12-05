@@ -166,6 +166,56 @@ export const showQuitConfirmModal = (onConfirm) => {
   };
 };
 
+/**
+ * Affiche un modal de confirmation pour annuler une commande (page panier ou paiement)
+ */
+export const showCancelOrderModal = (onCancel) => {
+  // Supprimer un modal existant
+  const existingModal = document.getElementById('cancel-order-modal');
+  if (existingModal) existingModal.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'cancel-order-modal';
+  modal.className = 'quit-confirm-modal';
+  modal.innerHTML = `
+    <div class="quit-confirm-overlay"></div>
+    <div class="quit-confirm-box">
+      <div class="quit-confirm-icon">⚠️</div>
+      <h3 class="quit-confirm-title">Attention</h3>
+      <p class="quit-confirm-message">Des articles se trouvent déjà dans votre panier. Souhaitez-vous vraiment annuler la commande ?</p>
+      <div class="quit-confirm-buttons">
+        <button class="btn btn-confirm-quit btn-cancel-order">Annuler la commande</button>
+        <button class="btn btn-cancel-modal btn-continue-shopping">Continuer mes achats</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  // Animations d'entrée
+  setTimeout(() => modal.classList.add('visible'), 10);
+
+  // Gestionnaires de boutons
+  modal.querySelector('.btn-continue-shopping').onclick = () => {
+    modal.classList.remove('visible');
+    setTimeout(() => modal.remove(), 300);
+  };
+
+  modal.querySelector('.btn-cancel-order').onclick = () => {
+    modal.classList.remove('visible');
+    setTimeout(() => {
+      modal.remove();
+      onCancel();
+    }, 300);
+  };
+
+  // Fermer en cliquant sur l'overlay
+  modal.querySelector('.quit-confirm-overlay').onclick = () => {
+    modal.classList.remove('visible');
+    setTimeout(() => modal.remove(), 300);
+  };
+};
+
 export const attachFooterListeners = (config = {}) => {
   setTimeout(() => {
     const { state } = window;

@@ -3334,6 +3334,128 @@ ipcMain.handle('order:create-completed-remote', async (event, localOrderId) => {
 });
 
 /**
+ * Annule une commande existante sur Supabase (status=cancelled)
+ * Appelé depuis cart.js ou payment.js lors du clic sur "Annuler la commande"
+ *
+ * APPROCHE:
+ * 1. GET la commande existante depuis Supabase
+ * 2. Réutiliser toutes ses données
+ * 3. Mettre à jour uniquement status=cancelled
+ */
+async function cancelOrderRemote(supabaseOrderId) {
+  if (!API_SYNC_CONFIG.enabled) {
+    console.log('[CancelOrder] API désactivée');
+    return { status: 'skipped', message: 'API désactivée' };
+  }
+
+  if (!supabaseOrderId) {
+    console.log('[CancelOrder] Pas d\'ID Supabase fourni');
+    return { status: 'error', error: 'ID Supabase manquant' };
+  }
+
+  try {
+    console.log('[CancelOrder] ═══════════════════════════════════════════════');
+    console.log('[CancelOrder] ❌ ANNULATION DE COMMANDE SUR SUPABASE');
+    console.log('[CancelOrder] ═══════════════════════════════════════════════');
+    console.log('[CancelOrder] Order ID Supabase:', supabaseOrderId);
+
+    // ÉTAPE 1: GET la commande existante depuis Supabase
+    console.log('[CancelOrder] ÉTAPE 1: Récupération de la commande existante depuis Supabase...');
+
+    const authToken = await getAuthToken();
+    const getUrl = `${API_SYNC_CONFIG.url}?id=${supabaseOrderId}`;
+
+    console.log('[CancelOrder] GET URL:', getUrl);
+
+    const existingOrderResponse = await makeHttpsRequestWithRetry(
+      getUrl,
+      null,
+      'GET',
+      {
+        'apikey': API_SYNC_CONFIG.supabaseAnonKey
+      },
+      authToken
+    );
+
+    console.log('[CancelOrder] Réponse GET brute:', JSON.stringify(existingOrderResponse, null, 2));
+
+    // Extraire les données de la commande (peut être dans response.order ou directement response)
+    const existingOrder = existingOrderResponse.order || existingOrderResponse;
+
+    if (!existingOrder) {
+      throw new Error('Commande non trouvée sur Supabase');
+    }
+
+    console.log('[CancelOrder] ✅ Commande existante récupérée:');
+    console.log('[CancelOrder]   - customer_name:', existingOrder.customer_name);
+    console.log('[CancelOrder]   - status actuel:', existingOrder.status);
+    console.log('[CancelOrder]   - total_amount:', existingOrder.total_amount);
+
+    // ÉTAPE 2: Construire le payload en réutilisant TOUTES les données existantes
+    console.log('[CancelOrder] ÉTAPE 2: Construction du payload d\'annulation...');
+
+    const payload = {
+      customer_name: existingOrder.customer_name,
+      customer_email: existingOrder.customer_email || '',
+      customer_address: existingOrder.customer_address,
+      total_amount: existingOrder.total_amount,
+      sales_point_id: existingOrder.sales_point_id,
+      kiosk_id: existingOrder.kiosk_id,
+      memory_session_id: existingOrder.memory_session_id,
+      universe_id: existingOrder.universe_id || null,
+      status: 'cancelled', // ← SEUL CHANGEMENT: status=cancelled
+      order_items: existingOrder.order_items || []
+    };
+
+    console.log('[CancelOrder] ═══════════════════════════════════════════════');
+    console.log('[CancelOrder] 📤 PAYLOAD FINAL À ENVOYER:');
+    console.log(JSON.stringify(payload, null, 2));
+    console.log('[CancelOrder] ═══════════════════════════════════════════════');
+    console.log('[CancelOrder] Champs modifiés:');
+    console.log('[CancelOrder]   - status:', existingOrder.status, '→', 'cancelled');
+    console.log('[CancelOrder] ═══════════════════════════════════════════════');
+
+    // ÉTAPE 3: PUT le payload mis à jour
+    console.log('[CancelOrder] ÉTAPE 3: Envoi de l\'annulation...');
+
+    const updateUrl = `${API_SYNC_CONFIG.url}?id=${supabaseOrderId}`;
+    console.log('[CancelOrder] PUT URL:', updateUrl);
+
+    const response = await makeHttpsRequestWithRetry(
+      updateUrl,
+      payload,
+      'PUT',
+      {
+        'apikey': API_SYNC_CONFIG.supabaseAnonKey
+      },
+      authToken
+    );
+
+    console.log('[CancelOrder] ═══════════════════════════════════════════════');
+    console.log('[CancelOrder] ✅ COMMANDE ANNULÉE AVEC SUCCÈS');
+    console.log('[CancelOrder] ═══════════════════════════════════════════════');
+    console.log('[CancelOrder] Réponse:', JSON.stringify(response, null, 2));
+
+    return { status: 'success', response };
+
+  } catch (error) {
+    console.error('[CancelOrder] ❌ Erreur annulation commande:', error);
+    return { status: 'error', error: error.message };
+  }
+}
+
+// Handler IPC pour annuler une commande sur Supabase
+ipcMain.handle('order:cancel-remote', async (event, supabaseOrderId) => {
+  console.log('[IPC] ═══════════════════════════════════════════════');
+  console.log('[IPC] order:cancel-remote appelé');
+  console.log('[IPC] supabaseOrderId:', supabaseOrderId);
+  const result = await cancelOrderRemote(supabaseOrderId);
+  console.log('[IPC] Résultat:', JSON.stringify(result, null, 2));
+  console.log('[IPC] ═══════════════════════════════════════════════');
+  return result;
+});
+
+/**
  * ===== HANDLERS IPC CONFIGURATION MACHINE =====
  */
 ipcMain.handle('machine:get-config', async (event) => {
