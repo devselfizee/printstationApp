@@ -12,6 +12,8 @@ const getPayLabel = () => {
   return `${t('pay')} ${formatPrice(total)}€ <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:18px;height:18px;vertical-align:middle;margin-left:6px;"><path d="M9 18l6-6-6-6"></path></svg>`;
 };
 
+const isCartEmpty = () => state.cart.length === 0;
+
 const getArticleLabel = () => {
   const count = state.cart.reduce((n, l) => n + l.qty, 0);
   return `${count} ${count > 1 ? t('articles') : t('article')}`;
@@ -44,7 +46,17 @@ const updateDetailFooter = () => {
 
   // Mettre à jour le bouton Payer
   const continueBtn = footerBar.querySelector('.btn-continue');
-  if (continueBtn) continueBtn.innerHTML = getPayLabel();
+  if (continueBtn) {
+    continueBtn.innerHTML = getPayLabel();
+    // Activer/désactiver selon le panier
+    if (isCartEmpty()) {
+      continueBtn.disabled = true;
+      continueBtn.classList.add('disabled');
+    } else {
+      continueBtn.disabled = false;
+      continueBtn.classList.remove('disabled');
+    }
+  }
 
   // Mettre à jour le compteur d'articles
   const cartDetailCount = footerBar.querySelector('#cartDetailCount');
@@ -255,11 +267,12 @@ export const renderDetail = (root) => {
 
   const footer = document.createElement('div');
   footer.className = 'footer-bar';
+  const empty = isCartEmpty();
   footer.innerHTML = `
     <div class="buttons">
       <button class="btn btn-cancel">${getAbandonLabel()}</button>
       ${getCartDetailHTML()}
-      <button class="btn btn-continue">${getPayLabel()}</button>
+      <button class="btn btn-continue${empty ? ' disabled' : ''}" ${empty ? 'disabled' : ''}>${getPayLabel()}</button>
     </div>`;
 
   // Event listeners pour le footer
