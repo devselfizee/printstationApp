@@ -73,7 +73,7 @@ export const renderForm = (root) => {
             <div class="optin-icon">🎁</div>
             <div class="optin-text">
               <div class="optin-title">${t('optin')}</div>
-              <div class="optin-subtitle">Promotions exclusives et nouveautés</div>
+              <div class="optin-subtitle">${t('optinSubtitle')}</div>
             </div>
           </div>
           <label class="optin-toggle">
@@ -89,8 +89,8 @@ export const renderForm = (root) => {
 // REMPLACER les boutons par le footer
 const footer = createFooterBar({
   showPrice: false,  // ← Masque le prix
-  cancelLabel: `${t('skip')}`,
-  continueLabel: 'Terminer',
+  cancelLabel: t('skip'),
+  continueLabel: t('finish'),
   onCancel: () => {
     clearInterval(state.timer);
     state.email = '';

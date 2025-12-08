@@ -30,6 +30,7 @@ export const i18n = {
     digitalHint: 'On vous envoie la photo en version numérique + votre reçu.',
     email: 'Votre e-mail…',
     optin: 'Recevoir nos actus et offres',
+    optinSubtitle: 'Promotions exclusives et nouveautés',
     finish: 'Terminer',
     skip: 'Passer',
     thanks: 'Merci !',
@@ -39,7 +40,16 @@ export const i18n = {
     errorEmail: 'Veuillez entrer une adresse e-mail valide',
     upsell: 'Ajouter aussi ?',
     upsellYes: 'Oui, ajouter',
-    upsellNo: 'Non, merci'
+    upsellNo: 'Non, merci',
+    quit: 'Quitter',
+    viewCart: 'Voir le panier',
+    cancelOrder: 'Annuler la commande',
+    continueShopping: 'Continuer mes achats',
+    cancelOrderConfirm: 'Des articles se trouvent déjà dans votre panier. Souhaitez-vous vraiment annuler la commande ?',
+    thanksTitle: 'Eclipso vous remercie',
+    thanksMessage: 'A très bientôt pour de nouvelles expériences immersives.<br>Rendez-vous au comptoir pour récupérer votre commande.',
+    inactivityTitle: 'Êtes-vous toujours là ?',
+    inactivityMessage: 'Votre session va expirer dans'
   },
   en: {
     bannerText: 'A PHOTO OF YOUR ADVENTURE',
@@ -70,6 +80,7 @@ export const i18n = {
     digitalHint: 'We will send you the digital photo + your receipt.',
     email: 'Your email…',
     optin: 'Receive our news and offers',
+    optinSubtitle: 'Exclusive promotions and news',
     finish: 'Finish',
     skip: 'Skip',
     thanks: 'Thank you!',
@@ -79,7 +90,16 @@ export const i18n = {
     errorEmail: 'Please enter a valid email address',
     upsell: 'Add this too?',
     upsellYes: 'Yes, add it',
-    upsellNo: 'No thanks'
+    upsellNo: 'No thanks',
+    quit: 'Quit',
+    viewCart: 'View cart',
+    cancelOrder: 'Cancel order',
+    continueShopping: 'Continue shopping',
+    cancelOrderConfirm: 'Items are already in your cart. Do you really want to cancel the order?',
+    thanksTitle: 'Eclipso thanks you',
+    thanksMessage: 'See you soon for new immersive experiences.<br>Go to the counter to pick up your order.',
+    inactivityTitle: 'Are you still there?',
+    inactivityMessage: 'Your session will expire in'
   },
   es: {
     bannerText: 'UNA FOTO DE TU AVENTURA',
@@ -110,6 +130,7 @@ export const i18n = {
     digitalHint: 'Te enviamos la foto en versión digital + tu recibo.',
     email: 'Tu e-mail…',
     optin: 'Recibir nuestras novedades y ofertas',
+    optinSubtitle: 'Promociones exclusivas y novedades',
     finish: 'Terminar',
     skip: 'Saltar',
     thanks: '¡Gracias!',
@@ -119,7 +140,16 @@ export const i18n = {
     errorEmail: 'Por favor introduce un email válido',
     upsell: '¿Añadir también?',
     upsellYes: 'Sí, añadir',
-    upsellNo: 'No, gracias'
+    upsellNo: 'No, gracias',
+    quit: 'Salir',
+    viewCart: 'Ver carrito',
+    cancelOrder: 'Cancelar pedido',
+    continueShopping: 'Continuar comprando',
+    cancelOrderConfirm: 'Ya hay artículos en tu carrito. ¿Realmente quieres cancelar el pedido?',
+    thanksTitle: 'Eclipso te agradece',
+    thanksMessage: 'Hasta pronto para nuevas experiencias inmersivas.<br>Dirígete al mostrador para recoger tu pedido.',
+    inactivityTitle: '¿Sigues ahí?',
+    inactivityMessage: 'Tu sesión expirará en'
   },
   zh: {
     bannerText: '您的冒险照片',
@@ -150,6 +180,7 @@ export const i18n = {
     digitalHint: '我们将发送数字版照片和收据给您。',
     email: '您的邮箱…',
     optin: '接收我们的新闻和优惠',
+    optinSubtitle: '专属促销和最新动态',
     finish: '完成',
     skip: '跳过',
     thanks: '谢谢！',
@@ -159,7 +190,16 @@ export const i18n = {
     errorEmail: '请输入有效的电子邮件地址',
     upsell: '也添加这个吗？',
     upsellYes: '是的，添加',
-    upsellNo: '不，谢谢'
+    upsellNo: '不，谢谢',
+    quit: '退出',
+    viewCart: '查看购物车',
+    cancelOrder: '取消订单',
+    continueShopping: '继续购物',
+    cancelOrderConfirm: '购物车中已有商品。您确定要取消订单吗？',
+    thanksTitle: 'Eclipso感谢您',
+    thanksMessage: '期待与您再次相遇，体验更多沉浸式冒险。<br>请前往柜台领取您的订单。',
+    inactivityTitle: '您还在吗？',
+    inactivityMessage: '您的会话将在以下时间后过期'
   },
   it: {
     bannerText: 'UNA FOTO DELLA TUA AVVENTURA',
@@ -190,6 +230,7 @@ export const i18n = {
     digitalHint: 'Ti invieremo la foto in versione digitale + la ricevuta.',
     email: 'La tua e-mail…',
     optin: 'Ricevi le nostre novità e offerte',
+    optinSubtitle: 'Promozioni esclusive e novità',
     finish: 'Termina',
     skip: 'Salta',
     thanks: 'Grazie!',
@@ -199,7 +240,16 @@ export const i18n = {
     errorEmail: 'Inserisci un indirizzo email valido',
     upsell: 'Aggiungere anche questo?',
     upsellYes: 'Sì, aggiungi',
-    upsellNo: 'No, grazie'
+    upsellNo: 'No, grazie',
+    quit: 'Esci',
+    viewCart: 'Vedi carrello',
+    cancelOrder: 'Annulla ordine',
+    continueShopping: 'Continua gli acquisti',
+    cancelOrderConfirm: 'Ci sono già articoli nel carrello. Vuoi davvero annullare l\'ordine?',
+    thanksTitle: 'Eclipso ti ringrazia',
+    thanksMessage: 'A presto per nuove esperienze immersive.<br>Recati al bancone per ritirare il tuo ordine.',
+    inactivityTitle: 'Sei ancora lì?',
+    inactivityMessage: 'La tua sessione scadrà tra'
   },
   de: {
     bannerText: 'EIN FOTO VON IHREM ABENTEUER',
@@ -230,6 +280,7 @@ export const i18n = {
     digitalHint: 'Wir senden Ihnen das digitale Foto + Ihre Quittung.',
     email: 'Ihre E-Mail…',
     optin: 'Unsere Neuigkeiten und Angebote erhalten',
+    optinSubtitle: 'Exklusive Aktionen und Neuigkeiten',
     finish: 'Beenden',
     skip: 'Überspringen',
     thanks: 'Danke!',
@@ -239,7 +290,16 @@ export const i18n = {
     errorEmail: 'Bitte geben Sie eine gültige E-Mail-Adresse ein',
     upsell: 'Dies auch hinzufügen?',
     upsellYes: 'Ja, hinzufügen',
-    upsellNo: 'Nein, danke'
+    upsellNo: 'Nein, danke',
+    quit: 'Beenden',
+    viewCart: 'Warenkorb anzeigen',
+    cancelOrder: 'Bestellung stornieren',
+    continueShopping: 'Weiter einkaufen',
+    cancelOrderConfirm: 'Es befinden sich bereits Artikel in Ihrem Warenkorb. Möchten Sie die Bestellung wirklich stornieren?',
+    thanksTitle: 'Eclipso dankt Ihnen',
+    thanksMessage: 'Bis bald zu neuen immersiven Erlebnissen.<br>Gehen Sie zum Tresen, um Ihre Bestellung abzuholen.',
+    inactivityTitle: 'Sind Sie noch da?',
+    inactivityMessage: 'Ihre Sitzung läuft ab in'
   }
 };
 

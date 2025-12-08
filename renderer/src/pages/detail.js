@@ -216,8 +216,8 @@ footerBar.innerHTML = `
     <span class="price">${state.cart.length > 0 ? (state.cart.reduce((s, l) => s + (window.PRODUCTS[l.productId].first * l.qty), 0)).toFixed(2) : '0.00'}€</span>
   </div>
   <div class="buttons">
-    <button class="btn btn-cancel">Annuler</button>
-    <button class="btn btn-continue">Voir le panier</button>
+    <button class="btn btn-cancel">${t('quit')}</button>
+    <button class="btn btn-continue">${t('viewCart')}</button>
   </div>`;
 
 footerBar.querySelector('.btn-cancel').onclick = () => {

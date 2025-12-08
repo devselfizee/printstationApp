@@ -165,7 +165,7 @@ sum.innerHTML = `
 
 
   const footer = createFooterBar({
-  continueLabel: 'Procéder au paiement',
+  continueLabel: t('payBtn'),
   onContinue: () => {
     state.page = 'payment';
     window.render();

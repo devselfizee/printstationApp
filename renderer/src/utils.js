@@ -1,4 +1,5 @@
 import { state } from './state.js';
+import { t } from './i18n.js';
 
 export const $ = (sel, root = document) => root.querySelector(sel);
 export const $$ = (sel, root = document) => root.querySelectorAll(sel);
@@ -83,10 +84,10 @@ export const getFooterHTML = (config = {}) => {
   const totalQty = state.cart.reduce((n, l) => n + l.qty, 0);
   const totalPrice = state.cart.length > 0 ? cartSubtotal(state.cart, window.PRODUCTS) : 0;
 
-  // Config par défaut
+  // Config par défaut avec traductions
   const {
-    cancelLabel = 'Quitter',
-    continueLabel = 'Voir le panier',
+    cancelLabel = t('quit'),
+    continueLabel = t('viewCart'),
     onCancel = null,
     onContinue = null,
     showPrice = false
@@ -182,10 +183,10 @@ export const showCancelOrderModal = (onCancel) => {
     <div class="quit-confirm-box">
       <div class="quit-confirm-icon">⚠️</div>
       <h3 class="quit-confirm-title">Attention</h3>
-      <p class="quit-confirm-message">Des articles se trouvent déjà dans votre panier. Souhaitez-vous vraiment annuler la commande ?</p>
+      <p class="quit-confirm-message">${t('cancelOrderConfirm')}</p>
       <div class="quit-confirm-buttons">
-        <button class="btn btn-confirm-quit btn-cancel-order">Annuler</button>
-        <button class="btn btn-cancel-modal btn-continue-shopping">Poursuivre</button>
+        <button class="btn btn-confirm-quit btn-cancel-order">${t('cancelOrder')}</button>
+        <button class="btn btn-cancel-modal btn-continue-shopping">${t('continueShopping')}</button>
       </div>
     </div>
   `;

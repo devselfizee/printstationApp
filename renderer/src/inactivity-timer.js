@@ -3,6 +3,8 @@
  * Returns to QR page after a period of inactivity on any other page
  */
 
+import { t } from './i18n.js';
+
 // Timeout d'inactivité global (par défaut 60s, configurable via .env INACTIVITY_TIMEOUT_MS)
 const INACTIVITY_TIMEOUT = window.appConfig?.inactivityTimeout || 60000;
 
@@ -140,16 +142,16 @@ function showWarningModal() {
     <div class="inactivity-warning-container">
       <div class="inactivity-warning-box">
         <div class="inactivity-warning-icon">⏰</div>
-        <h2>Êtes-vous toujours là ?</h2>
+        <h2>${t('inactivityTitle')}</h2>
         <div class="inactivity-countdown-display">
           <span id="inactivity-countdown">${countdown}</span>
         </div>
         <div class="inactivity-warning-message">
-          Retour à l'accueil dans ${countdown} secondes
+          ${t('backHome')} in ${countdown}s
         </div>
         <div class="admin-buttons">
           <button class="admin-btn-ok" id="inactivity-continue-btn">
-            Continuer mes achats
+            ${t('continueShopping')}
           </button>
         </div>
       </div>
