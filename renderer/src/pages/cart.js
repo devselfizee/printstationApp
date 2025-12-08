@@ -25,7 +25,7 @@ export const renderCart = (root) => {
   
   // Message si panier vide
   if (state.cart.length === 0) {
-    lines.innerHTML = `<div style="padding:40px 20px;text-align:center;color:#6b7280;font-size:16px;">Aucun produit dans le panier</div>`;
+    lines.innerHTML = `<div style="padding:40px 20px;text-align:center;color:#6b7280;font-size:16px;">${t('emptyCart')}</div>`;
   } else {
     state.cart.forEach(line => {
       const product = window.PRODUCTS[line.productId];

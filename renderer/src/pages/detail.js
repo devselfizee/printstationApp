@@ -46,7 +46,7 @@ el.innerHTML = `
         ${showOld ? `<span class="old">${product.first}€</span>` : ''}
         <span class="pill${showOld ? ' pulse' : ''}">${nextPrice}€</span>
       </div>
-      <button class="cmd">Ajouter<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></button>
+      <button class="cmd">${t('add')}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></button>
     </div>`;
   
   el.querySelector('.cmd').onclick = async (e) => {

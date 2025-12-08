@@ -49,7 +49,9 @@ export const i18n = {
     thanksTitle: 'Eclipso vous remercie',
     thanksMessage: 'A très bientôt pour de nouvelles expériences immersives.<br>Rendez-vous au comptoir pour récupérer votre commande.',
     inactivityTitle: 'Êtes-vous toujours là ?',
-    inactivityMessage: 'Votre session va expirer dans'
+    inactivityMessage: 'Votre session va expirer dans',
+    emptyCart: 'Aucun produit dans le panier',
+    add: 'Ajouter'
   },
   en: {
     bannerText: 'A PHOTO OF YOUR ADVENTURE',
@@ -99,7 +101,9 @@ export const i18n = {
     thanksTitle: 'Eclipso thanks you',
     thanksMessage: 'See you soon for new immersive experiences.<br>Go to the counter to pick up your order.',
     inactivityTitle: 'Are you still there?',
-    inactivityMessage: 'Your session will expire in'
+    inactivityMessage: 'Your session will expire in',
+    emptyCart: 'No products in cart',
+    add: 'Add'
   },
   es: {
     bannerText: 'UNA FOTO DE TU AVENTURA',
@@ -149,7 +153,9 @@ export const i18n = {
     thanksTitle: 'Eclipso te agradece',
     thanksMessage: 'Hasta pronto para nuevas experiencias inmersivas.<br>Dirígete al mostrador para recoger tu pedido.',
     inactivityTitle: '¿Sigues ahí?',
-    inactivityMessage: 'Tu sesión expirará en'
+    inactivityMessage: 'Tu sesión expirará en',
+    emptyCart: 'No hay productos en el carrito',
+    add: 'Añadir'
   },
   zh: {
     bannerText: '您的冒险照片',
@@ -199,7 +205,9 @@ export const i18n = {
     thanksTitle: 'Eclipso感谢您',
     thanksMessage: '期待与您再次相遇，体验更多沉浸式冒险。<br>请前往柜台领取您的订单。',
     inactivityTitle: '您还在吗？',
-    inactivityMessage: '您的会话将在以下时间后过期'
+    inactivityMessage: '您的会话将在以下时间后过期',
+    emptyCart: '购物车中没有商品',
+    add: '添加'
   },
   it: {
     bannerText: 'UNA FOTO DELLA TUA AVVENTURA',
@@ -249,7 +257,9 @@ export const i18n = {
     thanksTitle: 'Eclipso ti ringrazia',
     thanksMessage: 'A presto per nuove esperienze immersive.<br>Recati al bancone per ritirare il tuo ordine.',
     inactivityTitle: 'Sei ancora lì?',
-    inactivityMessage: 'La tua sessione scadrà tra'
+    inactivityMessage: 'La tua sessione scadrà tra',
+    emptyCart: 'Nessun prodotto nel carrello',
+    add: 'Aggiungi'
   },
   de: {
     bannerText: 'EIN FOTO VON IHREM ABENTEUER',
@@ -299,7 +309,9 @@ export const i18n = {
     thanksTitle: 'Eclipso dankt Ihnen',
     thanksMessage: 'Bis bald zu neuen immersiven Erlebnissen.<br>Gehen Sie zum Tresen, um Ihre Bestellung abzuholen.',
     inactivityTitle: 'Sind Sie noch da?',
-    inactivityMessage: 'Ihre Sitzung läuft ab in'
+    inactivityMessage: 'Ihre Sitzung läuft ab in',
+    emptyCart: 'Keine Produkte im Warenkorb',
+    add: 'Hinzufügen'
   }
 };
 
