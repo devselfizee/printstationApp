@@ -77,8 +77,8 @@
   font-weight: 500;
 }
 .btn-cancel {
-	background: #ff7f00;
-    color: white;
+	background: #ff7f00 !important;
+    color: white !important;
 }
 .btn {
 	text-transform: none !important;
