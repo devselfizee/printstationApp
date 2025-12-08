@@ -52,7 +52,8 @@ export const i18n = {
     inactivityMessage: 'Votre session va expirer dans',
     emptyCart: 'Aucun produit dans le panier',
     add: 'Ajouter',
-    pickupNotice: 'Retrait au comptoir de la boutique après paiement'
+    pickupNotice: 'Retrait au comptoir de la boutique après paiement',
+    abandon: 'Abandonner'
   },
   en: {
     bannerText: 'A PHOTO OF YOUR ADVENTURE',
@@ -105,7 +106,8 @@ export const i18n = {
     inactivityMessage: 'Your session will expire in',
     emptyCart: 'No products in cart',
     add: 'Add',
-    pickupNotice: 'Pick up at the store counter after payment'
+    pickupNotice: 'Pick up at the store counter after payment',
+    abandon: 'Abandon'
   },
   es: {
     bannerText: 'UNA FOTO DE TU AVENTURA',
@@ -158,7 +160,8 @@ export const i18n = {
     inactivityMessage: 'Tu sesión expirará en',
     emptyCart: 'No hay productos en el carrito',
     add: 'Añadir',
-    pickupNotice: 'Recogida en el mostrador de la tienda después del pago'
+    pickupNotice: 'Recogida en el mostrador de la tienda después del pago',
+    abandon: 'Abandonar'
   },
   zh: {
     bannerText: '您的冒险照片',
@@ -211,7 +214,8 @@ export const i18n = {
     inactivityMessage: '您的会话将在以下时间后过期',
     emptyCart: '购物车中没有商品',
     add: '添加',
-    pickupNotice: '付款后在店铺柜台领取'
+    pickupNotice: '付款后在店铺柜台领取',
+    abandon: '放弃'
   },
   it: {
     bannerText: 'UNA FOTO DELLA TUA AVVENTURA',
@@ -264,7 +268,8 @@ export const i18n = {
     inactivityMessage: 'La tua sessione scadrà tra',
     emptyCart: 'Nessun prodotto nel carrello',
     add: 'Aggiungi',
-    pickupNotice: 'Ritiro al bancone del negozio dopo il pagamento'
+    pickupNotice: 'Ritiro al bancone del negozio dopo il pagamento',
+    abandon: 'Abbandona'
   },
   de: {
     bannerText: 'EIN FOTO VON IHREM ABENTEUER',
@@ -317,7 +322,8 @@ export const i18n = {
     inactivityMessage: 'Ihre Sitzung läuft ab in',
     emptyCart: 'Keine Produkte im Warenkorb',
     add: 'Hinzufügen',
-    pickupNotice: 'Abholung am Ladentisch nach der Bezahlung'
+    pickupNotice: 'Abholung am Ladentisch nach der Bezahlung',
+    abandon: 'Abbrechen'
   }
 };
 

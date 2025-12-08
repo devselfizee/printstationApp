@@ -210,7 +210,8 @@ export const renderDetail = (root) => {
   // === FOOTER ===
 
   const footer = createFooterBar({
-    "showPrice" : false
+    showPrice: false,
+    cancelLabel: t('abandon')
   });
 
 attachFooterListeners();
