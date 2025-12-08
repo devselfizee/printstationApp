@@ -14,7 +14,7 @@ export const renderListing = (root) => {
   
   main.innerHTML = `
     <div class="hero">
-      <div class="hero-text">A PHOTO OF YOUR ADVENTURE</div>
+      <div class="hero-text">${t('bannerText')}</div>
       <img src="${banner}" alt="">
     </div>
     <div class="section"><h2>${t('photos')}</h2></div>
