@@ -56,7 +56,8 @@ el.innerHTML = `
     state.cart = addOne(photo.id, product.id, state.cart, window.PRODUCTS);
     updateCartCount();
     updateFooterBar({
-      "showPrice" : false
+      showPrice: false,
+      cancelLabel: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;vertical-align:middle;margin-right:6px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>${t('abandon')}`
     });  
     
     // 🆕 Enregistrer immédiatement dans la DB (statut: en_cours)
@@ -120,7 +121,10 @@ el.innerHTML = `
       // Retirer du panier local
       state.cart = removeOne(photo.id, product.id, state.cart);
       updateCartCount();
-      updateFooterBar();  
+      updateFooterBar({
+        showPrice: false,
+        cancelLabel: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;vertical-align:middle;margin-right:6px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>${t('abandon')}`
+      });  
       
       // 🆕 Annuler dans la DB (statut: annulé)
       if (window.photoAPI?.cart && state.sessionId) {
