@@ -157,7 +157,7 @@ const sum = document.createElement('div');
 sum.className = 'sum';
 sum.innerHTML = `
   <div class="row"><div>${t('products')} (${nb})</div><div>${formatPrice(nom)}€</div></div>
-  <div class="row"><div>${t('discount')}</div><div>−${formatPrice(disc)}€</div></div>
+  ${disc > 0 ? `<div class="row"><div>${t('discount')}</div><div>−${formatPrice(disc)}€</div></div>` : ''}
   <div class="row total"><div>${t('total')}</div><div>${formatPrice(tot)}€</div></div>`;
   wrap.appendChild(sum);
   
