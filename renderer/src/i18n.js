@@ -51,7 +51,8 @@ export const i18n = {
     inactivityTitle: 'Êtes-vous toujours là ?',
     inactivityMessage: 'Votre session va expirer dans',
     emptyCart: 'Aucun produit dans le panier',
-    add: 'Ajouter'
+    add: 'Ajouter',
+    pickupNotice: 'Retrait au comptoir de la boutique après paiement'
   },
   en: {
     bannerText: 'A PHOTO OF YOUR ADVENTURE',
@@ -103,7 +104,8 @@ export const i18n = {
     inactivityTitle: 'Are you still there?',
     inactivityMessage: 'Your session will expire in',
     emptyCart: 'No products in cart',
-    add: 'Add'
+    add: 'Add',
+    pickupNotice: 'Pick up at the store counter after payment'
   },
   es: {
     bannerText: 'UNA FOTO DE TU AVENTURA',
@@ -155,7 +157,8 @@ export const i18n = {
     inactivityTitle: '¿Sigues ahí?',
     inactivityMessage: 'Tu sesión expirará en',
     emptyCart: 'No hay productos en el carrito',
-    add: 'Añadir'
+    add: 'Añadir',
+    pickupNotice: 'Recogida en el mostrador de la tienda después del pago'
   },
   zh: {
     bannerText: '您的冒险照片',
@@ -207,7 +210,8 @@ export const i18n = {
     inactivityTitle: '您还在吗？',
     inactivityMessage: '您的会话将在以下时间后过期',
     emptyCart: '购物车中没有商品',
-    add: '添加'
+    add: '添加',
+    pickupNotice: '付款后在店铺柜台领取'
   },
   it: {
     bannerText: 'UNA FOTO DELLA TUA AVVENTURA',
@@ -259,7 +263,8 @@ export const i18n = {
     inactivityTitle: 'Sei ancora lì?',
     inactivityMessage: 'La tua sessione scadrà tra',
     emptyCart: 'Nessun prodotto nel carrello',
-    add: 'Aggiungi'
+    add: 'Aggiungi',
+    pickupNotice: 'Ritiro al bancone del negozio dopo il pagamento'
   },
   de: {
     bannerText: 'EIN FOTO VON IHREM ABENTEUER',
@@ -311,7 +316,8 @@ export const i18n = {
     inactivityTitle: 'Sind Sie noch da?',
     inactivityMessage: 'Ihre Sitzung läuft ab in',
     emptyCart: 'Keine Produkte im Warenkorb',
-    add: 'Hinzufügen'
+    add: 'Hinzufügen',
+    pickupNotice: 'Abholung am Ladentisch nach der Bezahlung'
   }
 };
 
