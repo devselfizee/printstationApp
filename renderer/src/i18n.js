@@ -55,6 +55,7 @@ export const i18n = {
     pickupNotice: 'Retrait au comptoir de la boutique après paiement',
     abandon: 'Abandonner',
     pay: 'Payer',
+    noProduct: 'Aucun produit',
     viewDetail: 'Voir le détail',
     article: 'Article',
     articles: 'Articles'
@@ -113,6 +114,7 @@ export const i18n = {
     pickupNotice: 'Pick up at the store counter after payment',
     abandon: 'Abandon',
     pay: 'Pay',
+    noProduct: 'No product',
     viewDetail: 'View details',
     article: 'Item',
     articles: 'Items'
@@ -171,6 +173,7 @@ export const i18n = {
     pickupNotice: 'Recogida en el mostrador de la tienda después del pago',
     abandon: 'Abandonar',
     pay: 'Pagar',
+    noProduct: 'Ningún producto',
     viewDetail: 'Ver detalle',
     article: 'Artículo',
     articles: 'Artículos'
@@ -229,6 +232,7 @@ export const i18n = {
     pickupNotice: '付款后在店铺柜台领取',
     abandon: '放弃',
     pay: '支付',
+    noProduct: '无产品',
     viewDetail: '查看详情',
     article: '件商品',
     articles: '件商品'
@@ -287,6 +291,7 @@ export const i18n = {
     pickupNotice: 'Ritiro al bancone del negozio dopo il pagamento',
     abandon: 'Abbandona',
     pay: 'Pagare',
+    noProduct: 'Nessun prodotto',
     viewDetail: 'Vedi dettaglio',
     article: 'Articolo',
     articles: 'Articoli'
@@ -345,6 +350,7 @@ export const i18n = {
     pickupNotice: 'Abholung am Ladentisch nach der Bezahlung',
     abandon: 'Abbrechen',
     pay: 'Bezahlen',
+    noProduct: 'Kein Produkt',
     viewDetail: 'Details anzeigen',
     article: 'Artikel',
     articles: 'Artikel'
