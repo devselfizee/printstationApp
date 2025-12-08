@@ -158,7 +158,16 @@ export const renderDetail = (root) => {
   const main = document.createElement('div');
   main.className = 'main detail-enter';
   const section = document.createElement('section');
-  section.innerHTML = `<h2 class="detail-title">${t('photo')}</h2><div class="detail-preview"><img src="${p.source}" alt=""></div>`;
+  section.innerHTML = `<h2 class="detail-title">${t('photo')}</h2>
+    <div class="detail-preview"><img src="${p.source}" alt=""></div>
+    <!-- Notice retrait comptoir -->
+    <div class="pickup-notice">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+      </svg>
+      <span>${t('pickupNotice')}</span>
+    </div>`;
 
   // Afficher les produits filtrés par univers
   const currentUniverseId = state.universe?.id || state.universeId;
