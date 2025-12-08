@@ -38,6 +38,17 @@
 	height: 120px;
 }
 
+/* 
+ * DEBUT : NOUVELLE INTEGRATION
+ */
+.offer .visu {
+	background: transparent;
+}
+.footer-bar {
+	margin-left: -50px;
+	width: 100%;
+	border-radius: 0;
+}
 /* Pickup notice - plus visible */
 .pickup-notice {
   display: flex;
@@ -49,12 +60,14 @@
   background: #fef3c7;
   border-radius: 10px;
   border: 1px solid #fcd34d;
+  max-width: 100%;
 }
 
 .pickup-notice svg {
   width: 20px;
   height: 20px;
   color: #b45309;
+  stroke: #b45309;
   flex-shrink: 0;
 }
 
@@ -63,3 +76,6 @@
   color: #92400e;
   font-weight: 500;
 }
+/**
+ * FIN INTEGRATION
+ */
