@@ -957,7 +957,7 @@ header.topbar{
 .optin-card {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
   border: 2px solid #0ea5e9;
   border-radius: 16px;
