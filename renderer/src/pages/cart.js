@@ -75,7 +75,6 @@ export const renderCart = (root) => {
         </div>
         <div class="cart-info">
           <div class="title">${product.title}</div>
-          <div class="meta">${photoTitle}</div>
         </div>
         <div class="cart-actions">
           <button class="key" data-a="minus">−</button>
