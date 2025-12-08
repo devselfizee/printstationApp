@@ -12,7 +12,11 @@ export const renderListing = (root) => {
   const universeData = UNIVERSES[universeId];
   const banner = universeData?.banner || '';
   
-  main.innerHTML = `<div class="hero"><img src="${banner}" alt=""></div>
+  main.innerHTML = `
+    <div class="hero">
+      <div class="hero-text">A PHOTO OF YOUR ADVENTURE</div>
+      <img src="${banner}" alt="">
+    </div>
     <div class="section"><h2>${t('photos')}</h2></div>
     <div class="grid" id="grid"></div>`;
   
