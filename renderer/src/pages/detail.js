@@ -211,7 +211,7 @@ export const renderDetail = (root) => {
 
   const footer = createFooterBar({
     showPrice: false,
-    cancelLabel: t('abandon')
+    cancelLabel: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;vertical-align:middle;margin-right:6px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>${t('abandon')}`
   });
 
 attachFooterListeners();
