@@ -36,7 +36,15 @@ header.topbar{
 
 .icon-btn.back-btn {
   grid-column: 1;
-visibility:hidden; opacity:0; 
+  visibility:hidden;
+  opacity:0;
+  background: var(--brand);
+  color: #0a1630;
+}
+
+.icon-btn.back-btn:hover {
+  background: var(--brand);
+  filter: brightness(0.95);
 }
 
 .icon-btn {
