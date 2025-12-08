@@ -294,6 +294,7 @@ export const renderDetail = (root) => {
 
   // Click sur cart-detail pour aller au panier
   footer.querySelector('.cart-detail').onclick = () => {
+    alert('j passe ici');
     state.page = 'cart';
     window.render();
   };
