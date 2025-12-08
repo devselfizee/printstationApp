@@ -8,7 +8,10 @@ import { getProductVisual } from '../data.js';
 const getAbandonLabel = () => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;vertical-align:middle;margin-right:6px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>${t('abandon')}`;
 
 const getPayLabel = () => {
-  const total = state.cart.length > 0 ? cartSubtotal(state.cart, window.PRODUCTS) : 0;
+  if (state.cart.length === 0) {
+    return `${t('noProduct')} <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:18px;height:18px;vertical-align:middle;margin-left:6px;"><path d="M9 18l6-6-6-6"></path></svg>`;
+  }
+  const total = cartSubtotal(state.cart, window.PRODUCTS);
   return `${t('pay')} ${formatPrice(total)}€ <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:18px;height:18px;vertical-align:middle;margin-left:6px;"><path d="M9 18l6-6-6-6"></path></svg>`;
 };
 
