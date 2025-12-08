@@ -76,6 +76,13 @@
   color: #92400e;
   font-weight: 500;
 }
+.btn-cancel {
+	background: #ff7f00;
+    color: white;
+}
+.btn {
+	text-transform: none !important;
+}
 /**
  * FIN INTEGRATION
  */
