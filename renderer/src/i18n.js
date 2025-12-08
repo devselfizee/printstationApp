@@ -53,7 +53,12 @@ export const i18n = {
     emptyCart: 'Aucun produit dans le panier',
     add: 'Ajouter',
     pickupNotice: 'Retrait au comptoir de la boutique après paiement',
-    abandon: 'Abandonner'
+    abandon: 'Abandonner',
+    pay: 'Payer',
+    noProduct: 'Aucun produit',
+    viewDetail: 'Voir le détail',
+    article: 'Article',
+    articles: 'Articles'
   },
   en: {
     bannerText: 'A PHOTO OF YOUR ADVENTURE',
@@ -107,7 +112,12 @@ export const i18n = {
     emptyCart: 'No products in cart',
     add: 'Add',
     pickupNotice: 'Pick up at the store counter after payment',
-    abandon: 'Abandon'
+    abandon: 'Abandon',
+    pay: 'Pay',
+    noProduct: 'No product',
+    viewDetail: 'View details',
+    article: 'Item',
+    articles: 'Items'
   },
   es: {
     bannerText: 'UNA FOTO DE TU AVENTURA',
@@ -161,7 +171,12 @@ export const i18n = {
     emptyCart: 'No hay productos en el carrito',
     add: 'Añadir',
     pickupNotice: 'Recogida en el mostrador de la tienda después del pago',
-    abandon: 'Abandonar'
+    abandon: 'Abandonar',
+    pay: 'Pagar',
+    noProduct: 'Ningún producto',
+    viewDetail: 'Ver detalle',
+    article: 'Artículo',
+    articles: 'Artículos'
   },
   zh: {
     bannerText: '您的冒险照片',
@@ -215,7 +230,12 @@ export const i18n = {
     emptyCart: '购物车中没有商品',
     add: '添加',
     pickupNotice: '付款后在店铺柜台领取',
-    abandon: '放弃'
+    abandon: '放弃',
+    pay: '支付',
+    noProduct: '无产品',
+    viewDetail: '查看详情',
+    article: '件商品',
+    articles: '件商品'
   },
   it: {
     bannerText: 'UNA FOTO DELLA TUA AVVENTURA',
@@ -269,7 +289,12 @@ export const i18n = {
     emptyCart: 'Nessun prodotto nel carrello',
     add: 'Aggiungi',
     pickupNotice: 'Ritiro al bancone del negozio dopo il pagamento',
-    abandon: 'Abbandona'
+    abandon: 'Abbandona',
+    pay: 'Pagare',
+    noProduct: 'Nessun prodotto',
+    viewDetail: 'Vedi dettaglio',
+    article: 'Articolo',
+    articles: 'Articoli'
   },
   de: {
     bannerText: 'EIN FOTO VON IHREM ABENTEUER',
@@ -323,7 +348,12 @@ export const i18n = {
     emptyCart: 'Keine Produkte im Warenkorb',
     add: 'Hinzufügen',
     pickupNotice: 'Abholung am Ladentisch nach der Bezahlung',
-    abandon: 'Abbrechen'
+    abandon: 'Abbrechen',
+    pay: 'Bezahlen',
+    noProduct: 'Kein Produkt',
+    viewDetail: 'Details anzeigen',
+    article: 'Artikel',
+    articles: 'Artikel'
   }
 };
 
