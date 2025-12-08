@@ -19,15 +19,16 @@ export const renderTopbar = (root, onNavigate) => {
   // Language selector
   const langs = document.createElement('div');
   langs.className = 'lang-selector';
-const flags = { 
-  fr: '<img src="./assets/flags/fr.svg" alt="FR" style="width:20px;height:auto;">', 
-  en: '<img src="./assets/flags/en.svg" alt="EN" style="width:20px;height:auto;">', 
-  es: '<img src="./assets/flags/es.svg" alt="ES" style="width:20px;height:auto;">', 
-  it: '<img src="./assets/flags/it.svg" alt="IT" style="width:20px;height:auto;">', 
-  de: '<img src="./assets/flags/de.svg" alt="DE" style="width:20px;height:auto;">' 
+const flags = {
+  fr: '<img src="./assets/flags/fr.svg" alt="FR" style="width:20px;height:auto;">',
+  en: '<img src="./assets/flags/en.svg" alt="EN" style="width:20px;height:auto;">',
+  es: '<img src="./assets/flags/es.svg" alt="ES" style="width:20px;height:auto;">',
+  it: '<img src="./assets/flags/it.svg" alt="IT" style="width:20px;height:auto;">',
+  de: '<img src="./assets/flags/de.svg" alt="DE" style="width:20px;height:auto;">',
+  zh: '<img src="./assets/flags/zh.svg" alt="ZH" style="width:20px;height:auto;">'
 };
 
-['fr', 'en', 'es', 'it', 'de'].forEach(l => {
+['fr', 'en', 'es', 'it', 'de', 'zh'].forEach(l => {
   const btn = document.createElement('button');
   btn.className = 'lang-btn' + (state.lang === l ? ' active' : '');
   btn.innerHTML = flags[l];  // ← innerHTML pour afficher le SVG

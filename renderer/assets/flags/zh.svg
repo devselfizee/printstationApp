@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 20">
+  <rect fill="#DE2910" width="30" height="20"/>
+  <g fill="#FFDE00">
+    <polygon points="6,4 6.9,6.8 4,5.2 8,5.2 5.1,6.8"/>
+    <polygon points="10,2 10.4,3 9.2,2.4 10.8,2.4 9.6,3"/>
+    <polygon points="12,4 12.4,5 11.2,4.4 12.8,4.4 11.6,5"/>
+    <polygon points="12,7 12.4,8 11.2,7.4 12.8,7.4 11.6,8"/>
+    <polygon points="10,9 10.4,10 9.2,9.4 10.8,9.4 9.6,10"/>
+  </g>
+</svg>
