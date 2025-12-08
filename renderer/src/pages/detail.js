@@ -12,6 +12,45 @@ const getPayLabel = () => {
   return `${t('pay')} ${formatPrice(total)}€ <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:18px;height:18px;vertical-align:middle;margin-left:6px;"><path d="M9 18l6-6-6-6"></path></svg>`;
 };
 
+const getArticleLabel = () => {
+  const count = state.cart.reduce((n, l) => n + l.qty, 0);
+  return `${count} ${count > 1 ? t('articles') : t('article')}`;
+};
+
+const getCartDetailHTML = () => {
+  return `
+    <div class="cart-detail">
+      <div class="cart-detail-top">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="18 15 12 9 6 15"></polyline>
+        </svg>
+        <span>${t('viewDetail')}</span>
+      </div>
+      <div class="cart-detail-bottom">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="9" cy="21" r="1"></circle>
+          <circle cx="20" cy="21" r="1"></circle>
+          <path d="M1 1h4l2.68 12.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+        </svg>
+        <span class="cart-detail-count" id="cartDetailCount">${getArticleLabel()}</span>
+      </div>
+    </div>`;
+};
+
+// Mise à jour du footer personnalisé
+const updateDetailFooter = () => {
+  const footerBar = document.querySelector('.footer-bar');
+  if (!footerBar) return;
+
+  // Mettre à jour le bouton Payer
+  const continueBtn = footerBar.querySelector('.btn-continue');
+  if (continueBtn) continueBtn.innerHTML = getPayLabel();
+
+  // Mettre à jour le compteur d'articles
+  const cartDetailCount = footerBar.querySelector('#cartDetailCount');
+  if (cartDetailCount) cartDetailCount.textContent = getArticleLabel();
+};
+
 export const renderOffer = (photo, product) => {
   const qty = getQty(photo.id, product.id, state.cart);
   const nextPrice = qty >= 1 ? product.next : product.first;
@@ -62,11 +101,7 @@ el.innerHTML = `
     // Ajouter au panier local (pour l'UI)
     state.cart = addOne(photo.id, product.id, state.cart, window.PRODUCTS);
     updateCartCount();
-    updateFooterBar({
-      showPrice: false,
-      cancelLabel: getAbandonLabel(),
-      continueLabel: getPayLabel()
-    });
+    updateDetailFooter();
 
     // 🆕 Enregistrer immédiatement dans la DB (statut: en_cours)
     console.log('🔍 Debug ajout produit:');
@@ -129,11 +164,7 @@ el.innerHTML = `
       // Retirer du panier local
       state.cart = removeOne(photo.id, product.id, state.cart);
       updateCartCount();
-      updateFooterBar({
-        showPrice: false,
-        cancelLabel: getAbandonLabel(),
-        continueLabel: getPayLabel()
-      });
+      updateDetailFooter();
 
       // 🆕 Annuler dans la DB (statut: annulé)
       if (window.photoAPI?.cart && state.sessionId) {
@@ -222,13 +253,34 @@ export const renderDetail = (root) => {
 
   // === FOOTER ===
 
-  const footer = createFooterBar({
-    showPrice: false,
-    cancelLabel: getAbandonLabel(),
-    continueLabel: getPayLabel()
-  });
+  const footer = document.createElement('div');
+  footer.className = 'footer-bar';
+  footer.innerHTML = `
+    <div class="buttons">
+      <button class="btn btn-cancel">${getAbandonLabel()}</button>
+      ${getCartDetailHTML()}
+      <button class="btn btn-continue">${getPayLabel()}</button>
+    </div>`;
 
-attachFooterListeners();
+  // Event listeners pour le footer
+  footer.querySelector('.btn-cancel').onclick = () => {
+    state.page = 'qr';
+    state.universe = null;
+    state.photos = [];
+    state.cart = [];
+    window.render();
+  };
+
+  footer.querySelector('.btn-continue').onclick = () => {
+    state.page = 'cart';
+    window.render();
+  };
+
+  // Click sur cart-detail pour aller au panier
+  footer.querySelector('.cart-detail').onclick = () => {
+    state.page = 'cart';
+    window.render();
+  };
 
 /*
 const footerBar = document.createElement('div');

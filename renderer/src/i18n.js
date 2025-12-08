@@ -54,7 +54,10 @@ export const i18n = {
     add: 'Ajouter',
     pickupNotice: 'Retrait au comptoir de la boutique après paiement',
     abandon: 'Abandonner',
-    pay: 'Payer'
+    pay: 'Payer',
+    viewDetail: 'Voir le détail',
+    article: 'Article',
+    articles: 'Articles'
   },
   en: {
     bannerText: 'A PHOTO OF YOUR ADVENTURE',
@@ -109,7 +112,10 @@ export const i18n = {
     add: 'Add',
     pickupNotice: 'Pick up at the store counter after payment',
     abandon: 'Abandon',
-    pay: 'Pay'
+    pay: 'Pay',
+    viewDetail: 'View details',
+    article: 'Item',
+    articles: 'Items'
   },
   es: {
     bannerText: 'UNA FOTO DE TU AVENTURA',
@@ -164,7 +170,10 @@ export const i18n = {
     add: 'Añadir',
     pickupNotice: 'Recogida en el mostrador de la tienda después del pago',
     abandon: 'Abandonar',
-    pay: 'Pagar'
+    pay: 'Pagar',
+    viewDetail: 'Ver detalle',
+    article: 'Artículo',
+    articles: 'Artículos'
   },
   zh: {
     bannerText: '您的冒险照片',
@@ -219,7 +228,10 @@ export const i18n = {
     add: '添加',
     pickupNotice: '付款后在店铺柜台领取',
     abandon: '放弃',
-    pay: '支付'
+    pay: '支付',
+    viewDetail: '查看详情',
+    article: '件商品',
+    articles: '件商品'
   },
   it: {
     bannerText: 'UNA FOTO DELLA TUA AVVENTURA',
@@ -274,7 +286,10 @@ export const i18n = {
     add: 'Aggiungi',
     pickupNotice: 'Ritiro al bancone del negozio dopo il pagamento',
     abandon: 'Abbandona',
-    pay: 'Pagare'
+    pay: 'Pagare',
+    viewDetail: 'Vedi dettaglio',
+    article: 'Articolo',
+    articles: 'Articoli'
   },
   de: {
     bannerText: 'EIN FOTO VON IHREM ABENTEUER',
@@ -329,7 +344,10 @@ export const i18n = {
     add: 'Hinzufügen',
     pickupNotice: 'Abholung am Ladentisch nach der Bezahlung',
     abandon: 'Abbrechen',
-    pay: 'Bezahlen'
+    pay: 'Bezahlen',
+    viewDetail: 'Details anzeigen',
+    article: 'Artikel',
+    articles: 'Artikel'
   }
 };
 
