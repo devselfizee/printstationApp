@@ -37,3 +37,29 @@
 	width: 120px;
 	height: 120px;
 }
+
+/* Pickup notice - plus visible */
+.pickup-notice {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 20px;
+  margin: 0 0 20px;
+  background: #fef3c7;
+  border-radius: 10px;
+  border: 1px solid #fcd34d;
+}
+
+.pickup-notice svg {
+  width: 20px;
+  height: 20px;
+  color: #b45309;
+  flex-shrink: 0;
+}
+
+.pickup-notice span {
+  font-size: 15px;
+  color: #92400e;
+  font-weight: 500;
+}
