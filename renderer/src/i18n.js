@@ -53,7 +53,8 @@ export const i18n = {
     emptyCart: 'Aucun produit dans le panier',
     add: 'Ajouter',
     pickupNotice: 'Retrait au comptoir de la boutique après paiement',
-    abandon: 'Abandonner'
+    abandon: 'Abandonner',
+    pay: 'Payer'
   },
   en: {
     bannerText: 'A PHOTO OF YOUR ADVENTURE',
@@ -107,7 +108,8 @@ export const i18n = {
     emptyCart: 'No products in cart',
     add: 'Add',
     pickupNotice: 'Pick up at the store counter after payment',
-    abandon: 'Abandon'
+    abandon: 'Abandon',
+    pay: 'Pay'
   },
   es: {
     bannerText: 'UNA FOTO DE TU AVENTURA',
@@ -161,7 +163,8 @@ export const i18n = {
     emptyCart: 'No hay productos en el carrito',
     add: 'Añadir',
     pickupNotice: 'Recogida en el mostrador de la tienda después del pago',
-    abandon: 'Abandonar'
+    abandon: 'Abandonar',
+    pay: 'Pagar'
   },
   zh: {
     bannerText: '您的冒险照片',
@@ -215,7 +218,8 @@ export const i18n = {
     emptyCart: '购物车中没有商品',
     add: '添加',
     pickupNotice: '付款后在店铺柜台领取',
-    abandon: '放弃'
+    abandon: '放弃',
+    pay: '支付'
   },
   it: {
     bannerText: 'UNA FOTO DELLA TUA AVVENTURA',
@@ -269,7 +273,8 @@ export const i18n = {
     emptyCart: 'Nessun prodotto nel carrello',
     add: 'Aggiungi',
     pickupNotice: 'Ritiro al bancone del negozio dopo il pagamento',
-    abandon: 'Abbandona'
+    abandon: 'Abbandona',
+    pay: 'Pagare'
   },
   de: {
     bannerText: 'EIN FOTO VON IHREM ABENTEUER',
@@ -323,7 +328,8 @@ export const i18n = {
     emptyCart: 'Keine Produkte im Warenkorb',
     add: 'Hinzufügen',
     pickupNotice: 'Abholung am Ladentisch nach der Bezahlung',
-    abandon: 'Abbrechen'
+    abandon: 'Abbrechen',
+    pay: 'Bezahlen'
   }
 };
 

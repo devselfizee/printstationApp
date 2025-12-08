@@ -1,9 +1,16 @@
 import { state } from '../state.js';
 import { t } from '../i18n.js';
-import { $, getQty, lineTotal, updateCartCount, toast, addOne, removeOne } from '../utils.js';
+import { $, getQty, lineTotal, updateCartCount, toast, addOne, removeOne, cartSubtotal } from '../utils.js';
 import { createFooterBar, attachFooterListeners, updateFooterBar, formatPrice } from '../utils.js';
 import { getProductVisual } from '../data.js';
 
+// Helper pour générer les labels du footer
+const getAbandonLabel = () => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;vertical-align:middle;margin-right:6px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>${t('abandon')}`;
+
+const getPayLabel = () => {
+  const total = state.cart.length > 0 ? cartSubtotal(state.cart, window.PRODUCTS) : 0;
+  return `${t('pay')} ${formatPrice(total)}€ <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:18px;height:18px;vertical-align:middle;margin-left:6px;"><path d="M9 18l6-6-6-6"></path></svg>`;
+};
 
 export const renderOffer = (photo, product) => {
   const qty = getQty(photo.id, product.id, state.cart);
@@ -57,9 +64,10 @@ el.innerHTML = `
     updateCartCount();
     updateFooterBar({
       showPrice: false,
-      cancelLabel: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;vertical-align:middle;margin-right:6px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>${t('abandon')}`
-    });  
-    
+      cancelLabel: getAbandonLabel(),
+      continueLabel: getPayLabel()
+    });
+
     // 🆕 Enregistrer immédiatement dans la DB (statut: en_cours)
     console.log('🔍 Debug ajout produit:');
     console.log('  - sessionId:', state.sessionId);
@@ -123,9 +131,10 @@ el.innerHTML = `
       updateCartCount();
       updateFooterBar({
         showPrice: false,
-        cancelLabel: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;vertical-align:middle;margin-right:6px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>${t('abandon')}`
-      });  
-      
+        cancelLabel: getAbandonLabel(),
+        continueLabel: getPayLabel()
+      });
+
       // 🆕 Annuler dans la DB (statut: annulé)
       if (window.photoAPI?.cart && state.sessionId) {
         try {
@@ -215,7 +224,8 @@ export const renderDetail = (root) => {
 
   const footer = createFooterBar({
     showPrice: false,
-    cancelLabel: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;vertical-align:middle;margin-right:6px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>${t('abandon')}`
+    cancelLabel: getAbandonLabel(),
+    continueLabel: getPayLabel()
   });
 
 attachFooterListeners();
