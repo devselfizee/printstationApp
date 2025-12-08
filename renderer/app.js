@@ -225,3 +225,38 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Vérifier la configuration après l'initialisation
   checkSetup();
 });
+
+// ============================================
+// DEV TOOLS TOGGLE (F5)
+// ============================================
+let devToolsVisible = false;
+
+function toggleDevTools() {
+  devToolsVisible = !devToolsVisible;
+  console.log(`[DevTools] Mode dev ${devToolsVisible ? 'activé' : 'désactivé'}`);
+
+  // Toggle le menu via IPC
+  if (window.photoAPI?.app?.toggleDevMenu) {
+    window.photoAPI.app.toggleDevMenu();
+  }
+
+  // Toggle les stats (.qr-stats)
+  const devStats = document.getElementById('devStats');
+  if (devStats) {
+    devStats.style.display = devToolsVisible ? 'flex' : 'none';
+  }
+
+  // Toggle le bouton dev simulator
+  const devSimBtn = document.getElementById('dev-simulator-btn');
+  if (devSimBtn) {
+    devSimBtn.style.display = devToolsVisible ? 'block' : 'none';
+  }
+}
+
+// Écouter la touche F5 pour toggle les outils dev
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'F5') {
+    e.preventDefault(); // Empêcher le refresh par défaut
+    toggleDevTools();
+  }
+});

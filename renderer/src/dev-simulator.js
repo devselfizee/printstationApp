@@ -261,10 +261,10 @@ function showNoPhotosModal() {
 // ============================================
 
 export function initDevSimulator() {
-  // Créer le bouton de dev (discret)
+  // Créer le bouton de dev (discret, masqué par défaut - toggle F5)
   const devBtn = document.createElement('button');
   devBtn.id = 'dev-simulator-btn';
-  devBtn.className = 'dev-simulator-btn';
+  devBtn.className = 'dev-simulator-btn dev-hidden';
   devBtn.innerHTML = '⚙️';
   devBtn.title = 'Simulator QR (DEV ONLY)';
   devBtn.style.cssText = `
@@ -281,6 +281,7 @@ export function initDevSimulator() {
     cursor: pointer;
     z-index: 1000;
     transition: all 0.3s ease;
+    display: none;
   `;
 
   devBtn.onmouseover = () => {

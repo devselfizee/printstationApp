@@ -198,6 +198,11 @@ const photoAPI = {
     getLogPath: () => ipcRenderer.invoke('logger:get-log-path'),
   },
 
+  // App (dev tools toggle)
+  app: {
+    toggleDevMenu: () => ipcRenderer.invoke('app:toggle-dev-menu'),
+  },
+
   // Listeners
   onPhotoProgress: (callback) => ipcRenderer.on('photos:progress', (event, data) => callback(data)),
   onPhotoComplete: (callback) => ipcRenderer.on('photos:complete', (event, data) => callback(data)),

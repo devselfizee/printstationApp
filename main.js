@@ -1511,8 +1511,16 @@ app.on('browser-window-created', (_, window) => {
  * ===== MENU =====
  */
 
+let devMenuVisible = false;
+
 function createMenu() {
   const isDev = process.env.NODE_ENV === 'development';
+
+  // Par défaut, masquer le menu
+  if (!devMenuVisible) {
+    Menu.setApplicationMenu(null);
+    return;
+  }
 
   const template = [
     {
@@ -1559,6 +1567,14 @@ function createMenu() {
 /**
  * ===== IPC HANDLERS - APP CONFIG =====
  */
+
+// Toggle dev menu visibility (F5)
+ipcMain.handle('app:toggle-dev-menu', () => {
+  devMenuVisible = !devMenuVisible;
+  createMenu();
+  console.log(`[Menu] Dev menu ${devMenuVisible ? 'visible' : 'masqué'}`);
+  return devMenuVisible;
+});
 
 // Retourner la configuration de l'application
 ipcMain.handle('app:get-config', () => {
