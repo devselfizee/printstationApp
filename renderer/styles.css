@@ -223,6 +223,7 @@ visibility:hidden; opacity:0;
   display: flex;
   gap: 12px;
   flex: 1;  /* ← Les boutons prennent la place dispo */
+  justify-content: center;
 }
 
 .footer-bar .btn {
@@ -234,7 +235,7 @@ visibility:hidden; opacity:0;
     font-size: 17px;
     cursor: pointer;
     transition: all 0.2s ease;
-    min-width: 390px;
+    max-width: 350px;
     text-align: center;
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -560,6 +561,12 @@ visibility:hidden; opacity:0;
   padding: 8px 24px;
   cursor: pointer;
   transition: opacity 0.2s ease;
+  flex: 1;
+  max-width: 350px;
+  background: #f3f4f6;
+  border-radius: 12px;
+  height: 60px;
+  box-sizing: border-box;
 }
 .cart-detail:hover {
   opacity: 0.8;
