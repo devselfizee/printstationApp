@@ -478,7 +478,7 @@ export const renderQR = (root) => {
   // ===== RÉCUPÉRER LES STATS =====
   // Par défaut masqué, toggle avec F5
   let statsHtml = `
-    <div class="qr-stats dev-hidden" id="devStats">
+    <div class="qr-stats dev-hidden" id="devStats" style="display: none;">
       <div class="stat-item">
         <div class="stat-label">Photos téléchargées</div>
         <div class="stat-value" id="statsDownloaded">-- </div>
