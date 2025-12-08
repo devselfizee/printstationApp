@@ -69,6 +69,10 @@ export const renderForm = (root) => {
         <div class="chips">${(EMAIL_SUGGESTIONS[state.lang] || EMAIL_SUGGESTIONS.fr).map(d => `<button class="chip" data-d="${d}">${d}</button>`).join('')}</div>
 
         <div class="optin-card" id="optinCard">
+          <label class="optin-toggle">
+            <input id="optin" type="checkbox" ${state.optin ? 'checked' : ''}/>
+            <span class="optin-slider"></span>
+          </label>
           <div class="optin-content">
             <div class="optin-icon">🎁</div>
             <div class="optin-text">
@@ -76,10 +80,6 @@ export const renderForm = (root) => {
               <div class="optin-subtitle">${t('optinSubtitle')}</div>
             </div>
           </div>
-          <label class="optin-toggle">
-            <input id="optin" type="checkbox" ${state.optin ? 'checked' : ''}/>
-            <span class="optin-slider"></span>
-          </label>
         </div>
       </div>
     </div>
