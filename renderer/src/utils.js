@@ -84,9 +84,12 @@ export const getFooterHTML = (config = {}) => {
   const totalQty = state.cart.reduce((n, l) => n + l.qty, 0);
   const totalPrice = state.cart.length > 0 ? cartSubtotal(state.cart, window.PRODUCTS) : 0;
 
+  // Icône X pour le bouton Abandonner
+  const abandonIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;vertical-align:middle;margin-right:6px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
+
   // Config par défaut avec traductions
   const {
-    cancelLabel = t('quit'),
+    cancelLabel = `${abandonIcon}${t('abandon')}`,
     continueLabel = t('viewCart'),
     onCancel = null,
     onContinue = null,
@@ -128,15 +131,16 @@ export const showQuitConfirmModal = (onConfirm) => {
   const modal = document.createElement('div');
   modal.id = 'quit-confirm-modal';
   modal.className = 'quit-confirm-modal';
+  const abandonIconModal = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;vertical-align:middle;margin-right:6px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
   modal.innerHTML = `
     <div class="quit-confirm-overlay"></div>
     <div class="quit-confirm-box">
       <div class="quit-confirm-icon">🛒</div>
       <h3 class="quit-confirm-title">Attention</h3>
-      <p class="quit-confirm-message">Des articles se trouvent déjà dans votre panier. Souhaitez-vous vraiment quitter la page ?</p>
+      <p class="quit-confirm-message">Des articles se trouvent déjà dans votre panier. Souhaitez-vous vraiment abandonner ?</p>
       <div class="quit-confirm-buttons">
-        <button class="btn btn-cancel-modal">Annuler</button>
-        <button class="btn btn-confirm-quit">Quitter</button>
+        <button class="btn btn-cancel-modal">${t('continueShopping')}</button>
+        <button class="btn btn-confirm-quit">${abandonIconModal}${t('abandon')}</button>
       </div>
     </div>
   `;
