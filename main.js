@@ -2447,6 +2447,7 @@ async function syncOrderToRemoteAPI(orderId) {
     console.log('[Sync] Participant ID:', orderWithItems.participant_id);
     console.log('[Sync] Universe ID:', orderWithItems.universe_id);
     console.log('[Sync] Email:', orderWithItems.email);
+    console.log('[Sync] Optin:', orderWithItems.optin);
     console.log('[Sync] Status:', orderWithItems.status);
     console.log('[Sync] Total Amount:', orderWithItems.total_amount);
     console.log('[Sync] Final Amount:', orderWithItems.final_amount);
@@ -2528,6 +2529,7 @@ async function syncOrderToRemoteAPI(orderId) {
       memory_session_id: null, // null car le participant_id local n'existe pas dans Supabase
       universe_id: orderWithItems.universe_id || null, // 🆕 ID de l'univers du participant
       status: apiStatus,
+      optin_email: orderWithItems.optin ? true : false, // 🆕 Optin email du client
       order_items: itemsWithPhotoUrls.map(item => ({
         product_id: item.product_id,
         quantity: item.quantity,
