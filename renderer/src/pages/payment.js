@@ -35,6 +35,9 @@ export const renderPayment = (root) => {
 
     const itemTotal = lineTotal(product, l.qty);
 
+    // Récupérer la photo commandée
+    const photo = state.photos?.find(p => p.id === l.photoId);
+
     // Récupérer l'image du produit
     // Priorité 1 : thumbnail_url de l'API
     // Priorité 2 : visuels spécifiques à l'univers
@@ -50,11 +53,25 @@ export const renderPayment = (root) => {
       }
     }
 
-    const thumbHTML = imageUrl
-      ? `<img src="${imageUrl}" alt="${product.title}" style="width:150px;height:150px;object-fit:contain;">`
-      : `<div style="width:150px;height:150px;background:#f0f0f0;display:grid;place-items:center;color:#999;font-size:12px;">N/A</div>`;
+    // Vignette produit
+    const productThumbHTML = imageUrl
+      ? `<img src="${imageUrl}" alt="${product.title}" class="cart-product-img">`
+      : `<div class="cart-product-placeholder">N/A</div>`;
 
-    row.innerHTML = `<div class="thumb" style="display:grid;place-items:center;font-size:24px;">${thumbHTML}</div><div class="title">${product.title} × ${l.qty}</div><div>${itemTotal.toFixed(2)}€</div>`;
+    // Vignette photo commandée
+    const photoThumbHTML = photo?.source
+      ? `<img src="${photo.source}" alt="Photo" class="cart-photo-img">`
+      : '';
+
+    row.innerHTML = `
+      <div class="cart-thumbs">
+        <div class="cart-photo-thumb">${photoThumbHTML}</div>
+        <div class="cart-product-thumb">${productThumbHTML}</div>
+      </div>
+      <div class="cart-info">
+        <div class="title">${product.title} × ${l.qty}</div>
+      </div>
+      <div class="cart-price">${itemTotal.toFixed(2)}€</div>`;
     lines.appendChild(row);
   });
   wrap.appendChild(lines);
