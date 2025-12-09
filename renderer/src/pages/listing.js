@@ -125,8 +125,9 @@ export const renderListing = (root) => {
 
   // Click sur cart-detail pour aller au panier
   footer.querySelector('.cart-detail').onclick = () => {
-    state.page = 'cart';
-    window.render();
+    alert("Ce bouton n'est pas encore fonctionnel pour le moment.");
+    // state.page = 'cart';
+    // window.render();
   };
 
   main.appendChild(footer);
