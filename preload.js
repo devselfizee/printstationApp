@@ -96,7 +96,7 @@ const photoAPI = {
     delete: (orderId) => ipcRenderer.invoke('order:delete', orderId),
     syncRemote: (orderId) => ipcRenderer.invoke('order:sync-remote', orderId),
     createRemote: (orderData) => ipcRenderer.invoke('order:create-remote', orderData),
-    updateRemote: (supabaseOrderId, email, localOrderId) => ipcRenderer.invoke('order:update-remote', supabaseOrderId, email, localOrderId),
+    updateRemote: (supabaseOrderId, email, localOrderId, optin) => ipcRenderer.invoke('order:update-remote', supabaseOrderId, email, localOrderId, optin),
     createCompletedRemote: (localOrderId) => ipcRenderer.invoke('order:create-completed-remote', localOrderId),
     cancelRemote: (supabaseOrderId) => ipcRenderer.invoke('order:cancel-remote', supabaseOrderId),
   },

@@ -213,11 +213,12 @@ attachFooterListeners({
 
         try {
           if (state.supabaseOrderId) {
-            console.log('[Form] 📝 Mise à jour de la commande sur Supabase (status=completed + email)...');
+            console.log('[Form] 📝 Mise à jour de la commande sur Supabase (status=completed + email + optin)...');
             console.log('[Form] Supabase Order ID:', state.supabaseOrderId);
             console.log('[Form] Email:', email || '(pas d\'email)');
+            console.log('[Form] Optin:', state.optin);
 
-            const updateResult = await window.photoAPI.orders.updateRemote(state.supabaseOrderId, email, orderId);
+            const updateResult = await window.photoAPI.orders.updateRemote(state.supabaseOrderId, email, orderId, state.optin);
 
             if (updateResult?.status === 'success') {
               console.log('[Form] ✅ Commande mise à jour sur Supabase');

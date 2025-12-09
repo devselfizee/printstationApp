@@ -2985,9 +2985,9 @@ async function createCompletedOrderRemote(localOrderId) {
  * NOUVELLE APPROCHE:
  * 1. GET la commande existante depuis Supabase
  * 2. Réutiliser toutes ses données
- * 3. Mettre à jour uniquement customer_email et status
+ * 3. Mettre à jour customer_email, optin_email et status
  */
-async function updateOrderRemote(supabaseOrderId, email, localOrderId) {
+async function updateOrderRemote(supabaseOrderId, email, localOrderId, optin = false) {
   if (!API_SYNC_CONFIG.enabled) {
     console.log('[UpdateOrder] API désactivée');
     return { status: 'skipped', message: 'API désactivée' };
@@ -3004,6 +3004,7 @@ async function updateOrderRemote(supabaseOrderId, email, localOrderId) {
     console.log('[UpdateOrder] Order ID Supabase:', supabaseOrderId);
     console.log('[UpdateOrder] Order ID Local:', localOrderId);
     console.log('[UpdateOrder] Email fourni:', email || '(vide)');
+    console.log('[UpdateOrder] Optin fourni:', optin);
 
     // ÉTAPE 1: GET la commande existante depuis Supabase
     console.log('[UpdateOrder] ÉTAPE 1: Récupération de la commande existante depuis Supabase...');
@@ -3058,6 +3059,7 @@ async function updateOrderRemote(supabaseOrderId, email, localOrderId) {
       memory_session_id: existingOrder.memory_session_id,
       universe_id: existingOrder.universe_id || null, // 🆕 Préserver l'universe_id existant
       status: 'completed', // ← SEUL CHANGEMENT FORCÉ
+      optin_email: optin ? true : false, // 🆕 Optin email du client
       order_items: existingOrder.order_items || []
     };
 
@@ -3335,9 +3337,9 @@ ipcMain.handle('order:create-remote', async (event, orderData) => {
   return result;
 });
 
-// Handler IPC pour mettre à jour une commande sur Supabase (status=completed + email)
-ipcMain.handle('order:update-remote', async (event, supabaseOrderId, email, localOrderId) => {
-  return await updateOrderRemote(supabaseOrderId, email, localOrderId);
+// Handler IPC pour mettre à jour une commande sur Supabase (status=completed + email + optin)
+ipcMain.handle('order:update-remote', async (event, supabaseOrderId, email, localOrderId, optin) => {
+  return await updateOrderRemote(supabaseOrderId, email, localOrderId, optin);
 });
 
 // Handler IPC pour créer une commande COMPLETED sur Supabase (après paiement Hexapay)
