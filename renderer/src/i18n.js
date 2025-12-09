@@ -357,4 +357,88 @@ export const i18n = {
   }
 };
 
+// Traductions des noms de produits par ID
+export const productNames = {
+  fr: {
+    // Produits Supabase
+    '6fb8850a-1876-43ee-a4d2-c6383b6c0725': 'Photo Papier (chevalet)',
+    '3aad9bd0-dbc3-46e7-a706-11cafb876991': 'Photo Papier (chevalet)',
+    'c398fa83-03c2-465a-bcc7-2435219643e7': 'Photo Papier (chevalet)',
+    '971984db-0ada-4837-b22e-0769bdd289e9': 'Photo Papier (chevalet)',
+    'ab2f2de9-b571-477b-81f0-294dbf05b6b2': 'Pack porte-clé + magnet',
+    '38f63712-300b-492e-9c17-a4e3d36e4f2f': 'Pack porte-clé + magnet',
+    '4a7b5327-c396-4e8f-9d3a-b200208e3aa3': 'Pack porte-clé + magnet',
+    '8c7f922c-258c-4d3d-84b1-14a5c2a91470': 'Pack porte-clé + magnet',
+    // Produits par défaut
+    print: 'Photo papier (chevalet)',
+    magnet: 'Porte-clé magnétique'
+  },
+  en: {
+    '6fb8850a-1876-43ee-a4d2-c6383b6c0725': 'Paper Photo (display stand)',
+    '3aad9bd0-dbc3-46e7-a706-11cafb876991': 'Paper Photo (display stand)',
+    'c398fa83-03c2-465a-bcc7-2435219643e7': 'Paper Photo (display stand)',
+    '971984db-0ada-4837-b22e-0769bdd289e9': 'Paper Photo (display stand)',
+    'ab2f2de9-b571-477b-81f0-294dbf05b6b2': 'Keychain + Magnet Pack',
+    '38f63712-300b-492e-9c17-a4e3d36e4f2f': 'Keychain + Magnet Pack',
+    '4a7b5327-c396-4e8f-9d3a-b200208e3aa3': 'Keychain + Magnet Pack',
+    '8c7f922c-258c-4d3d-84b1-14a5c2a91470': 'Keychain + Magnet Pack',
+    print: 'Paper photo (display stand)',
+    magnet: 'Magnetic keychain'
+  },
+  es: {
+    '6fb8850a-1876-43ee-a4d2-c6383b6c0725': 'Foto en papel (caballete)',
+    '3aad9bd0-dbc3-46e7-a706-11cafb876991': 'Foto en papel (caballete)',
+    'c398fa83-03c2-465a-bcc7-2435219643e7': 'Foto en papel (caballete)',
+    '971984db-0ada-4837-b22e-0769bdd289e9': 'Foto en papel (caballete)',
+    'ab2f2de9-b571-477b-81f0-294dbf05b6b2': 'Pack llavero + imán',
+    '38f63712-300b-492e-9c17-a4e3d36e4f2f': 'Pack llavero + imán',
+    '4a7b5327-c396-4e8f-9d3a-b200208e3aa3': 'Pack llavero + imán',
+    '8c7f922c-258c-4d3d-84b1-14a5c2a91470': 'Pack llavero + imán',
+    print: 'Foto en papel (caballete)',
+    magnet: 'Llavero magnético'
+  },
+  zh: {
+    '6fb8850a-1876-43ee-a4d2-c6383b6c0725': '纸质照片（展示架）',
+    '3aad9bd0-dbc3-46e7-a706-11cafb876991': '纸质照片（展示架）',
+    'c398fa83-03c2-465a-bcc7-2435219643e7': '纸质照片（展示架）',
+    '971984db-0ada-4837-b22e-0769bdd289e9': '纸质照片（展示架）',
+    'ab2f2de9-b571-477b-81f0-294dbf05b6b2': '钥匙扣+磁铁套装',
+    '38f63712-300b-492e-9c17-a4e3d36e4f2f': '钥匙扣+磁铁套装',
+    '4a7b5327-c396-4e8f-9d3a-b200208e3aa3': '钥匙扣+磁铁套装',
+    '8c7f922c-258c-4d3d-84b1-14a5c2a91470': '钥匙扣+磁铁套装',
+    print: '纸质照片（展示架）',
+    magnet: '磁性钥匙扣'
+  },
+  it: {
+    '6fb8850a-1876-43ee-a4d2-c6383b6c0725': 'Foto su carta (cavalletto)',
+    '3aad9bd0-dbc3-46e7-a706-11cafb876991': 'Foto su carta (cavalletto)',
+    'c398fa83-03c2-465a-bcc7-2435219643e7': 'Foto su carta (cavalletto)',
+    '971984db-0ada-4837-b22e-0769bdd289e9': 'Foto su carta (cavalletto)',
+    'ab2f2de9-b571-477b-81f0-294dbf05b6b2': 'Pack portachiavi + magnete',
+    '38f63712-300b-492e-9c17-a4e3d36e4f2f': 'Pack portachiavi + magnete',
+    '4a7b5327-c396-4e8f-9d3a-b200208e3aa3': 'Pack portachiavi + magnete',
+    '8c7f922c-258c-4d3d-84b1-14a5c2a91470': 'Pack portachiavi + magnete',
+    print: 'Foto su carta (cavalletto)',
+    magnet: 'Portachiavi magnetico'
+  },
+  de: {
+    '6fb8850a-1876-43ee-a4d2-c6383b6c0725': 'Papierfoto (Aufsteller)',
+    '3aad9bd0-dbc3-46e7-a706-11cafb876991': 'Papierfoto (Aufsteller)',
+    'c398fa83-03c2-465a-bcc7-2435219643e7': 'Papierfoto (Aufsteller)',
+    '971984db-0ada-4837-b22e-0769bdd289e9': 'Papierfoto (Aufsteller)',
+    'ab2f2de9-b571-477b-81f0-294dbf05b6b2': 'Schlüsselanhänger + Magnet Pack',
+    '38f63712-300b-492e-9c17-a4e3d36e4f2f': 'Schlüsselanhänger + Magnet Pack',
+    '4a7b5327-c396-4e8f-9d3a-b200208e3aa3': 'Schlüsselanhänger + Magnet Pack',
+    '8c7f922c-258c-4d3d-84b1-14a5c2a91470': 'Schlüsselanhänger + Magnet Pack',
+    print: 'Papierfoto (Aufsteller)',
+    magnet: 'Magnetischer Schlüsselanhänger'
+  }
+};
+
 export const t = (key) => i18n[state.lang]?.[key] || key;
+
+// Fonction pour traduire le nom d'un produit
+// Utilise l'ID du produit pour chercher la traduction, sinon retourne le titre de l'API
+export const tProduct = (productId, fallbackTitle) => {
+  return productNames[state.lang]?.[productId] || fallbackTitle || productId;
+};
