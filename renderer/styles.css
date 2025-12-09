@@ -533,8 +533,19 @@ header.topbar{
 .detail-enter > section { max-width: 100%; overflow-x: hidden; }
 @keyframes fadeIn{ from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:none} }
 .detail-title{ text-align:center; font-weight:900; letter-spacing:.12em; text-transform:uppercase; margin:30px 0 20px; font-size:32px; padding-bottom:16px; }
-.detail-preview{ margin: 8px 0 24px; text-align: center; }
+.detail-preview{ margin: 8px 0 24px; text-align: center; position: relative; }
 .detail-preview img{ width:100%; height:auto; object-fit:contain; border-radius:16px; }
+.detail-preview::after{
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url('./assets/watermark.png') center center no-repeat;
+  background-size: contain;
+  pointer-events: none;
+}
 
 .pickup-notice {
   display: flex;
