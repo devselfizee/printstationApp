@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Menu, protocol } from 'electron';
+import { app, BrowserWindow, ipcMain, Menu, protocol, globalShortcut } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import * as fs from 'fs';
@@ -1333,6 +1333,12 @@ app.whenReady().then(async () => {
     platform: process.platform,
     nodeVersion: process.version
   });
+
+  // Enregistrer le raccourci global Ctrl+Q pour quitter l'app
+  globalShortcut.register('CommandOrControl+Q', () => {
+    app.quit();
+  });
+
   try {
     protocol.registerFileProtocol('printstation', (request, callback) => {
       // Extraire le chemin depuis l'URL
@@ -1439,6 +1445,11 @@ app.on('ready', async () => {
 
   createWindow();
   createMenu();
+});
+
+// Désenregistrer les raccourcis globaux avant la fermeture
+app.on('will-quit', () => {
+  globalShortcut.unregisterAll();
 });
 
 app.on('window-all-closed', () => {
