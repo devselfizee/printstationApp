@@ -333,7 +333,7 @@ async function processRemotePhoto(remotePhoto) {
       participantId: participantId,
       universe: universeId,
       fileName: `${remotePhoto.id}.jpg`,
-      url: remotePhoto.url,
+      url: remotePhoto.url_watermark || remotePhoto.url,
       checksum: remotePhoto.checksum,
       size: remotePhoto.size,
       incrustationId: remotePhoto.incrustationId || remotePhoto.incrustation_id || null,
