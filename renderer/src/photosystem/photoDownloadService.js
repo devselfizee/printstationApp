@@ -94,6 +94,10 @@ export async function enqueueDownload(photoId) {
 
   // Utiliser url_watermark pour le téléchargement, sinon remote_url
   const url = photo.url_watermark || photo.remote_url || photo.url;
+  console.log(`[PhotoDownload] 🔍 Photo ${photoId}:`);
+  console.log(`[PhotoDownload]   - url_watermark: ${photo.url_watermark || '(vide)'}`);
+  console.log(`[PhotoDownload]   - remote_url: ${photo.remote_url || '(vide)'}`);
+  console.log(`[PhotoDownload]   - URL utilisée: ${url}`);
   if (!url) {
     console.error(`[PhotoDownload] ❌ Photo ${photoId} n'a pas d'URL!`);
     return;
