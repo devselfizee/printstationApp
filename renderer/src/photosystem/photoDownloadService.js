@@ -92,11 +92,14 @@ export async function enqueueDownload(photoId) {
     return;
   }
 
-  const url = photo.remote_url || photo.url;
+  // Télécharger depuis url_watermark (avec watermark) pour le fichier local
+  const url = photo.url_watermark || photo.remote_url || photo.url;
   if (!url) {
     console.error(`[PhotoDownload] ❌ Photo ${photoId} n'a pas d'URL!`);
     return;
   }
+  console.log(`[PhotoDownload] 📍 URL watermark: ${photo.url_watermark}`);
+  console.log(`[PhotoDownload] 📍 URL remote: ${photo.remote_url}`);
 
   // ⭐ Vérifier si déjà téléchargée
   if (photo.status === 'complete' && photo.local_path) {
