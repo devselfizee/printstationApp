@@ -357,4 +357,40 @@ export const i18n = {
   }
 };
 
+// Traductions des noms de produits par ID
+export const productNames = {
+  fr: {
+    // Ajouter ici les IDs de produits Supabase avec leur traduction
+    // Exemple: 'abc123': 'Magnet Photo',
+    print: 'Photo papier (chevalet)',
+    magnet: 'Porte-clé magnétique'
+  },
+  en: {
+    print: 'Paper photo (display stand)',
+    magnet: 'Magnetic keychain'
+  },
+  es: {
+    print: 'Foto en papel (caballete)',
+    magnet: 'Llavero magnético'
+  },
+  zh: {
+    print: '纸质照片（展示架）',
+    magnet: '磁性钥匙扣'
+  },
+  it: {
+    print: 'Foto su carta (cavalletto)',
+    magnet: 'Portachiavi magnetico'
+  },
+  de: {
+    print: 'Papierfoto (Aufsteller)',
+    magnet: 'Magnetischer Schlüsselanhänger'
+  }
+};
+
 export const t = (key) => i18n[state.lang]?.[key] || key;
+
+// Fonction pour traduire le nom d'un produit
+// Utilise l'ID du produit pour chercher la traduction, sinon retourne le titre de l'API
+export const tProduct = (productId, fallbackTitle) => {
+  return productNames[state.lang]?.[productId] || fallbackTitle || productId;
+};

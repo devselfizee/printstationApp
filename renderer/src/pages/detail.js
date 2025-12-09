@@ -1,5 +1,5 @@
 import { state } from '../state.js';
-import { t } from '../i18n.js';
+import { t, tProduct } from '../i18n.js';
 import { $, getQty, lineTotal, updateCartCount, toast, addOne, removeOne, cartSubtotal } from '../utils.js';
 import { createFooterBar, attachFooterListeners, updateFooterBar, formatPrice } from '../utils.js';
 import { getProductVisual } from '../data.js';
@@ -89,8 +89,9 @@ export const renderOffer = (photo, product) => {
     }
   }
 
+  const productTitle = tProduct(product.id, product.title);
   const visuHTML = imageUrl
-    ? `<img src="${imageUrl}" alt="${product.title}" style="max-width:100%;max-height:190px;object-fit:contain;">`
+    ? `<img src="${imageUrl}" alt="${productTitle}" style="max-width:100%;max-height:190px;object-fit:contain;">`
     : `<div style="width:100%;height:150px;background:#f0f0f0;display:grid;place-items:center;color:#999;">Image non disponible</div>`;
 
 
@@ -98,7 +99,7 @@ export const renderOffer = (photo, product) => {
 el.innerHTML = `
     <div class="visu" style="display:grid;place-items:center;">${visuHTML}</div>
     <div class="info">
-      <h3 class="title">${product.title}</h3>
+      <h3 class="title">${productTitle}</h3>
       <div class="sub">${t('first')} ${product.first}€ · ${t('next')} ${product.next}€</div>
       ${qty >= 1 ? `<div class="meta">${t('already')} ${qty} ${t('inCart')} <a href="#" class="retirer" style="color:var(--brand);text-decoration:underline;cursor:pointer;">${t('remove')}</a></div>` : ''}
     </div>

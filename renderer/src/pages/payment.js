@@ -1,5 +1,5 @@
 import { state } from '../state.js';
-import { t } from '../i18n.js';
+import { t, tProduct } from '../i18n.js';
 import { lineTotal, cartSubtotal, toast } from '../utils.js';
 import { getProductVisual } from '../data.js';
 
@@ -54,8 +54,9 @@ export const renderPayment = (root) => {
     }
 
     // Vignette produit
+    const productTitle = tProduct(product.id, product.title);
     const productThumbHTML = imageUrl
-      ? `<img src="${imageUrl}" alt="${product.title}" class="cart-product-img">`
+      ? `<img src="${imageUrl}" alt="${productTitle}" class="cart-product-img">`
       : `<div class="cart-product-placeholder">N/A</div>`;
 
     // Vignette photo commandée
@@ -69,7 +70,7 @@ export const renderPayment = (root) => {
         <div class="cart-product-thumb">${productThumbHTML}</div>
       </div>
       <div class="cart-info">
-        <div class="title">${product.title} × ${l.qty}</div>
+        <div class="title">${productTitle} × ${l.qty}</div>
       </div>
       <div class="cart-price">${itemTotal.toFixed(2)}€</div>`;
     lines.appendChild(row);
