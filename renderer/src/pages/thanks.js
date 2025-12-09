@@ -16,7 +16,7 @@ export const renderThanks = (root) => {
     </div>`;
   root.appendChild(thanks);
   
-  state.thanksCounter = 10;
+  state.thanksCounter = 8;
   state.timer = setInterval(() => {
     state.thanksCounter--;
     const cnt = $('#counter');
