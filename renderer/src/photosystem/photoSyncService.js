@@ -292,12 +292,7 @@ async function processRemotePhoto(remotePhoto) {
     }
 
     if (existing) {
-      // La photo existe - mettre à jour url_watermark si disponible
-      if (remotePhoto.url_watermark && existing.url_watermark !== remotePhoto.url_watermark) {
-        await db.updatePhotoUrlWatermark(remotePhoto.id, remotePhoto.url_watermark);
-        console.log(`[PhotoSync] 🔄 ${remotePhoto.id}: url_watermark mis à jour`);
-      }
-
+      // La photo existe
       if (existing.status === 'complete') {
         // ⭐ IMPORTANT: Vérifier si le checksum a changé
         if (existing.checksum !== remotePhoto.checksum) {
@@ -315,7 +310,7 @@ async function processRemotePhoto(remotePhoto) {
         return result;
       }
 
-      // En attente ou erreur - relancer le téléchargement avec le bon url_watermark
+      // En attente ou erreur
       result.skipped = true;
       return result;
     }
@@ -339,7 +334,6 @@ async function processRemotePhoto(remotePhoto) {
       universe: universeId,
       fileName: `${remotePhoto.id}.jpg`,
       url: remotePhoto.url,
-      urlWatermark: remotePhoto.url_watermark || null,
       checksum: remotePhoto.checksum,
       size: remotePhoto.size,
       incrustationId: remotePhoto.incrustationId || remotePhoto.incrustation_id || null,
