@@ -66,6 +66,13 @@ function render() {
     if (window.hideAdminLongPressZone) window.hideAdminLongPressZone();
   }
 
+  // Appliquer la classe page-payment pour masquer le scrollX
+  if (state.page === 'payment') {
+    app.classList.add('page-payment');
+  } else {
+    app.classList.remove('page-payment');
+  }
+
   const showHeader = state.page !== 'thanks' && state.page !== 'payment' && state.page !== 'form' && state.page !== 'qr';
   const showBackBtn = state.page !== 'qr' && state.page !== 'listing';
 
