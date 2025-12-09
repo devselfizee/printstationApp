@@ -213,7 +213,6 @@ async function createTables() {
       participant_id TEXT NOT NULL,
       file_name TEXT NOT NULL,
       remote_url TEXT,
-      url_watermark TEXT,
       local_path TEXT,
       checksum TEXT,
       size_bytes INTEGER,
@@ -389,12 +388,6 @@ async function migrateSyncColumns() {
     if (!photosColumnNames.includes('borne_info')) {
       await execAsync('ALTER TABLE photos ADD COLUMN borne_info TEXT');
       console.log('[DB] ✅ Colonne borne_info ajoutée à photos');
-    }
-
-    // Ajouter url_watermark si manquant
-    if (!photosColumnNames.includes('url_watermark')) {
-      await execAsync('ALTER TABLE photos ADD COLUMN url_watermark TEXT');
-      console.log('[DB] ✅ Colonne url_watermark ajoutée à photos');
     }
   } catch (error) {
     console.error('[DB] Erreur migration photos:', error);
