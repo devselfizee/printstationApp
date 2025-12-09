@@ -588,7 +588,6 @@ export async function addPhoto(photo) {
     universe,
     fileName,
     url,
-    urlWatermark,
     checksum,
     size,
     incrustationId,
@@ -598,10 +597,10 @@ export async function addPhoto(photo) {
 
   return runAsync(
     `INSERT OR REPLACE INTO photos (
-      id, participant_id, file_name, remote_url, url_watermark, checksum,
+      id, participant_id, file_name, remote_url, checksum,
       size_bytes, incrustation_id, date_photo, borne_info, status, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP)`,
-    [id, participantId, fileName, url, urlWatermark || null, checksum, size, incrustationId || null, datePhoto || null, borneInfo || null]
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP)`,
+    [id, participantId, fileName, url, checksum, size, incrustationId || null, datePhoto || null, borneInfo || null]
   );
 }
 
