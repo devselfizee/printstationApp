@@ -93,9 +93,10 @@ export const getFooterHTML = (config = {}) => {
     continueLabel = t('viewCart'),
     onCancel = null,
     onContinue = null,
-    showPrice = false
+    showPrice = false,
+    showBadge = true
   } = config;
-  
+
   // Désactiver le bouton "Voir le panier" si le panier est vide
   const isCartEmpty = totalQty === 0;
 
@@ -109,7 +110,7 @@ export const getFooterHTML = (config = {}) => {
     ` : ''}
     <div class="buttons">
       <button class="btn btn-cancel">${cancelLabel}</button>
-      <button class="btn btn-continue${isCartEmpty ? ' disabled' : ''}" ${isCartEmpty ? 'disabled' : ''}>${continueLabel}${totalQty > 0 ? `<span class="btn-badge">${totalQty}</span>` : ''}</button>
+      <button class="btn btn-continue${isCartEmpty ? ' disabled' : ''}" ${isCartEmpty ? 'disabled' : ''}>${continueLabel}${showBadge && totalQty > 0 ? `<span class="btn-badge">${totalQty}</span>` : ''}</button>
     </div>`;
 };
 

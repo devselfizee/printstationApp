@@ -88,7 +88,8 @@ export const renderForm = (root) => {
 
 // REMPLACER les boutons par le footer
 const footer = createFooterBar({
-  showPrice: false,  // ← Masque le prix
+  showPrice: false,
+  showBadge: false,
   cancelLabel: t('skip'),
   continueLabel: t('finish'),
   onCancel: () => {
