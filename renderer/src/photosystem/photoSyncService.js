@@ -292,25 +292,30 @@ async function processRemotePhoto(remotePhoto) {
     }
 
     if (existing) {
-      // La photo existe
+      // La photo existe - mettre à jour url_watermark si disponible
+      if (remotePhoto.url_watermark && existing.url_watermark !== remotePhoto.url_watermark) {
+        await db.updatePhotoUrlWatermark(remotePhoto.id, remotePhoto.url_watermark);
+        console.log(`[PhotoSync] 🔄 ${remotePhoto.id}: url_watermark mis à jour`);
+      }
+
       if (existing.status === 'complete') {
         // ⭐ IMPORTANT: Vérifier si le checksum a changé
         if (existing.checksum !== remotePhoto.checksum) {
           console.log(`[PhotoSync] 🔄 ${remotePhoto.id}: checksum changé, re-téléchargement`);
-          
+
           // Forcer le re-téléchargement
           await db.updatePhotoStatus(remotePhoto.id, 'pending');
           await downloadService.enqueueDownload(remotePhoto.id);
-          
+
           result.updated = true;
           return result;
         }
-        
+
         // Checksum identique, skip
         return result;
       }
-      
-      // En attente ou erreur
+
+      // En attente ou erreur - relancer le téléchargement avec le bon url_watermark
       result.skipped = true;
       return result;
     }

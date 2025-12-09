@@ -616,6 +616,16 @@ export async function updatePhotoStatus(photoId, status) {
 }
 
 /**
+ * Mettre à jour l'URL watermark d'une photo
+ */
+export async function updatePhotoUrlWatermark(photoId, urlWatermark) {
+  return runAsync(
+    'UPDATE photos SET url_watermark = ? WHERE id = ?',
+    [urlWatermark, photoId]
+  );
+}
+
+/**
  * Mettre à jour le checksum d'une photo
  */
 export async function updatePhotoChecksum(photoId, checksum) {
