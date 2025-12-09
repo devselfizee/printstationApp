@@ -831,7 +831,7 @@ header.topbar{
 }
 
 /* PAYMENT */
-.app.page-payment { overflow-x: hidden; }
+body.page-payment { overflow-x: hidden; }
 .payment{ padding:0 0 40px; }
 .payment h2 { text-align:center; font-weight:900; letter-spacing:.12em; text-transform:uppercase; margin:160px 0 20px; font-size:32px; padding-bottom:16px; }
 .paybox{ border-radius:14px; background:#fff; padding:40px; box-shadow:0 12px 28px rgba(17,24,39,.08); display: flex;

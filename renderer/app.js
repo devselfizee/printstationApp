@@ -66,11 +66,11 @@ function render() {
     if (window.hideAdminLongPressZone) window.hideAdminLongPressZone();
   }
 
-  // Appliquer la classe page-payment pour masquer le scrollX
+  // Appliquer la classe page-payment sur le body pour masquer le scrollX
   if (state.page === 'payment') {
-    app.classList.add('page-payment');
+    document.body.classList.add('page-payment');
   } else {
-    app.classList.remove('page-payment');
+    document.body.classList.remove('page-payment');
   }
 
   const showHeader = state.page !== 'thanks' && state.page !== 'payment' && state.page !== 'form' && state.page !== 'qr';
