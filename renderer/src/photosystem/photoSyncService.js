@@ -327,13 +327,13 @@ async function processRemotePhoto(remotePhoto) {
       // Continuer quand même pour ajouter la photo
     }
 
-    // Nouvelle photo
+    // Nouvelle photo - utiliser url_nowatermark pour télécharger sans watermark
     const photo = {
       id: remotePhoto.id,
       participantId: participantId,
       universe: universeId,
       fileName: `${remotePhoto.id}.jpg`,
-      url: remotePhoto.url,
+      url: remotePhoto.url_nowatermark || remotePhoto.url,
       checksum: remotePhoto.checksum,
       size: remotePhoto.size,
       incrustationId: remotePhoto.incrustationId || remotePhoto.incrustation_id || null,
