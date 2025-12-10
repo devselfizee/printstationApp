@@ -139,11 +139,6 @@ const photoAPI = {
     isFullscreen: () => ipcRenderer.invoke('window:is-fullscreen'),
   },
 
-  // App controls
-  app: {
-    quit: () => ipcRenderer.invoke('app:quit'),
-  },
-
   // Simulator
   simulator: {
     runHexapay: () => ipcRenderer.invoke('simulator:run-hexapay'),
@@ -203,9 +198,10 @@ const photoAPI = {
     getLogPath: () => ipcRenderer.invoke('logger:get-log-path'),
   },
 
-  // App (dev tools toggle)
+  // App controls (dev tools toggle + quit)
   app: {
     toggleDevMenu: () => ipcRenderer.invoke('app:toggle-dev-menu'),
+    quit: () => ipcRenderer.invoke('app:quit'),
   },
 
   // Listeners
