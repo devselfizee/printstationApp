@@ -185,36 +185,50 @@ function showAdminLogin() {
   modal.id = 'admin-login-modal';
   modal.className = 'admin-login-modal';
   modal.innerHTML = `
-    <!-- Formulaire positionné au-dessus du clavier -->
-    <div class="admin-login-container">
-      <div class="admin-login-box" id="adminLoginBox">
-        <h2>🔐 Admin</h2>
-        <div class="admin-password-display" id="adminPasswordDisplay">
-          <span class="password-dots" id="passwordDots"></span>
-        </div>
-        <div class="admin-error-msg" id="adminErrorMsg"></div>
+    <!-- Overlay centré -->
+    <div class="admin-login-overlay">
+      <div class="admin-login-wrapper">
+        <!-- Formulaire -->
+        <div class="admin-login-box" id="adminLoginBox">
+          <h2>🔐 Admin</h2>
+          <div class="admin-password-display" id="adminPasswordDisplay">
+            <span class="password-dots" id="passwordDots"></span>
+          </div>
+          <div class="admin-error-msg" id="adminErrorMsg"></div>
 
-        <div class="admin-buttons">
-          <button id="adminOkBtn" class="admin-btn-ok">Valider</button>
-          <button id="adminCancelBtn" class="admin-btn-cancel">Annuler</button>
+          <div class="admin-buttons">
+            <button id="adminOkBtn" class="admin-btn-ok">Valider</button>
+            <button id="adminCancelBtn" class="admin-btn-cancel">Annuler</button>
+          </div>
         </div>
+
+        <!-- Clavier virtuel -->
+        <div class="admin-kb" id="adminKb"></div>
       </div>
     </div>
 
-    <!-- Clavier virtuel en position fixed -->
-    <div class="admin-kb" id="adminKb"></div>
-
     <style>
-      .admin-login-container {
+      .admin-login-overlay {
         position: fixed;
-        bottom: 355px;
-        left: 50%;
-        transform: translateX(-50%);
-        min-width: 400px;
-        z-index: 10002;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10001;
+      }
+      .admin-login-wrapper {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 30px;
       }
       .admin-login-box {
         text-align: center;
+        color: #fff;
       }
       .admin-login-box h2 {
         margin: 0 0 20px 0;
@@ -272,10 +286,6 @@ function showAdminLogin() {
         background: rgba(100,255,100,0.5);
       }
       .admin-kb {
-        position: fixed;
-        bottom: 20px;
-        left: 50%;
-        transform: translateX(-50%);
         width: 1080px;
         background: #fff;
         border-radius: 16px;
@@ -283,7 +293,6 @@ function showAdminLogin() {
         display: flex;
         flex-direction: column;
         gap: 0;
-        z-index: 10002;
         box-shadow: 0 12px 28px rgba(17, 24, 39, 0.15);
         box-sizing: border-box;
       }

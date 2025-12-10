@@ -3671,10 +3671,13 @@ ipcMain.handle('window:is-fullscreen', async (event) => {
  */
 ipcMain.handle('app:quit', async (event) => {
   console.log('[IPC] app:quit - Fermeture application demandée');
-  // Délai court pour permettre à la réponse IPC d'être envoyée
+  // Fermer toutes les fenêtres puis quitter
   setTimeout(() => {
-    app.quit();
-  }, 100);
+    if (mainWindow) {
+      mainWindow.close();
+    }
+    app.exit(0);
+  }, 200);
   return { status: 'success' };
 });
 
