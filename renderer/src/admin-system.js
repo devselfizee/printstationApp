@@ -243,7 +243,7 @@ function showAdminLogin() {
         align-items: center;
         justify-content: center;
         overflow: hidden;
-        max-width: 400px;
+        width: 400px;
       }
       .password-dots {
         font-size: 24px;
