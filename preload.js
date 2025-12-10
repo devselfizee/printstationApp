@@ -139,6 +139,11 @@ const photoAPI = {
     isFullscreen: () => ipcRenderer.invoke('window:is-fullscreen'),
   },
 
+  // App controls
+  app: {
+    quit: () => ipcRenderer.invoke('app:quit'),
+  },
+
   // Simulator
   simulator: {
     runHexapay: () => ipcRenderer.invoke('simulator:run-hexapay'),

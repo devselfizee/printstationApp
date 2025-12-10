@@ -3667,6 +3667,15 @@ ipcMain.handle('window:is-fullscreen', async (event) => {
 });
 
 /**
+ * ===== HANDLERS IPC APP =====
+ */
+ipcMain.handle('app:quit', async (event) => {
+  console.log('[IPC] app:quit - Fermeture application demandée');
+  app.quit();
+  return { status: 'success' };
+});
+
+/**
  * ===== HANDLERS IPC PARTICIPANTS =====
  */
 ipcMain.handle('participant:add-or-update', async (event, participantId, universeId, status) => {

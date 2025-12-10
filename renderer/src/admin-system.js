@@ -228,6 +228,8 @@ function showAdminLogin() {
         display: flex;
         align-items: center;
         justify-content: center;
+        overflow: hidden;
+        max-width: 400px;
       }
       .password-dots {
         font-size: 24px;
@@ -235,6 +237,9 @@ function showAdminLogin() {
         color: #fff;
         min-height: 1em;
         line-height: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
       .password-dots:empty::before {
         content: '●';
@@ -271,7 +276,7 @@ function showAdminLogin() {
         bottom: 20px;
         left: 50%;
         transform: translateX(-50%);
-        width: 690px;
+        width: 1080px;
         background: #fff;
         border-radius: 16px;
         padding: 30px 40px;
@@ -280,22 +285,23 @@ function showAdminLogin() {
         gap: 0;
         z-index: 10002;
         box-shadow: 0 12px 28px rgba(17, 24, 39, 0.15);
+        box-sizing: border-box;
       }
       .admin-kb-row {
         display: flex;
         justify-content: center;
-        gap: 12px;
-        margin: 8px 0;
+        gap: 14px;
+        margin: 10px 0;
       }
       .admin-key {
         background: #f3f4f6;
         border: none;
         border-radius: 12px;
         color: #111827;
-        font-size: 16px;
+        font-size: 20px;
         font-weight: 900;
-        width: 52px;
-        height: 52px;
+        width: 75px;
+        height: 65px;
         cursor: pointer;
         transition: all 0.12s ease;
         display: flex;
@@ -312,8 +318,8 @@ function showAdminLogin() {
       .admin-key.delete-key {
         background: #fee2e2;
         color: #dc2626;
-        width: 100px;
-        font-size: 13px;
+        width: 140px;
+        font-size: 16px;
       }
       .admin-key.delete-key:hover {
         background: #fecaca;
@@ -579,6 +585,10 @@ async function showAdminDashboard() {
           <div class="total-value">${formatEuro(totalRevenue)} €</div>
         </div>
       </section>
+
+      <section class="admin-section admin-actions">
+        <button id="adminQuitBtn" class="admin-btn-quit">🚪 Quitter l'application</button>
+      </section>
     </div>
   `;
 
@@ -663,6 +673,19 @@ async function showAdminDashboard() {
   const closeBtn = $('#adminCloseBtn');
   if (closeBtn) {
     closeBtn.addEventListener('click', closeDashboard);
+  }
+
+  // Bouton Quitter l'application
+  const quitBtn = $('#adminQuitBtn');
+  if (quitBtn) {
+    quitBtn.addEventListener('click', async () => {
+      if (confirm('Êtes-vous sûr de vouloir quitter l\'application ?')) {
+        console.log('[Admin] Fermeture application demandée');
+        if (window.photoAPI?.app?.quit) {
+          await window.photoAPI.app.quit();
+        }
+      }
+    });
   }
 
   // Fermer avec Escape
