@@ -687,13 +687,8 @@ async function showAdminDashboard() {
   // Bouton Quitter l'application
   const quitBtn = $('#adminQuitBtn');
   if (quitBtn) {
-    quitBtn.addEventListener('click', async () => {
-      if (confirm('Êtes-vous sûr de vouloir quitter l\'application ?')) {
-        console.log('[Admin] Fermeture application demandée');
-        if (window.photoAPI?.app?.quit) {
-          await window.photoAPI.app.quit();
-        }
-      }
+    quitBtn.addEventListener('click', () => {
+      showQuitConfirmModal();
     });
   }
 
@@ -869,5 +864,134 @@ function closeAdminWarningModal() {
   if (countdownInterval) {
     clearInterval(countdownInterval);
     countdownInterval = null;
+  }
+}
+
+/**
+ * Afficher le modal de confirmation pour quitter l'application
+ */
+function showQuitConfirmModal() {
+  const modal = document.createElement('div');
+  modal.id = 'quit-confirm-modal';
+  modal.innerHTML = `
+    <div class="quit-confirm-overlay">
+      <div class="quit-confirm-box">
+        <div class="quit-confirm-icon">🚪</div>
+        <h2>Quitter l'application ?</h2>
+        <p>Êtes-vous sûr de vouloir fermer l'application ?</p>
+        <div class="quit-confirm-buttons">
+          <button id="quitConfirmYes" class="quit-btn quit-btn-yes">Oui, quitter</button>
+          <button id="quitConfirmNo" class="quit-btn quit-btn-no">Non, annuler</button>
+        </div>
+      </div>
+    </div>
+    <style>
+      .quit-confirm-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.9);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 99999;
+        animation: quitFadeIn 0.2s ease;
+      }
+      @keyframes quitFadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      .quit-confirm-box {
+        background: rgba(30, 58, 95, 0.95);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        padding: 40px 60px;
+        text-align: center;
+        color: white;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        min-width: 400px;
+      }
+      .quit-confirm-icon {
+        font-size: 64px;
+        margin-bottom: 15px;
+      }
+      .quit-confirm-box h2 {
+        margin: 0 0 15px 0;
+        font-size: 24px;
+      }
+      .quit-confirm-box p {
+        margin: 0 0 30px 0;
+        opacity: 0.8;
+        font-size: 16px;
+      }
+      .quit-confirm-buttons {
+        display: flex;
+        gap: 20px;
+        justify-content: center;
+      }
+      .quit-btn {
+        border: none;
+        border-radius: 12px;
+        font-size: 18px;
+        font-weight: bold;
+        padding: 16px 40px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+      }
+      .quit-btn-yes {
+        background: rgba(239, 68, 68, 0.3);
+        border: 2px solid rgba(239, 68, 68, 0.5);
+        color: #fff;
+      }
+      .quit-btn-yes:hover {
+        background: rgba(239, 68, 68, 0.5);
+      }
+      .quit-btn-no {
+        background: rgba(100, 255, 100, 0.3);
+        border: 2px solid rgba(100, 255, 100, 0.5);
+        color: #fff;
+      }
+      .quit-btn-no:hover {
+        background: rgba(100, 255, 100, 0.5);
+      }
+      .quit-btn:active {
+        transform: scale(0.98);
+      }
+    </style>
+  `;
+
+  document.body.appendChild(modal);
+
+  // Bouton Oui - Quitter
+  const yesBtn = document.getElementById('quitConfirmYes');
+  if (yesBtn) {
+    yesBtn.addEventListener('click', async () => {
+      console.log('[Admin] Confirmation quitter - OUI cliqué');
+      modal.remove();
+
+      console.log('[Admin] Appel window.photoAPI.app.quit()...');
+      if (window.photoAPI?.app?.quit) {
+        try {
+          await window.photoAPI.app.quit();
+          console.log('[Admin] quit() appelé avec succès');
+        } catch (error) {
+          console.error('[Admin] Erreur quit():', error);
+        }
+      } else {
+        console.error('[Admin] window.photoAPI.app.quit non disponible');
+      }
+    });
+  }
+
+  // Bouton Non - Annuler
+  const noBtn = document.getElementById('quitConfirmNo');
+  if (noBtn) {
+    noBtn.addEventListener('click', () => {
+      console.log('[Admin] Confirmation quitter - NON cliqué');
+      modal.remove();
+    });
   }
 }
