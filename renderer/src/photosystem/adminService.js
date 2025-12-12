@@ -85,7 +85,10 @@ export async function getDashboardStats() {
     // ⭐ CORRECTION: Attendre toutes les promesses de participants
     const participantsPromises = universes.map(u => db.getParticipantsByUniverse(u.id));
     const participantsArrays = await Promise.all(participantsPromises);
-    const participants = participantsArrays.flat().filter(p => p); // Filtrer les undefined
+    const participants = participantsArrays
+      .flat()
+      .filter(p => p) // Filtrer les undefined
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at)); // Trier par created_at DESC
 
     let totalPhotos = 0;
     let downloadedPhotos = 0;
