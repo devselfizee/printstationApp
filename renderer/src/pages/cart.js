@@ -1,6 +1,6 @@
 import { state } from '../state.js';
 import { t, tProduct } from '../i18n.js';
-import { lineTotal, cartSubtotal, cartNominal, updateCartCount, addOne, removeOne, createFooterBar, attachFooterListeners, updateFooterBar, formatPrice, showCancelOrderModal } from '../utils.js';
+import { lineTotal, cartSubtotal, cartNominal, updateCartCount, addOne, removeOne, createFooterBar, attachFooterListeners, updateFooterBar, formatPrice } from '../utils.js';
 import { getProductVisual, UNIVERSES } from '../data.js';
 
 export const renderCart = (root) => {
@@ -181,113 +181,9 @@ footer.classList.add('footer-bar-cart');
 root.appendChild(footer);
 attachFooterListeners({
   onCancel: () => {
-    // Si le panier est vide, retourner directement au QR
-    if (state.cart.length === 0) {
-      state.page = 'qr';
-      state.universe = null;
-      state.photos = [];
-      state.cart = [];
-      updateCartCount();
-      window.render();
-      return;
-    }
-
-    // Afficher le modal de confirmation
-    showCancelOrderModal(async () => {
-      // Désactiver les boutons pour éviter les doubles clics
-      const cancelBtn = document.querySelector('.btn-cancel');
-      const continueBtn = document.querySelector('.btn-continue');
-      if (cancelBtn) cancelBtn.disabled = true;
-      if (continueBtn) continueBtn.disabled = true;
-
-      // Si une commande Supabase existe déjà, l'annuler via l'API
-      if (state.supabaseOrderId && window.photoAPI?.orders?.cancelRemote) {
-        try {
-          console.log('[Cart] Annulation de la commande sur Supabase...');
-          console.log('[Cart] Supabase Order ID:', state.supabaseOrderId);
-          await window.photoAPI.orders.cancelRemote(state.supabaseOrderId);
-          console.log('[Cart] ✅ Commande annulée sur Supabase');
-        } catch (error) {
-          console.error('[Cart] ❌ Erreur annulation Supabase:', error);
-        }
-      }
-
-      // Enregistrer la commande annulée dans la DB locale
-      if (state.cart.length > 0 && window.photoAPI?.orders && window.photoAPI?.cart && state.sessionId) {
-        try {
-          console.log('[Cart] Enregistrement de la commande annulée...');
-
-          // 1. Créer l'ID de commande
-          const orderId = `order_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-          // 2. Calculer les montants
-          const totalAmount = cartNominal(state.cart, window.PRODUCTS);
-          const discountAmount = totalAmount - cartSubtotal(state.cart, window.PRODUCTS);
-          const finalAmount = cartSubtotal(state.cart, window.PRODUCTS);
-
-          // 3. Créer la commande avec statut "pending" (sera changé à cancelled après)
-          const orderResult = await window.photoAPI.orders.create({
-            orderId: orderId,
-            participantId: state.participantId || state.sessionId,
-            universeId: state.universe?.id || state.universeId || 'B',
-            totalAmount: totalAmount,
-            discountAmount: discountAmount,
-            finalAmount: finalAmount,
-            email: null,
-            optin: 0,
-            paymentMethod: null,
-            notes: 'Commande annulée par l\'utilisateur depuis le panier'
-          });
-
-          if (orderResult?.status === 'success') {
-            console.log('[Cart] ✅ Commande créée:', orderId);
-
-            // 4. Associer tous les items de la session à cette commande et les marquer comme annulés
-            await window.photoAPI.cart.cancelSession(state.sessionId, orderId);
-
-            console.log('[Cart] ✅ Items annulés et liés à la commande:', orderId);
-
-            // 5. Mettre à jour le statut de la commande à "cancelled"
-            await window.photoAPI.orders.updateStatus(orderId, 'cancelled', 'Annulée par l\'utilisateur');
-
-            console.log('[Cart] ✅ Commande marquée comme annulée');
-
-            // 6. Synchroniser la commande annulée avec l'API distante (si pas déjà fait via cancelRemote)
-            if (!state.supabaseOrderId) {
-              try {
-                console.log('[Cart] 🔄 Synchronisation de la commande annulée avec l\'API distante...');
-                const syncResult = await window.photoAPI.orders.syncRemote(orderId);
-
-                if (syncResult?.status === 'success') {
-                  console.log('[Cart] ✅ Commande annulée synchronisée avec l\'API distante');
-                  console.log('[Cart] Détails de la réponse:', syncResult.response);
-                } else if (syncResult?.status === 'skipped') {
-                  console.log('[Cart] ⏭️  Synchronisation ignorée:', syncResult.message);
-                } else {
-                  console.warn('[Cart] ⚠️  Erreur synchronisation API:', syncResult?.error);
-                }
-              } catch (syncError) {
-                console.error('[Cart] ❌ Erreur lors de la synchronisation:', syncError);
-              }
-            }
-          } else {
-            console.error('[Cart] ❌ Erreur création commande annulée:', orderResult?.error);
-          }
-        } catch (error) {
-          console.error('[Cart] ❌ Erreur enregistrement commande annulée:', error);
-        }
-      }
-
-      // Réinitialiser l'état et retourner au QR code
-      state.page = 'qr';
-      state.universe = null;
-      state.photos = [];
-      state.cart = [];
-      state.localOrderId = null;
-      state.supabaseOrderId = null;
-      updateCartCount();
-      window.render();
-    });
+    // Simplement retourner à la page listing (comme le bouton retour du haut)
+    state.page = 'listing';
+    window.render();
   },
   onContinue: async () => {
     // Désactiver les boutons pour éviter les doubles clics
