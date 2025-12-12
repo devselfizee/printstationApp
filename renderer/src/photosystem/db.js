@@ -483,13 +483,6 @@ export async function getParticipantsByUniverse(universeId) {
   );
 }
 
-export async function getAllParticipants(limit = 50) {
-  return allAsync(
-    `SELECT * FROM participants ORDER BY created_at DESC LIMIT ?`,
-    [limit]
-  );
-}
-
 /**
  * ===== PHOTOS =====
  */

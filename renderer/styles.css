@@ -1541,28 +1541,6 @@ body.page-payment { overflow: hidden; }
   background: rgba(94, 183, 255, 0.05);
 }
 
-/* Participants table */
-.participants-table .participant-id {
-  font-family: monospace;
-  font-size: 12px;
-  color: #94a3b8;
-}
-
-.participants-table .status-synced {
-  color: #10b981;
-  font-weight: 600;
-}
-
-.participants-table .status-pending {
-  color: #f59e0b;
-  font-weight: 600;
-}
-
-.participants-table .status-error {
-  color: #ef4444;
-  font-weight: 600;
-}
-
 /* TOTAL */
 .admin-total {
   background: rgba(16, 185, 129, 0.1);

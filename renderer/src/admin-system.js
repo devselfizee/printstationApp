@@ -506,17 +506,6 @@ async function showAdminDashboard() {
     console.error('[Admin] Erreur stats commandes:', error);
   }
 
-  // Charger la liste des participants
-  let participantsList = [];
-  try {
-    if (window.photoAPI?.admin?.getParticipants) {
-      participantsList = await window.photoAPI.admin.getParticipants(20); // 20 derniers participants
-      console.log('[Admin] Participants:', participantsList);
-    }
-  } catch (error) {
-    console.error('[Admin] Erreur participants:', error);
-  }
-
   // Calculer le total revenue de tous les temps
   const totalRevenue = monthStats?.total_revenue || 0;
 
@@ -595,29 +584,6 @@ async function showAdminDashboard() {
               </tr>
             `).join('')
             : '<tr><td colspan="3" style="text-align:center;color:#999;">Aucune vente</td></tr>'
-          }
-        </table>
-      </section>
-
-      <section class="admin-section">
-        <h2>👥 Derniers Participants</h2>
-        <table class="admin-table participants-table">
-          <tr>
-            <th>ID</th>
-            <th>Univers</th>
-            <th>Statut</th>
-            <th>Créé le</th>
-          </tr>
-          ${participantsList.length > 0
-            ? participantsList.map(p => `
-              <tr>
-                <td class="participant-id">${p.id ? p.id.slice(0, 8) + '...' : '-'}</td>
-                <td>${p.universe_id || '-'}</td>
-                <td class="status-${p.status || 'pending'}">${p.status || 'pending'}</td>
-                <td>${p.created_at ? new Date(p.created_at).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' }) : '-'}</td>
-              </tr>
-            `).join('')
-            : '<tr><td colspan="4" style="text-align:center;color:#999;">Aucun participant</td></tr>'
           }
         </table>
       </section>
