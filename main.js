@@ -3694,46 +3694,6 @@ ipcMain.handle('participant:add-or-update', async (event, participantId, univers
   try {
     await photoSystem.db.addOrUpdateParticipant(participantId, universeId, status || 'active');
     console.log('[IPC] ✅ Participant créé/mis à jour:', participantId);
-
-    // Sync avec l'API Supabase /manage-participants (même si photos en cours ou en erreur)
-    if (API_SYNC_CONFIG.enabled) {
-      try {
-        console.log('[IPC] 🔄 Synchronisation participant avec Supabase...');
-
-        // Récupérer le token d'authentification
-        const authToken = await getAuthToken();
-
-        // Construire l'URL de l'API
-        const baseUrl = process.env.BASE_URL || 'https://ygetxuvqrknbggplzmvy.supabase.co/functions/v1';
-        const participantsUrl = `${baseUrl}/manage-participants`;
-
-        // Préparer le payload
-        const payload = {
-          universe_id: universeId,
-          kiosk_id: API_SYNC_CONFIG.kioskId,
-          participant_id: participantId
-        };
-
-        console.log('[IPC] Payload participant:', payload);
-
-        // Faire la requête POST
-        const response = await makeHttpsRequest(
-          participantsUrl,
-          payload,
-          'POST',
-          {
-            'apikey': API_SYNC_CONFIG.supabaseAnonKey
-          },
-          authToken
-        );
-
-        console.log('[IPC] ✅ Participant synchronisé avec Supabase:', response);
-      } catch (syncError) {
-        // Log l'erreur mais ne pas faire échouer la création locale
-        console.error('[IPC] ⚠️ Erreur sync participant Supabase:', syncError.message);
-      }
-    }
-
     return { status: 'success', participantId, universeId };
   } catch (error) {
     console.error('[IPC] ❌ Erreur création participant:', error);
