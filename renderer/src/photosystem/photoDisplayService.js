@@ -137,6 +137,10 @@ export async function handleQRCodeScan(qrContent) {
 
     await db.addOrUpdateParticipant(participantId, universeId, 'pending');
 
+    // ⭐ Enregistrer le scan dans scan_stories
+    await db.addScanStory(participantId, universeId);
+    console.log('[PhotoDisplay] Scan enregistré dans scan_stories');
+
     // ⭐ Charger les photos initiales
     const photos = await loadParticipantPhotos(participantId);
 

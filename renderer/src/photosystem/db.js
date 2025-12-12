@@ -323,6 +323,19 @@ async function createTables() {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );`,
+
+    `CREATE TABLE IF NOT EXISTS scan_stories (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      participant_id TEXT NOT NULL,
+      universe_id TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(participant_id) REFERENCES participants(id),
+      FOREIGN KEY(universe_id) REFERENCES universes(id)
+    );`,
+
+    `CREATE INDEX IF NOT EXISTS idx_scan_stories_participant ON scan_stories(participant_id);`,
+    `CREATE INDEX IF NOT EXISTS idx_scan_stories_universe ON scan_stories(universe_id);`,
+    `CREATE INDEX IF NOT EXISTS idx_scan_stories_created_at ON scan_stories(created_at);`,
   ];
 
   for (const stmt of statements) {
@@ -517,6 +530,46 @@ export async function getSyncLogs(participantId, limit = 10) {
   return allAsync(
     `SELECT * FROM sync_log WHERE participant_id = ? ORDER BY synced_at DESC LIMIT ?`,
     [participantId, limit]
+  );
+}
+
+/**
+ * ===== SCAN STORIES =====
+ */
+
+/**
+ * Ajouter une entrée dans scan_stories lors d'un scan valide
+ */
+export async function addScanStory(participantId, universeId) {
+  return runAsync(
+    `INSERT INTO scan_stories (participant_id, universe_id, created_at)
+     VALUES (?, ?, CURRENT_TIMESTAMP)`,
+    [participantId, universeId]
+  );
+}
+
+/**
+ * Récupérer l'historique des scans d'un participant
+ */
+export async function getScanStories(participantId, limit = 50) {
+  return allAsync(
+    `SELECT * FROM scan_stories WHERE participant_id = ? ORDER BY created_at DESC LIMIT ?`,
+    [participantId, limit]
+  );
+}
+
+/**
+ * Récupérer tous les scans (pour admin)
+ */
+export async function getAllScanStories(limit = 100) {
+  return allAsync(
+    `SELECT s.*, p.status as participant_status, u.name as universe_name
+     FROM scan_stories s
+     LEFT JOIN participants p ON s.participant_id = p.id
+     LEFT JOIN universes u ON s.universe_id = u.id
+     ORDER BY s.created_at DESC
+     LIMIT ?`,
+    [limit]
   );
 }
 
