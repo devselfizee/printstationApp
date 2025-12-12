@@ -135,7 +135,13 @@ export async function handleQRCodeScan(qrContent) {
 
     console.log('[PhotoDisplay] Univers chargé:', universeId);
 
-    await db.addOrUpdateParticipant(participantId, universeId, 'pending');
+    // Utiliser l'IPC pour créer/mettre à jour le participant (cela déclenchera la sync Supabase)
+    if (window.photoAPI?.participants?.addOrUpdate) {
+      await window.photoAPI.participants.addOrUpdate(participantId, universeId, 'pending');
+    } else {
+      // Fallback sur la méthode directe si IPC non disponible
+      await db.addOrUpdateParticipant(participantId, universeId, 'pending');
+    }
 
     // ⭐ Charger les photos initiales
     const photos = await loadParticipantPhotos(participantId);

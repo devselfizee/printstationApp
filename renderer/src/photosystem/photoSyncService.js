@@ -318,9 +318,15 @@ async function processRemotePhoto(remotePhoto) {
     // ⭐ CORRECTION: Créer/mettre à jour le participant AVANT d'ajouter la photo
     const participantId = remotePhoto.participantId || 'unknown';
     const universeId = remotePhoto.universe || 'unknown';
-    
+
     try {
-      await db.addOrUpdateParticipant(participantId, universeId, 'syncing');
+      // Utiliser l'IPC pour créer/mettre à jour le participant (cela déclenchera la sync Supabase)
+      if (window.photoAPI?.participants?.addOrUpdate) {
+        await window.photoAPI.participants.addOrUpdate(participantId, universeId, 'syncing');
+      } else {
+        // Fallback sur la méthode directe si IPC non disponible
+        await db.addOrUpdateParticipant(participantId, universeId, 'syncing');
+      }
       console.log(`[PhotoSync] ✅ Participant créé/mis à jour: ${participantId}`);
     } catch (error) {
       console.error(`[PhotoSync] ⚠️  Erreur création participant: ${error.message}`);
