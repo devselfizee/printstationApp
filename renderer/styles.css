@@ -262,7 +262,7 @@ header.topbar{
 
 /* Bouton Retour (style transparent avec bordure blanche) */
 .footer-bar .btn-cancel.btn-back {
-  background: transparent;
+  background: transparent !important;
   border: 1px solid rgba(255, 255, 255, 0.6);
   color: #fff;
 }
