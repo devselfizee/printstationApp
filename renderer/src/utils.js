@@ -226,6 +226,107 @@ export const showCancelOrderModal = (onCancel) => {
   };
 };
 
+/**
+ * Gérer l'annulation d'une commande avec enregistrement dans la DB et sync Supabase
+ * À utiliser depuis listing.js, detail.js et inactivity-timer.js
+ */
+export const handleOrderCancellation = async (source = 'unknown') => {
+  const { state } = window;
+
+  // Si le panier est vide, rien à annuler
+  if (!state.cart || state.cart.length === 0) {
+    console.log('[CancelOrder] Panier vide, rien à annuler');
+    return;
+  }
+
+  console.log(`[CancelOrder] Annulation depuis: ${source}`);
+  console.log(`[CancelOrder] Articles dans le panier: ${state.cart.length}`);
+
+  try {
+    // 1. Si une commande Supabase existe déjà, l'annuler via l'API
+    if (state.supabaseOrderId && window.photoAPI?.orders?.cancelRemote) {
+      try {
+        console.log('[CancelOrder] Annulation de la commande sur Supabase...');
+        console.log('[CancelOrder] Supabase Order ID:', state.supabaseOrderId);
+        await window.photoAPI.orders.cancelRemote(state.supabaseOrderId);
+        console.log('[CancelOrder] ✅ Commande annulée sur Supabase');
+      } catch (error) {
+        console.error('[CancelOrder] ❌ Erreur annulation Supabase:', error);
+      }
+    }
+
+    // 2. Enregistrer la commande annulée dans la DB locale
+    if (window.photoAPI?.orders && window.photoAPI?.cart && state.sessionId) {
+      console.log('[CancelOrder] Enregistrement de la commande annulée...');
+
+      // Créer l'ID de commande
+      const orderId = `order_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+      // Calculer les montants
+      const totalAmount = cartNominal(state.cart, window.PRODUCTS);
+      const discountAmount = totalAmount - cartSubtotal(state.cart, window.PRODUCTS);
+      const finalAmount = cartSubtotal(state.cart, window.PRODUCTS);
+
+      // Créer la commande avec statut "pending" (sera changé à cancelled après)
+      const orderResult = await window.photoAPI.orders.create({
+        orderId: orderId,
+        participantId: state.participantId || state.sessionId,
+        universeId: state.universe?.id || state.universeId || 'B',
+        totalAmount: totalAmount,
+        discountAmount: discountAmount,
+        finalAmount: finalAmount,
+        email: null,
+        optin: 0,
+        paymentMethod: null,
+        notes: `Commande annulée - source: ${source}`
+      });
+
+      if (orderResult?.status === 'success') {
+        console.log('[CancelOrder] ✅ Commande créée:', orderId);
+
+        // Associer tous les items de la session à cette commande et les marquer comme annulés
+        await window.photoAPI.cart.cancelSession(state.sessionId, orderId);
+        console.log('[CancelOrder] ✅ Items annulés et liés à la commande:', orderId);
+
+        // Mettre à jour le statut de la commande à "cancelled"
+        await window.photoAPI.orders.updateStatus(orderId, 'cancelled', `Annulée - ${source}`);
+        console.log('[CancelOrder] ✅ Commande marquée comme annulée');
+
+        // Synchroniser la commande annulée avec l'API distante (si pas déjà fait via cancelRemote)
+        if (!state.supabaseOrderId) {
+          try {
+            console.log('[CancelOrder] 🔄 Synchronisation de la commande annulée avec l\'API distante...');
+            const syncResult = await window.photoAPI.orders.syncRemote(orderId);
+
+            if (syncResult?.status === 'success') {
+              console.log('[CancelOrder] ✅ Commande annulée synchronisée avec l\'API distante');
+            } else if (syncResult?.status === 'skipped') {
+              console.log('[CancelOrder] ⏭️  Synchronisation ignorée:', syncResult.message);
+            } else {
+              console.warn('[CancelOrder] ⚠️  Erreur synchronisation API:', syncResult?.error);
+            }
+          } catch (syncError) {
+            console.error('[CancelOrder] ❌ Erreur lors de la synchronisation:', syncError);
+          }
+        }
+      } else {
+        console.error('[CancelOrder] ❌ Erreur création commande annulée:', orderResult?.error);
+      }
+    }
+
+    // Log de l'événement
+    if (window.photoAPI?.logger) {
+      window.photoAPI.logger.info('ORDER_CANCELLED', `Commande annulée depuis ${source}`, {
+        cartItems: state.cart.length,
+        sessionId: state.sessionId
+      });
+    }
+
+  } catch (error) {
+    console.error('[CancelOrder] ❌ Erreur globale annulation:', error);
+  }
+};
+
 export const attachFooterListeners = (config = {}) => {
   setTimeout(() => {
     const { state } = window;

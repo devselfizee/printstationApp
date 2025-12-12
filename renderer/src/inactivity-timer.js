@@ -4,6 +4,7 @@
  */
 
 import { t } from './i18n.js';
+import { handleOrderCancellation, updateCartCount } from './utils.js';
 
 // Timeout d'inactivité global (par défaut 60s, configurable via .env INACTIVITY_TIMEOUT_MS)
 const INACTIVITY_TIMEOUT = window.appConfig?.inactivityTimeout || 60000;
@@ -288,7 +289,7 @@ function closeWarningModal() {
 /**
  * Gérer le timeout - retour à l'accueil
  */
-function handleTimeout() {
+async function handleTimeout() {
   console.log('[Inactivity] Timeout - retour à l\'accueil');
 
   // Log de l'événement
@@ -305,14 +306,26 @@ function handleTimeout() {
   // Arrêter le timer
   stopInactivityTimer();
 
-  // Retour à l'accueil
-  if (window.backToQR) {
-    window.backToQR();
-  } else if (window.state) {
+  // Si le panier n'est pas vide, annuler la commande et l'enregistrer
+  if (window.state?.cart && window.state.cart.length > 0) {
+    console.log('[Inactivity] Panier non vide, annulation de la commande...');
+    await handleOrderCancellation('inactivity_timeout');
+  }
+
+  // Réinitialiser l'état et retourner à l'accueil
+  if (window.state) {
     window.state.page = 'qr';
+    window.state.universe = null;
+    window.state.photos = [];
+    window.state.cart = [];
+    window.state.localOrderId = null;
+    window.state.supabaseOrderId = null;
+    updateCartCount();
     if (window.render) {
       window.render();
     }
+  } else if (window.backToQR) {
+    window.backToQR();
   }
 }
 

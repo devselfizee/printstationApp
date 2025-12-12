@@ -1,6 +1,6 @@
 import { state } from '../state.js';
 import { t } from '../i18n.js';
-import { formatPrice, cartSubtotal } from '../utils.js';
+import { formatPrice, cartSubtotal, handleOrderCancellation, showCancelOrderModal, updateCartCount } from '../utils.js';
 import { UNIVERSES } from '../data.js';
 
 // Helper pour générer les labels du footer
@@ -108,12 +108,31 @@ export const renderListing = (root) => {
     </div>`;
 
   // Event listeners pour le footer
-  footer.querySelector('.btn-cancel').onclick = () => {
-    state.page = 'qr';
-    state.universe = null;
-    state.photos = [];
-    state.cart = [];
-    window.render();
+  footer.querySelector('.btn-cancel').onclick = async () => {
+    // Si le panier n'est pas vide, afficher le modal de confirmation
+    if (state.cart && state.cart.length > 0) {
+      showCancelOrderModal(async () => {
+        // Annuler la commande et l'enregistrer dans la DB
+        await handleOrderCancellation('listing_abandonner');
+
+        // Réinitialiser l'état et retourner au QR
+        state.page = 'qr';
+        state.universe = null;
+        state.photos = [];
+        state.cart = [];
+        state.localOrderId = null;
+        state.supabaseOrderId = null;
+        updateCartCount();
+        window.render();
+      });
+    } else {
+      // Panier vide, retourner directement au QR
+      state.page = 'qr';
+      state.universe = null;
+      state.photos = [];
+      state.cart = [];
+      window.render();
+    }
   };
 
   footer.querySelector('.btn-continue').onclick = () => {
