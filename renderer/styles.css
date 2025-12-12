@@ -197,6 +197,12 @@ header.topbar{
   box-shadow: 0 -4px 30px rgba(17, 24, 39, 0.15);
   border-radius: 12px;
 }
+
+/* Footer plus grand pour la page panier */
+.footer-bar.footer-bar-cart {
+  height: 160px;
+}
+
 .footer-bar .info {
   flex: 1;
   display: flex;

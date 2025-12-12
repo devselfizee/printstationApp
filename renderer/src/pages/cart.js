@@ -176,6 +176,8 @@ sum.innerHTML = `
     window.render();
   }
 });
+// Ajouter une classe spécifique pour le footer de la page cart (plus grand)
+footer.classList.add('footer-bar-cart');
 root.appendChild(footer);
 attachFooterListeners({
   onCancel: () => {
