@@ -92,6 +92,7 @@ export async function getDashboardStats() {
 
     let totalPhotos = 0;
     let downloadedPhotos = 0;
+    let pendingPhotos = 0;
     let errorPhotos = 0;
 
     // ⭐ CORRECTION: Attendre chaque promesse de stats
@@ -100,6 +101,7 @@ export async function getDashboardStats() {
       if (stats) {
         totalPhotos += stats.total || 0;
         downloadedPhotos += stats.downloaded || 0;
+        pendingPhotos += stats.pending || 0;
         errorPhotos += stats.errors || 0;
       }
     }
@@ -133,7 +135,7 @@ export async function getDashboardStats() {
       photos: {
         total: totalPhotos,
         downloaded: downloadedPhotos,
-        pending: totalPhotos - downloadedPhotos - errorPhotos,
+        pending: pendingPhotos,
         errors: errorPhotos,
         completionRate:
           totalPhotos > 0 ? Math.round((downloadedPhotos / totalPhotos) * 100) : 0,
