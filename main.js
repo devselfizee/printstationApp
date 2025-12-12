@@ -1737,6 +1737,18 @@ ipcMain.handle('admin:dashboard', async () => {
   }
 });
 
+ipcMain.handle('admin:get-participants', async (event, limit = 50) => {
+  if (!photoSystemReady || !photoSystem?.db) {
+    return [];
+  }
+  try {
+    return await photoSystem.db.getAllParticipants(limit);
+  } catch (error) {
+    console.error('[Main] Erreur admin:get-participants:', error);
+    return [];
+  }
+});
+
 ipcMain.handle('admin:search-photos', (event, filters) => {
   if (!photoSystemReady || !photoSystem?.admin) {
     return [];

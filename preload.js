@@ -55,6 +55,7 @@ const photoAPI = {
   // Admin
   admin: {
     getDashboard: () => ipcRenderer.invoke('admin:dashboard'),
+    getParticipants: (limit) => ipcRenderer.invoke('admin:get-participants', limit),
     searchPhotos: (filters) => ipcRenderer.invoke('admin:search-photos', filters),
     getParticipantPhotos: (participantId) =>
       ipcRenderer.invoke('admin:participant-photos', participantId),
