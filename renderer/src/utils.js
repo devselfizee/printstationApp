@@ -90,6 +90,7 @@ export const getFooterHTML = (config = {}) => {
   // Config par défaut avec traductions
   const {
     cancelLabel = `${abandonIcon}${t('abandon')}`,
+    cancelClass = '',
     continueLabel = t('viewCart'),
     onCancel = null,
     onContinue = null,
@@ -100,6 +101,9 @@ export const getFooterHTML = (config = {}) => {
   // Désactiver le bouton "Voir le panier" si le panier est vide
   const isCartEmpty = totalQty === 0;
 
+  // Classes du bouton cancel
+  const cancelBtnClasses = `btn btn-cancel${cancelClass ? ' ' + cancelClass : ''}`;
+
   return `
     ${showPrice ? `
       <div class="info">
@@ -109,7 +113,7 @@ export const getFooterHTML = (config = {}) => {
       </div>
     ` : ''}
     <div class="buttons">
-      <button class="btn btn-cancel">${cancelLabel}</button>
+      <button class="${cancelBtnClasses}">${cancelLabel}</button>
       <button class="btn btn-continue${isCartEmpty ? ' disabled' : ''}" ${isCartEmpty ? 'disabled' : ''}>${continueLabel}${showBadge && totalQty > 0 ? `<span class="btn-badge">${totalQty}</span>` : ''}</button>
     </div>`;
 };

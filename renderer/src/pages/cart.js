@@ -164,7 +164,12 @@ sum.innerHTML = `
   
 
 
+  // Icône flèche gauche pour le bouton Retour
+  const backIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;vertical-align:middle;margin-right:6px;"><path d="M19 12H5"></path><path d="M12 19l-7-7 7-7"></path></svg>`;
+
   const footer = createFooterBar({
+  cancelLabel: `${backIcon}${t('back')}`,
+  cancelClass: 'btn-back',
   continueLabel: t('payBtn'),
   onContinue: () => {
     state.page = 'payment';
