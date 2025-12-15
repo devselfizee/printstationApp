@@ -3071,13 +3071,34 @@ async function updateOrderRemote(supabaseOrderId, email, localOrderId, optin = f
     console.log('[UpdateOrder]   - status actuel:', existingOrder.status);
     console.log('[UpdateOrder]   - order_items:', existingOrder.order_items?.length || 0, 'item(s)');
 
-    // ÉTAPE 2: Construire le payload en réutilisant TOUTES les données existantes
-    console.log('[UpdateOrder] ÉTAPE 2: Construction du payload de mise à jour...');
+    // ÉTAPE 2: Récupérer la commande locale pour avoir le bon lang
+    let localLang = 'fr';
+    if (localOrderId && photoSystem?.db) {
+      try {
+        const localOrder = await photoSystem.db.getOrderWithItems(localOrderId);
+        if (localOrder && localOrder.lang) {
+          localLang = localOrder.lang;
+          console.log('[UpdateOrder] ✅ Lang récupéré depuis DB locale:', localLang);
+        } else {
+          console.log('[UpdateOrder] ⚠️ Lang non trouvé en local, utilisation de Supabase:', existingOrder.lang || 'fr');
+          localLang = existingOrder.lang || 'fr';
+        }
+      } catch (err) {
+        console.error('[UpdateOrder] ❌ Erreur lecture lang local:', err.message);
+        localLang = existingOrder.lang || 'fr';
+      }
+    } else {
+      localLang = existingOrder.lang || 'fr';
+    }
+
+    // ÉTAPE 3: Construire le payload en réutilisant TOUTES les données existantes
+    console.log('[UpdateOrder] ÉTAPE 3: Construction du payload de mise à jour...');
 
     // Déterminer l'email à utiliser: formulaire > existant > null
     const finalEmail = email || existingOrder.customer_email || null;
 
     console.log('[UpdateOrder] Email final à utiliser:', finalEmail);
+    console.log('[UpdateOrder] Lang final à utiliser:', localLang);
 
     const payload = {
       participant_id: existingOrder.participant_id,
@@ -3089,7 +3110,7 @@ async function updateOrderRemote(supabaseOrderId, email, localOrderId, optin = f
       kiosk_id: existingOrder.kiosk_id,
       memory_session_id: existingOrder.memory_session_id,
       universe_id: existingOrder.universe_id || null,
-      lang: existingOrder.lang || 'fr', // Préserver la langue du client
+      lang: localLang, // ← Lang depuis la DB locale, pas Supabase
       status: 'completed', // ← SEUL CHANGEMENT FORCÉ
       optin_email: optin ? true : false,
       order_items: existingOrder.order_items || []
