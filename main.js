@@ -3069,50 +3069,17 @@ async function updateOrderRemote(supabaseOrderId, email, localOrderId, optin = f
     console.log('[UpdateOrder]   - universe_id:', existingOrder.universe_id);
     console.log('[UpdateOrder]   - total_amount:', existingOrder.total_amount);
     console.log('[UpdateOrder]   - status actuel:', existingOrder.status);
-    console.log('[UpdateOrder]   - order_items:', existingOrder.order_items?.length || 0, 'item(s)');
 
-    // ÉTAPE 2: Récupérer la commande locale pour avoir le bon lang et universe_id
-    let localLang = 'fr';
-    let localUniverseId = existingOrder.universe_id || null;
-    if (localOrderId && photoSystem?.db) {
-      try {
-        const localOrder = await photoSystem.db.getOrderWithItems(localOrderId);
-        if (localOrder) {
-          if (localOrder.lang) {
-            localLang = localOrder.lang;
-            console.log('[UpdateOrder] ✅ Lang récupéré depuis DB locale:', localLang);
-          }
-          if (localOrder.universe_id) {
-            localUniverseId = localOrder.universe_id;
-            console.log('[UpdateOrder] ✅ Universe ID récupéré depuis DB locale:', localUniverseId);
-          }
-        } else {
-          console.log('[UpdateOrder] ⚠️ Commande locale non trouvée, utilisation des valeurs Supabase');
-          localLang = existingOrder.lang || 'fr';
-        }
-      } catch (err) {
-        console.error('[UpdateOrder] ❌ Erreur lecture données locales:', err.message);
-        localLang = existingOrder.lang || 'fr';
-      }
-    } else {
-      localLang = existingOrder.lang || 'fr';
-    }
-
-    // ÉTAPE 3: Construire le payload en réutilisant TOUTES les données existantes
-    console.log('[UpdateOrder] ÉTAPE 3: Construction du payload de mise à jour...');
+    // ÉTAPE 2: Construire le payload de mise à jour
+    console.log('[UpdateOrder] ÉTAPE 2: Construction du payload de mise à jour...');
 
     // Déterminer l'email à utiliser: formulaire > existant > null
     const finalEmail = email || existingOrder.customer_email || null;
-
     console.log('[UpdateOrder] Email final à utiliser:', finalEmail);
-    console.log('[UpdateOrder] Lang final à utiliser:', localLang);
-    console.log('[UpdateOrder] Universe ID final à utiliser:', localUniverseId);
 
     // Payload minimal - uniquement les champs à mettre à jour
     const payload = {
       customer_email: finalEmail,
-      universe_id: localUniverseId,
-      lang: localLang,
       status: 'completed',
       optin_email: optin ? true : false
     };
