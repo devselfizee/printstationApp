@@ -2531,8 +2531,11 @@ async function syncOrderToRemoteAPI(orderId) {
     );
 
     // Transformer les données au format attendu par l'API
+    const participantId = orderWithItems.participant_id || 'Anonymous';
+    const universeId = orderWithItems.universe_id || null;
     const payload = {
-      customer_name: orderWithItems.participant_id || 'Anonymous',
+      participant_id: participantId,
+      qrcode: universeId && participantId ? `${universeId}${participantId}` : null,
       customer_email: orderWithItems.email || null, // Email peut être null
       customer_address: null,
       subtotal_ht: Math.round(subtotal_ht_raw * 100), // Prix HT en centimes
@@ -2541,10 +2544,10 @@ async function syncOrderToRemoteAPI(orderId) {
       sales_point_id: API_SYNC_CONFIG.salesPointId,
       kiosk_id: API_SYNC_CONFIG.kioskId,
       memory_session_id: null, // null car le participant_id local n'existe pas dans Supabase
-      universe_id: orderWithItems.universe_id || null, // 🆕 ID de l'univers du participant
+      universe_id: universeId,
       lang: orderWithItems.lang || 'fr', // Langue choisie par le client
       status: apiStatus,
-      optin_email: orderWithItems.optin ? true : false, // 🆕 Optin email du client
+      optin_email: orderWithItems.optin ? true : false,
       order_items: itemsWithPhotoUrls.map(item => ({
         product_id: item.product_id,
         quantity: item.quantity,
@@ -2762,7 +2765,8 @@ async function createOrderRemote(orderData) {
     );
 
     // Transformer les données au format attendu par l'API
-    const customer_name = orderData.participantId || 'Anonymous';
+    const participantId = orderData.participantId || 'Anonymous';
+    const universeId = orderData.universeId || null;
     const total_amount_raw = orderData.totalAmount; // Prix TTC
 
     // Calcul des montants HT et TVA
@@ -2776,15 +2780,17 @@ async function createOrderRemote(orderData) {
     const total_amount = Math.round(total_amount_raw * 100);
 
     console.log('[CreateOrder] Préparation du payload:');
-    console.log('[CreateOrder]   - customer_name (de participantId):', customer_name);
-    console.log('[CreateOrder]   - universe_id (de orderData):', orderData.universeId);
+    console.log('[CreateOrder]   - participant_id:', participantId);
+    console.log('[CreateOrder]   - universe_id:', universeId);
+    console.log('[CreateOrder]   - qrcode:', universeId && participantId ? `${universeId}${participantId}` : null);
     console.log('[CreateOrder]   - TVA rate:', tvaRate, '%');
     console.log('[CreateOrder]   - subtotal_ht (HT en centimes):', subtotal_ht);
     console.log('[CreateOrder]   - vat_amount (TVA en centimes):', vat_amount);
     console.log('[CreateOrder]   - total_amount (TTC en centimes):', total_amount);
 
     const payload = {
-      customer_name: customer_name,
+      participant_id: participantId,
+      qrcode: universeId && participantId ? `${universeId}${participantId}` : null,
       customer_email: '', // Chaîne vide pour cette étape (pas encore d'email)
       customer_address: null,
       subtotal_ht: subtotal_ht, // Prix HT en centimes
@@ -2793,7 +2799,7 @@ async function createOrderRemote(orderData) {
       sales_point_id: API_SYNC_CONFIG.salesPointId,
       kiosk_id: API_SYNC_CONFIG.kioskId,
       memory_session_id: null,
-      universe_id: orderData.universeId || null, // 🆕 ID de l'univers du participant
+      universe_id: universeId,
       lang: orderData.lang || 'fr', // Langue choisie par le client
       status: 'pending', // Status en attente
       order_items: itemsWithPhotoUrls.map(item => ({
@@ -2925,6 +2931,9 @@ async function createCompletedOrderRemote(localOrderId) {
     const vat_amount = Math.round(vat_amount_raw * 100);
     const total_amount = Math.round(totalAmount * 100);
 
+    const participantId = orderWithItems.participant_id || 'Anonymous';
+    const universeId = orderWithItems.universe_id || null;
+
     console.log('[CreateCompletedOrder] Calcul TVA:');
     console.log('[CreateCompletedOrder]   - TVA rate:', tvaRate, '%');
     console.log('[CreateCompletedOrder]   - subtotal_ht (HT en centimes):', subtotal_ht);
@@ -2933,7 +2942,8 @@ async function createCompletedOrderRemote(localOrderId) {
 
     // Construire le payload pour l'API
     const payload = {
-      customer_name: orderWithItems.participant_id || 'Anonymous',
+      participant_id: participantId,
+      qrcode: universeId && participantId ? `${universeId}${participantId}` : null,
       customer_email: orderWithItems.email || null,
       customer_address: null,
       subtotal_ht: subtotal_ht, // Prix HT en centimes
@@ -2942,7 +2952,7 @@ async function createCompletedOrderRemote(localOrderId) {
       sales_point_id: API_SYNC_CONFIG.salesPointId,
       kiosk_id: API_SYNC_CONFIG.kioskId,
       memory_session_id: null,
-      universe_id: orderWithItems.universe_id || null,
+      universe_id: universeId,
       lang: orderWithItems.lang || 'fr', // Langue choisie par le client
       status: 'completed', // ← STATUS COMPLETED
       order_items: itemsWithPhotoUrls.map(item => ({
@@ -3053,7 +3063,8 @@ async function updateOrderRemote(supabaseOrderId, email, localOrderId, optin = f
     }
 
     console.log('[UpdateOrder] ✅ Commande existante récupérée:');
-    console.log('[UpdateOrder]   - customer_name:', existingOrder.customer_name);
+    console.log('[UpdateOrder]   - participant_id:', existingOrder.participant_id);
+    console.log('[UpdateOrder]   - qrcode:', existingOrder.qrcode);
     console.log('[UpdateOrder]   - customer_email:', existingOrder.customer_email);
     console.log('[UpdateOrder]   - universe_id:', existingOrder.universe_id);
     console.log('[UpdateOrder]   - total_amount:', existingOrder.total_amount);
@@ -3069,17 +3080,18 @@ async function updateOrderRemote(supabaseOrderId, email, localOrderId, optin = f
     console.log('[UpdateOrder] Email final à utiliser:', finalEmail);
 
     const payload = {
-      customer_name: existingOrder.customer_name,
+      participant_id: existingOrder.participant_id,
+      qrcode: existingOrder.qrcode,
       customer_email: finalEmail,
       customer_address: existingOrder.customer_address,
       total_amount: existingOrder.total_amount,
       sales_point_id: existingOrder.sales_point_id,
       kiosk_id: existingOrder.kiosk_id,
       memory_session_id: existingOrder.memory_session_id,
-      universe_id: existingOrder.universe_id || null, // 🆕 Préserver l'universe_id existant
+      universe_id: existingOrder.universe_id || null,
       lang: existingOrder.lang || 'fr', // Préserver la langue du client
       status: 'completed', // ← SEUL CHANGEMENT FORCÉ
-      optin_email: optin ? true : false, // 🆕 Optin email du client
+      optin_email: optin ? true : false,
       order_items: existingOrder.order_items || []
     };
 
@@ -3427,7 +3439,8 @@ async function cancelOrderRemote(supabaseOrderId) {
     }
 
     console.log('[CancelOrder] ✅ Commande existante récupérée:');
-    console.log('[CancelOrder]   - customer_name:', existingOrder.customer_name);
+    console.log('[CancelOrder]   - participant_id:', existingOrder.participant_id);
+    console.log('[CancelOrder]   - qrcode:', existingOrder.qrcode);
     console.log('[CancelOrder]   - status actuel:', existingOrder.status);
     console.log('[CancelOrder]   - total_amount:', existingOrder.total_amount);
 
@@ -3435,7 +3448,8 @@ async function cancelOrderRemote(supabaseOrderId) {
     console.log('[CancelOrder] ÉTAPE 2: Construction du payload d\'annulation...');
 
     const payload = {
-      customer_name: existingOrder.customer_name,
+      participant_id: existingOrder.participant_id,
+      qrcode: existingOrder.qrcode,
       customer_email: existingOrder.customer_email || null,
       customer_address: existingOrder.customer_address,
       total_amount: existingOrder.total_amount,
