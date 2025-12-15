@@ -16,6 +16,7 @@ import { initAdminButton } from './src/admin-system.js';
 import { initDevSimulator } from './src/dev-simulator.js';
 import { showSetupModal } from './src/pages/setup.js';
 import { initInactivityTimer, startInactivityTimer, stopInactivityTimer } from './src/inactivity-timer.js';
+import { initNetworkStatus } from './src/network-status.js';
 
 // À appeler SEULEMENT sur la page QR
 if (state.page === 'qr') {
@@ -224,6 +225,10 @@ async function checkSetup() {
 
 document.addEventListener('DOMContentLoaded', async () => {
   console.log('🚀 PrintStation initialized');
+
+  // Initialiser la détection réseau
+  initNetworkStatus();
+
   render();
 
   // Charger les produits depuis l'API en parallèle
