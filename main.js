@@ -1946,6 +1946,7 @@ ipcMain.handle('order:create', async (event, orderData) => {
     return { status: 'error', error: 'PhotoSystem non disponible' };
   }
   try {
+    console.log('[IPC] 🌍 Création commande avec lang:', orderData.lang);
     await photoSystem.db.createOrder(orderData);
     console.log('[IPC] Commande créée:', orderData.orderId);
     return { status: 'success', orderId: orderData.orderId };
@@ -2457,6 +2458,7 @@ async function syncOrderToRemoteAPI(orderId) {
     console.log('[Sync] Order ID:', orderWithItems.id);
     console.log('[Sync] Participant ID:', orderWithItems.participant_id);
     console.log('[Sync] Universe ID:', orderWithItems.universe_id);
+    console.log('[Sync] Lang:', orderWithItems.lang);
     console.log('[Sync] Email:', orderWithItems.email);
     console.log('[Sync] Optin:', orderWithItems.optin);
     console.log('[Sync] Status:', orderWithItems.status);
@@ -2464,6 +2466,7 @@ async function syncOrderToRemoteAPI(orderId) {
     console.log('[Sync] Final Amount:', orderWithItems.final_amount);
     console.log('[Sync] Nombre d\'items:', orderWithItems.items?.length || 0);
     console.log('[Sync] Items détaillés:', JSON.stringify(orderWithItems.items, null, 2));
+    console.log('[Sync] Toutes les clés de orderWithItems:', Object.keys(orderWithItems));
 
     // Mapper le statut de la DB au format API
     // 'processing' → 'pending', 'cancelled' → 'cancelled', etc.
@@ -2875,8 +2878,10 @@ async function createCompletedOrderRemote(localOrderId) {
     console.log('[CreateCompletedOrder] Commande locale récupérée:');
     console.log('[CreateCompletedOrder]   - participant_id:', orderWithItems.participant_id);
     console.log('[CreateCompletedOrder]   - universe_id:', orderWithItems.universe_id);
+    console.log('[CreateCompletedOrder]   - lang:', orderWithItems.lang);
     console.log('[CreateCompletedOrder]   - total_amount:', orderWithItems.total_amount);
     console.log('[CreateCompletedOrder]   - items:', orderWithItems.items?.length, 'item(s)');
+    console.log('[CreateCompletedOrder]   - Toutes les clés:', Object.keys(orderWithItems));
 
     // Récupérer les informations des photos pour chaque item
     const itemsWithPhotoUrls = await Promise.all(

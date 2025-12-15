@@ -210,6 +210,7 @@ attachFooterListeners({
         // 1. Créer l'ID de commande local
         const orderId = `order_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         console.log('[Cart] ID de commande local:', orderId);
+        console.log('[Cart] 🌍 Langue choisie par le client (state.lang):', state.lang);
 
         // 2. Créer la commande locale dans la DB
         const orderResult = await window.photoAPI.orders.create({
