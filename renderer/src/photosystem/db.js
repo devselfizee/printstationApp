@@ -249,8 +249,8 @@ async function createTables() {
       sync_attempts INTEGER DEFAULT 0,
       last_sync_attempt DATETIME,
       synced_at DATETIME,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      created_at DATETIME DEFAULT (datetime('now', 'localtime')),
+      updated_at DATETIME DEFAULT (datetime('now', 'localtime')),
       completed_at DATETIME,
       FOREIGN KEY(participant_id) REFERENCES participants(id),
       FOREIGN KEY(universe_id) REFERENCES universes(id)
@@ -268,8 +268,8 @@ async function createTables() {
       incrustation_id TEXT,
       status TEXT DEFAULT 'en_cours',
       session_id TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      created_at DATETIME DEFAULT (datetime('now', 'localtime')),
+      updated_at DATETIME DEFAULT (datetime('now', 'localtime')),
       cancelled_at DATETIME,
       validated_at DATETIME,
       FOREIGN KEY(photo_id) REFERENCES photos(id)
@@ -281,7 +281,7 @@ async function createTables() {
       old_status TEXT,
       new_status TEXT NOT NULL,
       notes TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      created_at DATETIME DEFAULT (datetime('now', 'localtime')),
       FOREIGN KEY(order_id) REFERENCES orders(id)
     );`,
 
@@ -329,7 +329,7 @@ async function createTables() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       participant_id TEXT NOT NULL,
       universe_id TEXT NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      created_at DATETIME DEFAULT (datetime('now', 'localtime')),
       FOREIGN KEY(participant_id) REFERENCES participants(id),
       FOREIGN KEY(universe_id) REFERENCES universes(id)
     );`,
@@ -550,7 +550,7 @@ export async function getSyncLogs(participantId, limit = 10) {
 export async function addScanStory(participantId, universeId) {
   return runAsync(
     `INSERT INTO scan_stories (participant_id, universe_id, created_at)
-     VALUES (?, ?, CURRENT_TIMESTAMP)`,
+     VALUES (?, ?, datetime('now', 'localtime'))`,
     [participantId, universeId]
   );
 }
@@ -782,7 +782,7 @@ export async function createOrder(orderData) {
     `INSERT INTO orders (
       id, participant_id, universe_id, subtotal_ht, vat_amount, total_amount, discount_amount,
       final_amount, lang, email, optin, payment_method, notes, status, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', datetime('now', 'localtime'), datetime('now', 'localtime'))`,
     [orderId, participantId, universeId, subtotalHt, vatAmount, totalAmount, discountAmount, finalAmount, lang, email, optin ? 1 : 0, paymentMethod, notes]
   );
 }
@@ -808,7 +808,7 @@ export async function addOrderItem(itemData) {
     `INSERT INTO order_items (
       order_id, photo_id, product_id, product_name, quantity,
       unit_price, total_price, incrustation_id, session_id, status, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', 'localtime'), datetime('now', 'localtime'))`,
     [orderId, photoId, productId, productName, quantity, unitPrice, totalPrice, incrustationId, sessionId, status]
   );
 }
@@ -833,7 +833,7 @@ export async function addCartItemImmediate(itemData) {
       photo_id, product_id, product_name, quantity,
       unit_price, total_price, incrustation_id, session_id,
       status, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', datetime('now', 'localtime'), datetime('now', 'localtime'))`,
     [photoId, productId, productName, quantity, unitPrice, totalPrice, incrustationId, sessionId]
   );
 
@@ -847,8 +847,8 @@ export async function cancelCartItem(itemId) {
   return runAsync(
     `UPDATE order_items
      SET status = 'cancelled',
-         cancelled_at = CURRENT_TIMESTAMP,
-         updated_at = CURRENT_TIMESTAMP
+         cancelled_at = datetime('now', 'localtime'),
+         updated_at = datetime('now', 'localtime')
      WHERE id = ?`,
     [itemId]
   );
@@ -867,7 +867,7 @@ export async function reactivateCartItem(photoId, productId, sessionId) {
     SELECT
       photo_id, product_id, product_name, quantity,
       unit_price, total_price, incrustation_id, ?,
-      'pending', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+      'pending', datetime('now', 'localtime'), datetime('now', 'localtime')
     FROM order_items
     WHERE photo_id = ? AND product_id = ? AND status = 'cancelled'
     ORDER BY created_at DESC
@@ -898,8 +898,8 @@ export async function validateSessionItems(sessionId, orderId) {
     `UPDATE order_items
      SET status = 'completed',
          order_id = ?,
-         validated_at = CURRENT_TIMESTAMP,
-         updated_at = CURRENT_TIMESTAMP
+         validated_at = datetime('now', 'localtime'),
+         updated_at = datetime('now', 'localtime')
      WHERE session_id = ? AND status = 'pending'`,
     [orderId, sessionId]
   );
@@ -913,8 +913,8 @@ export async function cancelSessionItems(sessionId, orderId) {
     `UPDATE order_items
      SET status = 'cancelled',
          order_id = ?,
-         cancelled_at = CURRENT_TIMESTAMP,
-         updated_at = CURRENT_TIMESTAMP
+         cancelled_at = datetime('now', 'localtime'),
+         updated_at = datetime('now', 'localtime')
      WHERE session_id = ? AND status = 'pending'`,
     [orderId, sessionId]
   );
@@ -930,15 +930,15 @@ export async function updateOrderStatus(orderId, newStatus, notes = null) {
 
   // Mettre à jour la commande
   const updateQuery = newStatus === 'completed'
-    ? `UPDATE orders SET status = ?, updated_at = CURRENT_TIMESTAMP, completed_at = CURRENT_TIMESTAMP WHERE id = ?`
-    : `UPDATE orders SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`;
-  
+    ? `UPDATE orders SET status = ?, updated_at = datetime('now', 'localtime'), completed_at = datetime('now', 'localtime') WHERE id = ?`
+    : `UPDATE orders SET status = ?, updated_at = datetime('now', 'localtime') WHERE id = ?`;
+
   await runAsync(updateQuery, [newStatus, orderId]);
 
   // Enregistrer dans l'historique
   await runAsync(
     `INSERT INTO order_status_history (order_id, old_status, new_status, notes, created_at)
-     VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+     VALUES (?, ?, ?, ?, datetime('now', 'localtime'))`,
     [orderId, oldStatus, newStatus, notes]
   );
 
@@ -951,7 +951,7 @@ export async function updateOrderStatus(orderId, newStatus, notes = null) {
 export async function updateOrderItemStatus(itemId, newStatus) {
   return runAsync(
     `UPDATE order_items
-     SET status = ?, updated_at = CURRENT_TIMESTAMP
+     SET status = ?, updated_at = datetime('now', 'localtime')
      WHERE id = ?`,
     [newStatus, itemId]
   );
@@ -983,7 +983,7 @@ export async function updateOrderDetails(orderId, { email = null, optin = null, 
     return { success: true, message: 'Aucun champ à mettre à jour' };
   }
 
-  updates.push('updated_at = CURRENT_TIMESTAMP');
+  updates.push("updated_at = datetime('now', 'localtime')");
   params.push(orderId);
 
   const query = `UPDATE orders SET ${updates.join(', ')} WHERE id = ?`;
@@ -1210,10 +1210,10 @@ export async function getSessionStats(sessionId) {
  */
 export async function updateCartItemQuantity(itemId, newQuantity, newTotalPrice) {
   return runAsync(
-    `UPDATE order_items 
+    `UPDATE order_items
      SET quantity = ?,
          total_price = ?,
-         updated_at = CURRENT_TIMESTAMP
+         updated_at = datetime('now', 'localtime')
      WHERE id = ?`,
     [newQuantity, newTotalPrice, itemId]
   );
@@ -1255,7 +1255,7 @@ export async function isSetupCompleted() {
 export async function saveMachineConfig(kioskId, salesPointId, machineName = null, tva = 20) {
   return runAsync(
     `INSERT OR REPLACE INTO machine_config (id, kiosk_id, sales_point_id, machine_name, tva, setup_completed, updated_at)
-     VALUES (1, ?, ?, ?, ?, 1, CURRENT_TIMESTAMP)`,
+     VALUES (1, ?, ?, ?, ?, 1, datetime('now', 'localtime'))`,
     [kioskId, salesPointId, machineName, tva]
   );
 }
@@ -1270,7 +1270,7 @@ export async function updateMachineConfig(kioskId, salesPointId, machineName = n
          sales_point_id = ?,
          machine_name = ?,
          tva = ?,
-         updated_at = CURRENT_TIMESTAMP
+         updated_at = datetime('now', 'localtime')
      WHERE id = 1`,
     [kioskId, salesPointId, machineName, tva]
   );
@@ -1301,8 +1301,8 @@ export async function markOrderAsSynced(orderId) {
   return runAsync(
     `UPDATE orders
      SET synced_to_remote = 1,
-         synced_at = CURRENT_TIMESTAMP,
-         updated_at = CURRENT_TIMESTAMP
+         synced_at = datetime('now', 'localtime'),
+         updated_at = datetime('now', 'localtime')
      WHERE id = ?`,
     [orderId]
   );
@@ -1315,8 +1315,8 @@ export async function incrementSyncAttempts(orderId) {
   return runAsync(
     `UPDATE orders
      SET sync_attempts = sync_attempts + 1,
-         last_sync_attempt = CURRENT_TIMESTAMP,
-         updated_at = CURRENT_TIMESTAMP
+         last_sync_attempt = datetime('now', 'localtime'),
+         updated_at = datetime('now', 'localtime')
      WHERE id = ?`,
     [orderId]
   );
