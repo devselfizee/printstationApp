@@ -240,6 +240,7 @@ async function createTables() {
       discount_amount REAL DEFAULT 0,
       final_amount REAL NOT NULL DEFAULT 0,
       status TEXT DEFAULT 'pending',
+      lang TEXT DEFAULT 'fr',
       email TEXT,
       optin BOOLEAN DEFAULT 0,
       payment_method TEXT,
@@ -433,8 +434,14 @@ async function migrateSyncColumns() {
       await execAsync('ALTER TABLE orders ADD COLUMN vat_amount REAL DEFAULT 0');
       console.log('[DB] ✅ Colonne vat_amount ajoutée à orders');
     }
+
+    // Ajouter lang si manquant
+    if (!ordersColumnNames.includes('lang')) {
+      await execAsync("ALTER TABLE orders ADD COLUMN lang TEXT DEFAULT 'fr'");
+      console.log('[DB] ✅ Colonne lang ajoutée à orders');
+    }
   } catch (error) {
-    console.error('[DB] Erreur migration subtotal_ht/vat_amount:', error);
+    console.error('[DB] Erreur migration subtotal_ht/vat_amount/lang:', error);
   }
 }
 
@@ -764,6 +771,7 @@ export async function createOrder(orderData) {
     totalAmount,
     discountAmount = 0,
     finalAmount,
+    lang = 'fr',
     email = null,
     optin = false,
     paymentMethod = null,
@@ -773,9 +781,9 @@ export async function createOrder(orderData) {
   return runAsync(
     `INSERT INTO orders (
       id, participant_id, universe_id, subtotal_ht, vat_amount, total_amount, discount_amount,
-      final_amount, email, optin, payment_method, notes, status, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
-    [orderId, participantId, universeId, subtotalHt, vatAmount, totalAmount, discountAmount, finalAmount, email, optin ? 1 : 0, paymentMethod, notes]
+      final_amount, lang, email, optin, payment_method, notes, status, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+    [orderId, participantId, universeId, subtotalHt, vatAmount, totalAmount, discountAmount, finalAmount, lang, email, optin ? 1 : 0, paymentMethod, notes]
   );
 }
 

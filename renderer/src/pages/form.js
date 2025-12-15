@@ -168,6 +168,7 @@ attachFooterListeners({
             totalAmount: totalAmount,
             discountAmount: discountAmount,
             finalAmount: finalAmount,
+            lang: state.lang || 'fr',  // Langue choisie par le client
             email: email || null,
             optin: state.optin ? 1 : 0,
             paymentMethod: 'card',

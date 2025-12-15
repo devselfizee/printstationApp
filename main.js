@@ -2539,6 +2539,7 @@ async function syncOrderToRemoteAPI(orderId) {
       kiosk_id: API_SYNC_CONFIG.kioskId,
       memory_session_id: null, // null car le participant_id local n'existe pas dans Supabase
       universe_id: orderWithItems.universe_id || null, // 🆕 ID de l'univers du participant
+      lang: orderWithItems.lang || 'fr', // Langue choisie par le client
       status: apiStatus,
       optin_email: orderWithItems.optin ? true : false, // 🆕 Optin email du client
       order_items: itemsWithPhotoUrls.map(item => ({
@@ -2790,6 +2791,7 @@ async function createOrderRemote(orderData) {
       kiosk_id: API_SYNC_CONFIG.kioskId,
       memory_session_id: null,
       universe_id: orderData.universeId || null, // 🆕 ID de l'univers du participant
+      lang: orderData.lang || 'fr', // Langue choisie par le client
       status: 'pending', // Status en attente
       order_items: itemsWithPhotoUrls.map(item => ({
         product_id: item.productId,
@@ -2936,6 +2938,7 @@ async function createCompletedOrderRemote(localOrderId) {
       kiosk_id: API_SYNC_CONFIG.kioskId,
       memory_session_id: null,
       universe_id: orderWithItems.universe_id || null,
+      lang: orderWithItems.lang || 'fr', // Langue choisie par le client
       status: 'completed', // ← STATUS COMPLETED
       order_items: itemsWithPhotoUrls.map(item => ({
         product_id: item.product_id,
@@ -3069,6 +3072,7 @@ async function updateOrderRemote(supabaseOrderId, email, localOrderId, optin = f
       kiosk_id: existingOrder.kiosk_id,
       memory_session_id: existingOrder.memory_session_id,
       universe_id: existingOrder.universe_id || null, // 🆕 Préserver l'universe_id existant
+      lang: existingOrder.lang || 'fr', // Préserver la langue du client
       status: 'completed', // ← SEUL CHANGEMENT FORCÉ
       optin_email: optin ? true : false, // 🆕 Optin email du client
       order_items: existingOrder.order_items || []
@@ -3434,6 +3438,7 @@ async function cancelOrderRemote(supabaseOrderId) {
       kiosk_id: existingOrder.kiosk_id,
       memory_session_id: existingOrder.memory_session_id,
       universe_id: existingOrder.universe_id || null,
+      lang: existingOrder.lang || 'fr', // Préserver la langue du client
       status: 'cancelled', // ← SEUL CHANGEMENT: status=cancelled
       order_items: existingOrder.order_items || []
     };
