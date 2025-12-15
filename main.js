@@ -3071,20 +3071,27 @@ async function updateOrderRemote(supabaseOrderId, email, localOrderId, optin = f
     console.log('[UpdateOrder]   - status actuel:', existingOrder.status);
     console.log('[UpdateOrder]   - order_items:', existingOrder.order_items?.length || 0, 'item(s)');
 
-    // ÉTAPE 2: Récupérer la commande locale pour avoir le bon lang
+    // ÉTAPE 2: Récupérer la commande locale pour avoir le bon lang et universe_id
     let localLang = 'fr';
+    let localUniverseId = existingOrder.universe_id || null;
     if (localOrderId && photoSystem?.db) {
       try {
         const localOrder = await photoSystem.db.getOrderWithItems(localOrderId);
-        if (localOrder && localOrder.lang) {
-          localLang = localOrder.lang;
-          console.log('[UpdateOrder] ✅ Lang récupéré depuis DB locale:', localLang);
+        if (localOrder) {
+          if (localOrder.lang) {
+            localLang = localOrder.lang;
+            console.log('[UpdateOrder] ✅ Lang récupéré depuis DB locale:', localLang);
+          }
+          if (localOrder.universe_id) {
+            localUniverseId = localOrder.universe_id;
+            console.log('[UpdateOrder] ✅ Universe ID récupéré depuis DB locale:', localUniverseId);
+          }
         } else {
-          console.log('[UpdateOrder] ⚠️ Lang non trouvé en local, utilisation de Supabase:', existingOrder.lang || 'fr');
+          console.log('[UpdateOrder] ⚠️ Commande locale non trouvée, utilisation des valeurs Supabase');
           localLang = existingOrder.lang || 'fr';
         }
       } catch (err) {
-        console.error('[UpdateOrder] ❌ Erreur lecture lang local:', err.message);
+        console.error('[UpdateOrder] ❌ Erreur lecture données locales:', err.message);
         localLang = existingOrder.lang || 'fr';
       }
     } else {
@@ -3099,6 +3106,7 @@ async function updateOrderRemote(supabaseOrderId, email, localOrderId, optin = f
 
     console.log('[UpdateOrder] Email final à utiliser:', finalEmail);
     console.log('[UpdateOrder] Lang final à utiliser:', localLang);
+    console.log('[UpdateOrder] Universe ID final à utiliser:', localUniverseId);
 
     const payload = {
       participant_id: existingOrder.participant_id,
@@ -3109,8 +3117,8 @@ async function updateOrderRemote(supabaseOrderId, email, localOrderId, optin = f
       sales_point_id: existingOrder.sales_point_id,
       kiosk_id: existingOrder.kiosk_id,
       memory_session_id: existingOrder.memory_session_id,
-      universe_id: existingOrder.universe_id || null,
-      lang: localLang, // ← Lang depuis la DB locale, pas Supabase
+      universe_id: localUniverseId, // ← Universe ID depuis la DB locale
+      lang: localLang, // ← Lang depuis la DB locale
       status: 'completed', // ← SEUL CHANGEMENT FORCÉ
       optin_email: optin ? true : false,
       order_items: existingOrder.order_items || []
