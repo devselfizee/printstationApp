@@ -3,6 +3,8 @@
  * Affiche un bandeau d'avertissement quand il n'y a pas de connexion internet
  */
 
+import { t } from './i18n.js';
+
 let isOnline = navigator.onLine;
 let banner = null;
 
@@ -26,7 +28,7 @@ function createBanner() {
         <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
         <line x1="12" y1="20" x2="12.01" y2="20"></line>
       </svg>
-      <span class="network-offline-text">Pas de connexion internet - Les fonctionnalités sont limitées</span>
+      <span class="network-offline-text">${t('noInternet')}</span>
     </div>
   `;
 

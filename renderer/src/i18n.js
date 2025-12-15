@@ -59,7 +59,8 @@ export const i18n = {
     noProduct: 'Aucun produit',
     viewDetail: 'Voir le détail',
     article: 'Article',
-    articles: 'Articles'
+    articles: 'Articles',
+    noInternet: 'Pas de connexion internet - Les fonctionnalités sont limitées'
   },
   en: {
     bannerText: 'A PHOTO OF YOUR ADVENTURE',
@@ -119,7 +120,8 @@ export const i18n = {
     noProduct: 'No product',
     viewDetail: 'View details',
     article: 'Item',
-    articles: 'Items'
+    articles: 'Items',
+    noInternet: 'No internet connection - Features are limited'
   },
   es: {
     bannerText: 'UNA FOTO DE TU AVENTURA',
@@ -179,7 +181,8 @@ export const i18n = {
     noProduct: 'Ningún producto',
     viewDetail: 'Ver detalle',
     article: 'Artículo',
-    articles: 'Artículos'
+    articles: 'Artículos',
+    noInternet: 'Sin conexión a internet - Las funciones están limitadas'
   },
   zh: {
     bannerText: '您的冒险照片',
@@ -239,7 +242,8 @@ export const i18n = {
     noProduct: '无产品',
     viewDetail: '查看详情',
     article: '件商品',
-    articles: '件商品'
+    articles: '件商品',
+    noInternet: '无网络连接 - 功能受限'
   },
   it: {
     bannerText: 'UNA FOTO DELLA TUA AVVENTURA',
@@ -299,7 +303,8 @@ export const i18n = {
     noProduct: 'Nessun prodotto',
     viewDetail: 'Vedi dettaglio',
     article: 'Articolo',
-    articles: 'Articoli'
+    articles: 'Articoli',
+    noInternet: 'Nessuna connessione internet - Funzionalità limitate'
   },
   de: {
     bannerText: 'EIN FOTO VON IHREM ABENTEUER',
@@ -359,7 +364,8 @@ export const i18n = {
     noProduct: 'Kein Produkt',
     viewDetail: 'Details anzeigen',
     article: 'Artikel',
-    articles: 'Artikel'
+    articles: 'Artikel',
+    noInternet: 'Keine Internetverbindung - Funktionen eingeschränkt'
   }
 };
 
