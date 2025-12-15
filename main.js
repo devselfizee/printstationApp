@@ -3108,29 +3108,18 @@ async function updateOrderRemote(supabaseOrderId, email, localOrderId, optin = f
     console.log('[UpdateOrder] Lang final à utiliser:', localLang);
     console.log('[UpdateOrder] Universe ID final à utiliser:', localUniverseId);
 
+    // Payload minimal - uniquement les champs à mettre à jour
     const payload = {
-      participant_id: existingOrder.participant_id,
-      qrcode: existingOrder.qrcode,
       customer_email: finalEmail,
-      customer_address: existingOrder.customer_address,
-      total_amount: existingOrder.total_amount,
-      sales_point_id: existingOrder.sales_point_id,
-      kiosk_id: existingOrder.kiosk_id,
-      memory_session_id: existingOrder.memory_session_id,
-      universe_id: localUniverseId, // ← Universe ID depuis la DB locale
-      lang: localLang, // ← Lang depuis la DB locale
-      status: 'completed', // ← SEUL CHANGEMENT FORCÉ
-      optin_email: optin ? true : false,
-      order_items: existingOrder.order_items || []
+      universe_id: localUniverseId,
+      lang: localLang,
+      status: 'completed',
+      optin_email: optin ? true : false
     };
 
     console.log('[UpdateOrder] ═══════════════════════════════════════════════');
-    console.log('[UpdateOrder] 📤 PAYLOAD FINAL À ENVOYER:');
+    console.log('[UpdateOrder] 📤 PAYLOAD MINIMAL À ENVOYER:');
     console.log(JSON.stringify(payload, null, 2));
-    console.log('[UpdateOrder] ═══════════════════════════════════════════════');
-    console.log('[UpdateOrder] Champs modifiés:');
-    console.log('[UpdateOrder]   - customer_email:', existingOrder.customer_email, '→', finalEmail);
-    console.log('[UpdateOrder]   - status:', existingOrder.status, '→', 'completed');
     console.log('[UpdateOrder] ═══════════════════════════════════════════════');
 
     // ÉTAPE 3: PUT le payload mis à jour
