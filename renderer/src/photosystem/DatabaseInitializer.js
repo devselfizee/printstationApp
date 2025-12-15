@@ -31,9 +31,9 @@ export class DatabaseInitializer {
       // Ouvrir la base (crée si elle n'existe pas)
       this.db = new Database(this.dbPath);
 
-      // Activer WAL mode pour meilleure concurrence
-      this.db.pragma('journal_mode = WAL');
-      console.log('[DB] WAL mode enabled');
+      // Utiliser DELETE mode pour avoir un seul fichier DB
+      this.db.pragma('journal_mode = DELETE');
+      console.log('[DB] DELETE journal mode enabled (single file)');
 
       // Créer les tables
       this.createTables();

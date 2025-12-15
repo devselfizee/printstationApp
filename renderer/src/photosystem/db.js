@@ -95,7 +95,7 @@ export async function initDB() {
       if (err) throw err;
     });
 
-    await execAsync('PRAGMA journal_mode = WAL');
+    await execAsync('PRAGMA journal_mode = DELETE');
     
     await createTables();
     await seedDefaultData(); // ⭐ Créer données par défaut si nécessaire
