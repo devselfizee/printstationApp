@@ -39,9 +39,9 @@ const TIMEOUTS = {
   ACK: 1000,              // ACK_TIMEOUT_VALUE = 1s
   COMMAND: 5000,          // TIMEOUT_VALUE = 5s (CBready, CBinfos)
   CANCEL: 3000,           // CANCEL_TIMEOUT_VALUE = 3s
-  PAYMENT: 60000,         // 60s au lieu de 40s (plus sûr)
+  PAYMENT: 150000,        // 150s - timeout paiement (augmenté pour connexions lentes)
   VALIDATION: 30000,      // 30s au lieu de 20s
-  PAYMENT_SLOW: 90000,    // Mode "slow" pour cartes lentes
+  PAYMENT_SLOW: 180000,   // 180s - mode lent pour cartes/connexions très lentes
   VALIDATION_SLOW: 45000  // Mode "slow" pour validation
 };
 const LOG_FILE_PATH = app.isPackaged
