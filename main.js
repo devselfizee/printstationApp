@@ -3385,10 +3385,53 @@ function makeHttpsRequest(url, data, method = 'POST', customHeaders = {}, authTo
         } else {
           console.error(`[HTTP] ❌ Erreur HTTP ${res.statusCode}:`, responseData);
 
-          // Si erreur 401 Unauthorized, invalider le cache du token
-          if (res.statusCode === 401) {
-            console.warn('[HTTP] ⚠️ Erreur 401 - Invalidation du token en cache');
-            invalidateAuthToken();
+          // Gestion des erreurs HTTP spécifiques
+          switch (res.statusCode) {
+            case 401:
+              // Unauthorized - Token invalide ou expiré
+              console.warn('[HTTP] ⚠️ Erreur 401 Unauthorized - Invalidation du token');
+              logger.error('HTTP', 'Erreur 401 Unauthorized', { url, method });
+              invalidateAuthToken();
+              break;
+
+            case 403:
+              // Forbidden - Permission refusée (peut aussi être un problème de token)
+              console.warn('[HTTP] ⚠️ Erreur 403 Forbidden - Invalidation du token');
+              logger.error('HTTP', 'Erreur 403 Forbidden - Permission refusée', { url, method });
+              invalidateAuthToken();
+              break;
+
+            case 429:
+              // Too Many Requests - Rate limiting
+              console.warn('[HTTP] ⚠️ Erreur 429 Too Many Requests - Rate limiting');
+              logger.warn('HTTP', 'Erreur 429 Rate Limiting - Trop de requêtes', { url, method });
+              break;
+
+            case 400:
+              // Bad Request - Données invalides
+              console.error('[HTTP] ❌ Erreur 400 Bad Request - Données invalides');
+              logger.error('HTTP', 'Erreur 400 Bad Request', { url, method, response: responseData });
+              break;
+
+            case 404:
+              // Not Found - Ressource introuvable
+              console.error('[HTTP] ❌ Erreur 404 Not Found');
+              logger.error('HTTP', 'Erreur 404 Not Found', { url, method });
+              break;
+
+            case 500:
+            case 502:
+            case 503:
+            case 504:
+              // Erreurs serveur
+              console.error(`[HTTP] ❌ Erreur serveur ${res.statusCode}`);
+              logger.error('HTTP', `Erreur serveur ${res.statusCode}`, { url, method, response: responseData });
+              break;
+
+            default:
+              // Autres erreurs
+              logger.error('HTTP', `Erreur HTTP ${res.statusCode}`, { url, method, response: responseData });
+              break;
           }
 
           reject(new Error(`HTTP ${res.statusCode}: ${responseData}`));
