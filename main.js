@@ -1264,7 +1264,7 @@ const API_SYNC_CONFIG = {
   tva: 20, // Taux de TVA par défaut (en %)
   enabled: process.env.ENABLE_API_SYNC !== 'false', // Activé par défaut
   retryIntervalMs: parseInt(process.env.SYNC_RETRY_INTERVAL_MS) || 60000, // 1 minute par défaut
-  maxAttempts: parseInt(process.env.SYNC_MAX_ATTEMPTS) || 5 // 5 tentatives max
+  maxAttempts: parseInt(process.env.SYNC_MAX_ATTEMPTS) || 3 // 3 tentatives max
 };
 
 // Cache pour le token JWT avec expiration
