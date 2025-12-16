@@ -1620,6 +1620,33 @@ ipcMain.handle('photos:scan-qr', async (event, qrContent) => {
   try {
     const result = await photoSystem.onQRCodeScanned(qrContent);
     logQRScan('SCAN_SUCCESS', qrContent, null, result);
+
+    // Synchroniser le scan vers Supabase si succès
+    if (result.status === 'success' && result.participantId && result.universeId) {
+      // Générer la date actuelle en format local
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+      const createdAt = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+
+      // Sync vers Supabase (non bloquant)
+      syncScanStoryToRemote(result.participantId, result.universeId, createdAt)
+        .then(syncResult => {
+          if (syncResult.status === 'success') {
+            console.log('[IPC] Scan story synchronisé vers Supabase');
+          } else {
+            console.warn('[IPC] Échec sync scan story:', syncResult.error);
+          }
+        })
+        .catch(err => {
+          console.error('[IPC] Erreur sync scan story:', err.message);
+        });
+    }
+
     return result;
   } catch (error) {
     console.error('[IPC] Erreur scan QR:', error);
@@ -3737,6 +3764,110 @@ ipcMain.handle('order:cancel-remote', async (event, supabaseOrderId) => {
   console.log('[IPC] Résultat:', JSON.stringify(result, null, 2));
   console.log('[IPC] ═══════════════════════════════════════════════');
   return result;
+});
+
+/**
+ * ===== SYNCHRONISATION SCAN STORIES =====
+ */
+
+/**
+ * Synchroniser un scan_story vers Supabase
+ * @param {string} participantId - ID du participant
+ * @param {string} universeId - ID de l'univers
+ * @param {string} createdAt - Date de création locale (format: YYYY-MM-DD HH:MM:SS)
+ */
+async function syncScanStoryToRemote(participantId, universeId, createdAt) {
+  if (!API_SYNC_CONFIG.enabled) {
+    console.log('[ScanStory] API désactivée');
+    return { status: 'skipped', message: 'API désactivée' };
+  }
+
+  try {
+    console.log('[ScanStory] ═══════════════════════════════════════════════');
+    console.log('[ScanStory] 📤 SYNCHRONISATION SCAN STORY VERS SUPABASE');
+    console.log('[ScanStory] ═══════════════════════════════════════════════');
+    console.log('[ScanStory] participant_id:', participantId);
+    console.log('[ScanStory] universe_id:', universeId);
+    console.log('[ScanStory] created_at:', createdAt);
+
+    // Récupérer le kiosk_id depuis la config
+    const kioskId = API_SYNC_CONFIG.kioskId;
+    console.log('[ScanStory] kiosk_id:', kioskId);
+
+    // Construire le qrcode = universe_id + participant_id
+    const qrcode = universeId && participantId ? `${universeId}${participantId}` : null;
+    console.log('[ScanStory] qrcode:', qrcode);
+
+    // Convertir la date locale en format ISO pour Supabase
+    // createdAt est au format "YYYY-MM-DD HH:MM:SS" en heure locale
+    let dateScan = createdAt;
+    if (createdAt && !createdAt.includes('T')) {
+      // Convertir "YYYY-MM-DD HH:MM:SS" en "YYYY-MM-DDTHH:MM:SSZ"
+      dateScan = createdAt.replace(' ', 'T') + 'Z';
+    }
+    console.log('[ScanStory] date_scan:', dateScan);
+
+    // Construire le payload
+    const payload = {
+      participant_id: participantId,
+      universe_id: universeId,
+      qrcode: qrcode,
+      kiosk_id: kioskId,
+      date_scan: dateScan
+    };
+
+    console.log('[ScanStory] Payload:', JSON.stringify(payload, null, 2));
+
+    // URL de l'API scan stories
+    const scanStoriesUrl = (process.env.BASE_URL || 'https://ygetxuvqrknbggplzmvy.supabase.co/functions/v1') + '/manage-scan-stories';
+    console.log('[ScanStory] URL:', scanStoriesUrl);
+
+    // Récupérer un token d'authentification
+    const authToken = await getAuthToken();
+
+    // Faire l'appel HTTP POST
+    const response = await makeHttpsRequestWithRetry(
+      scanStoriesUrl,
+      payload,
+      'POST',
+      {
+        'apikey': API_SYNC_CONFIG.supabaseAnonKey
+      },
+      authToken
+    );
+
+    console.log('[ScanStory] ✅ Scan story synchronisé avec succès');
+    console.log('[ScanStory] Réponse:', JSON.stringify(response, null, 2));
+
+    // Logger dans eclipso log
+    logger.logSupabaseSync('SCAN_STORY_SYNC_SUCCESS', {
+      participantId,
+      universeId,
+      qrcode,
+      kioskId,
+      dateScan
+    });
+
+    return { status: 'success', response };
+
+  } catch (error) {
+    console.error('[ScanStory] ❌ Erreur synchronisation scan story:', error);
+
+    // Logger l'erreur dans eclipso log
+    logger.logSupabaseError('SCAN_STORY_SYNC_FAILED', {
+      participantId,
+      universeId,
+      error: error.message
+    });
+
+    return { status: 'error', error: error.message };
+  }
+}
+
+// Handler IPC pour synchroniser un scan story
+ipcMain.handle('scan-story:sync-remote', async (event, { participantId, universeId, createdAt }) => {
+  console.log('[IPC] scan-story:sync-remote appelé');
+  return await syncScanStoryToRemote(participantId, universeId, createdAt);
 });
 
 /**

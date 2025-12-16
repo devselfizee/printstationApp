@@ -133,6 +133,11 @@ const photoAPI = {
     addOrUpdate: (participantId, universeId, status) => ipcRenderer.invoke('participant:add-or-update', participantId, universeId, status),
   },
 
+  // Scan Stories
+  scanStory: {
+    syncRemote: (participantId, universeId, createdAt) => ipcRenderer.invoke('scan-story:sync-remote', { participantId, universeId, createdAt }),
+  },
+
   // Window controls
   window: {
     toggleFullscreen: () => ipcRenderer.invoke('window:toggle-fullscreen'),

@@ -574,13 +574,31 @@ export async function getSyncLogs(participantId, limit = 10) {
 
 /**
  * Ajouter une entrée dans scan_stories lors d'un scan valide
+ * Retourne l'ID et la date de création pour la synchronisation
  */
 export async function addScanStory(participantId, universeId) {
-  return runAsync(
+  // Générer la date en heure locale au format SQLite
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const seconds = String(now.getSeconds()).padStart(2, '0');
+  const createdAt = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+
+  const result = await runAsync(
     `INSERT INTO scan_stories (participant_id, universe_id, created_at)
-     VALUES (?, ?, datetime('now', 'localtime'))`,
-    [participantId, universeId]
+     VALUES (?, ?, ?)`,
+    [participantId, universeId, createdAt]
   );
+
+  return {
+    id: result.lastID,
+    participantId,
+    universeId,
+    createdAt
+  };
 }
 
 /**
