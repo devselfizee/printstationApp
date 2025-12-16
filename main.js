@@ -3541,6 +3541,17 @@ ipcMain.handle('order:create-completed-remote', async (event, localOrderId) => {
   console.log('[IPC] ═══════════════════════════════════════════════');
   console.log('[IPC] order:create-completed-remote appelé');
   console.log('[IPC] localOrderId:', localOrderId);
+
+  // Mettre à jour le status local en 'completed' avant l'appel Supabase
+  if (photoSystem?.db && localOrderId) {
+    try {
+      await photoSystem.db.updateOrderStatus(localOrderId, 'completed');
+      console.log('[IPC] ✅ Status local mis à jour en completed');
+    } catch (err) {
+      console.error('[IPC] ⚠️ Erreur mise à jour status local:', err.message);
+    }
+  }
+
   const result = await createCompletedOrderRemote(localOrderId);
   console.log('[IPC] Résultat:', JSON.stringify(result, null, 2));
   console.log('[IPC] ═══════════════════════════════════════════════');
