@@ -2690,6 +2690,15 @@ async function syncOrderToRemoteAPI(orderId) {
     console.log('═'.repeat(80));
     console.log('\n\n');
 
+    // Logger dans eclipso log
+    logger.logSupabaseSync('ORDER_SYNC_SUCCESS', {
+      orderId,
+      supabaseOrderId: response.order?.id,
+      status: response.order?.status,
+      totalAmount: payload.total_amount / 100,
+      itemsCount: payload.order_items?.length
+    });
+
     return { status: 'success', response };
 
   } catch (error) {
@@ -2711,6 +2720,13 @@ async function syncOrderToRemoteAPI(orderId) {
     console.log('💡 La commande reste en attente de synchronisation');
     console.log('═'.repeat(80));
     console.log('\n\n');
+
+    // Logger l'erreur dans eclipso log
+    logger.logSupabaseError('ORDER_SYNC_FAILED', {
+      orderId,
+      error: error.message,
+      url: API_SYNC_CONFIG.url
+    });
 
     return { status: 'error', error: error.message };
   }
@@ -2835,6 +2851,17 @@ async function createOrderRemote(orderData) {
     console.log('[CreateOrder] Réponse:', JSON.stringify(response, null, 2));
     console.log('[CreateOrder] Order ID Supabase:', response.order?.id);
 
+    // Logger dans eclipso log
+    logger.logSupabaseSync('ORDER_CREATE_SUCCESS', {
+      localOrderId: orderData.orderId,
+      supabaseOrderId: response.order?.id,
+      participantId: orderData.participantId,
+      universeId: orderData.universeId,
+      totalAmount: orderData.totalAmount,
+      lang: orderData.lang,
+      status: 'pending'
+    });
+
     return {
       status: 'success',
       response,
@@ -2844,6 +2871,14 @@ async function createOrderRemote(orderData) {
 
   } catch (error) {
     console.error('[CreateOrder] ❌ Erreur création commande:', error);
+
+    // Logger l'erreur dans eclipso log
+    logger.logSupabaseError('ORDER_CREATE_FAILED', {
+      localOrderId: orderData?.orderId,
+      error: error.message,
+      url: API_SYNC_CONFIG.url
+    });
+
     return {
       status: 'error',
       error: error.message,
@@ -2992,6 +3027,17 @@ async function createCompletedOrderRemote(localOrderId) {
     // Marquer la commande locale comme synchronisée
     await photoSystem.db.markOrderAsSynced(localOrderId);
 
+    // Logger dans eclipso log
+    logger.logSupabaseSync('ORDER_CREATE_COMPLETED_SUCCESS', {
+      localOrderId,
+      supabaseOrderId: response.order?.id,
+      participantId: payload.participant_id,
+      universeId: payload.universe_id,
+      totalAmount: payload.total_amount / 100,
+      lang: payload.lang,
+      status: 'completed'
+    });
+
     return {
       status: 'success',
       response,
@@ -3000,6 +3046,14 @@ async function createCompletedOrderRemote(localOrderId) {
 
   } catch (error) {
     console.error('[CreateCompletedOrder] ❌ Erreur création commande completed:', error);
+
+    // Logger l'erreur dans eclipso log
+    logger.logSupabaseError('ORDER_CREATE_COMPLETED_FAILED', {
+      localOrderId,
+      error: error.message,
+      url: API_SYNC_CONFIG.url
+    });
+
     return {
       status: 'error',
       error: error.message
@@ -3110,10 +3164,28 @@ async function updateOrderRemote(supabaseOrderId, email, localOrderId, optin = f
     console.log('[UpdateOrder] ═══════════════════════════════════════════════');
     console.log('[UpdateOrder] Réponse:', JSON.stringify(response, null, 2));
 
+    // Logger dans eclipso log
+    logger.logSupabaseSync('ORDER_UPDATE_SUCCESS', {
+      supabaseOrderId,
+      localOrderId,
+      email: finalEmail,
+      optin,
+      status: 'completed'
+    });
+
     return { status: 'success', response };
 
   } catch (error) {
     console.error('[UpdateOrder] ❌ Erreur mise à jour commande:', error);
+
+    // Logger l'erreur dans eclipso log
+    logger.logSupabaseError('ORDER_UPDATE_FAILED', {
+      supabaseOrderId,
+      localOrderId,
+      error: error.message,
+      url: API_SYNC_CONFIG.url
+    });
+
     return { status: 'error', error: error.message };
   }
 }
@@ -3476,10 +3548,24 @@ async function cancelOrderRemote(supabaseOrderId) {
     console.log('[CancelOrder] ═══════════════════════════════════════════════');
     console.log('[CancelOrder] Réponse:', JSON.stringify(response, null, 2));
 
+    // Logger dans eclipso log
+    logger.logSupabaseSync('ORDER_CANCEL_SUCCESS', {
+      supabaseOrderId,
+      status: 'cancelled'
+    });
+
     return { status: 'success', response };
 
   } catch (error) {
     console.error('[CancelOrder] ❌ Erreur annulation commande:', error);
+
+    // Logger l'erreur dans eclipso log
+    logger.logSupabaseError('ORDER_CANCEL_FAILED', {
+      supabaseOrderId,
+      error: error.message,
+      url: API_SYNC_CONFIG.url
+    });
+
     return { status: 'error', error: error.message };
   }
 }
