@@ -50,10 +50,14 @@ class LoggerService {
   }
 
   /**
-   * Met à jour le fichier log si la date a changé
+   * Met à jour le fichier log si la date a changé (heure locale)
    */
   updateLogFile() {
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const today = `${year}-${month}-${day}`; // YYYY-MM-DD en heure locale
 
     // Si la date a changé, créer un nouveau fichier log
     if (this.currentLogDate !== today) {
@@ -80,10 +84,18 @@ class LoggerService {
   }
 
   /**
-   * Formate la date/heure actuelle
+   * Formate la date/heure actuelle en heure locale
    */
   getTimestamp() {
-    return new Date().toISOString().replace('T', ' ').replace('Z', '');
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+    const ms = String(now.getMilliseconds()).padStart(3, '0');
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}.${ms}`;
   }
 
   /**
