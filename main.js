@@ -2699,6 +2699,17 @@ async function syncOrderToRemoteAPI(orderId) {
       itemsCount: payload.order_items?.length
     });
 
+    // Mettre à jour le statut de sync dans la DB locale
+    if (photoSystem?.db) {
+      await photoSystem.db.updateOrderSyncStatus(
+        orderId,
+        'synced',
+        'sync',
+        response.order?.id,
+        null
+      );
+    }
+
     return { status: 'success', response };
 
   } catch (error) {
@@ -2727,6 +2738,15 @@ async function syncOrderToRemoteAPI(orderId) {
       error: error.message,
       url: API_SYNC_CONFIG.url
     });
+
+    // Marquer l'erreur de sync dans la DB locale
+    if (photoSystem?.db && orderId) {
+      await photoSystem.db.markOrderSyncError(
+        orderId,
+        'sync',
+        error.message
+      );
+    }
 
     return { status: 'error', error: error.message };
   }
@@ -2862,6 +2882,17 @@ async function createOrderRemote(orderData) {
       status: 'pending'
     });
 
+    // Mettre à jour le statut de sync dans la DB locale
+    if (photoSystem?.db) {
+      await photoSystem.db.updateOrderSyncStatus(
+        orderData.orderId,
+        'synced',
+        'create',
+        response.order?.id,
+        null
+      );
+    }
+
     return {
       status: 'success',
       response,
@@ -2878,6 +2909,15 @@ async function createOrderRemote(orderData) {
       error: error.message,
       url: API_SYNC_CONFIG.url
     });
+
+    // Marquer l'erreur de sync dans la DB locale
+    if (photoSystem?.db && orderData?.orderId) {
+      await photoSystem.db.markOrderSyncError(
+        orderData.orderId,
+        'create',
+        error.message
+      );
+    }
 
     return {
       status: 'error',
@@ -3038,6 +3078,17 @@ async function createCompletedOrderRemote(localOrderId) {
       status: 'completed'
     });
 
+    // Mettre à jour le statut de sync dans la DB locale
+    if (photoSystem?.db) {
+      await photoSystem.db.updateOrderSyncStatus(
+        localOrderId,
+        'synced',
+        'create_completed',
+        response.order?.id,
+        null
+      );
+    }
+
     return {
       status: 'success',
       response,
@@ -3053,6 +3104,15 @@ async function createCompletedOrderRemote(localOrderId) {
       error: error.message,
       url: API_SYNC_CONFIG.url
     });
+
+    // Marquer l'erreur de sync dans la DB locale
+    if (photoSystem?.db && localOrderId) {
+      await photoSystem.db.markOrderSyncError(
+        localOrderId,
+        'create_completed',
+        error.message
+      );
+    }
 
     return {
       status: 'error',
@@ -3173,6 +3233,17 @@ async function updateOrderRemote(supabaseOrderId, email, localOrderId, optin = f
       status: 'completed'
     });
 
+    // Mettre à jour le statut de sync dans la DB locale
+    if (photoSystem?.db && localOrderId) {
+      await photoSystem.db.updateOrderSyncStatus(
+        localOrderId,
+        'synced',
+        'update',
+        supabaseOrderId,
+        null
+      );
+    }
+
     return { status: 'success', response };
 
   } catch (error) {
@@ -3185,6 +3256,15 @@ async function updateOrderRemote(supabaseOrderId, email, localOrderId, optin = f
       error: error.message,
       url: API_SYNC_CONFIG.url
     });
+
+    // Marquer l'erreur de sync dans la DB locale
+    if (photoSystem?.db && localOrderId) {
+      await photoSystem.db.markOrderSyncError(
+        localOrderId,
+        'update',
+        error.message
+      );
+    }
 
     return { status: 'error', error: error.message };
   }
@@ -3329,24 +3409,49 @@ async function retrySyncPendingOrders() {
     }
 
     console.log(`[Sync Retry] ${unsyncedOrders.length} commande(s) en attente de synchronisation`);
+    logger.info('SYNC_RETRY', `Démarrage retry pour ${unsyncedOrders.length} commande(s)`, {
+      orderIds: unsyncedOrders.map(o => o.id)
+    });
 
     // Tenter de synchroniser chaque commande
     for (const order of unsyncedOrders) {
       try {
-        console.log(`[Sync Retry] Tentative ${order.sync_attempts + 1}/${API_SYNC_CONFIG.maxAttempts} pour ${order.id}`);
+        const attemptNumber = (order.sync_attempts || 0) + 1;
+        console.log(`[Sync Retry] Tentative ${attemptNumber}/${API_SYNC_CONFIG.maxAttempts} pour ${order.id}`);
+        console.log(`[Sync Retry]   - sync_status: ${order.sync_status || 'N/A'}`);
+        console.log(`[Sync Retry]   - sync_action: ${order.sync_action || 'N/A'}`);
+        console.log(`[Sync Retry]   - sync_error: ${order.sync_error || 'N/A'}`);
+
         const result = await syncOrderToRemoteAPI(order.id);
 
         if (result.status === 'success') {
           console.log(`[Sync Retry] ✅ Commande ${order.id} synchronisée avec succès`);
+          logger.info('SYNC_RETRY', `Commande ${order.id} synchronisée avec succès`, {
+            orderId: order.id,
+            attempt: attemptNumber,
+            supabaseOrderId: result.response?.order?.id
+          });
         } else {
           console.warn(`[Sync Retry] ⚠️  Échec synchronisation ${order.id}:`, result.error);
+          logger.warn('SYNC_RETRY', `Échec synchronisation ${order.id}`, {
+            orderId: order.id,
+            attempt: attemptNumber,
+            error: result.error
+          });
         }
       } catch (error) {
         console.error(`[Sync Retry] ❌ Erreur lors du retry ${order.id}:`, error);
+        logger.error('SYNC_RETRY', `Erreur lors du retry ${order.id}`, {
+          orderId: order.id,
+          error: error.message
+        });
       }
     }
   } catch (error) {
     console.error('[Sync Retry] ❌ Erreur lors du retry global:', error);
+    logger.error('SYNC_RETRY', 'Erreur lors du retry global', {
+      error: error.message
+    });
   }
 }
 
@@ -3554,6 +3659,24 @@ async function cancelOrderRemote(supabaseOrderId) {
       status: 'cancelled'
     });
 
+    // Mettre à jour le statut de sync dans la DB locale (rechercher par supabase_order_id)
+    if (photoSystem?.db) {
+      try {
+        const localOrder = await photoSystem.db.getOrderBySupabaseId(supabaseOrderId);
+        if (localOrder) {
+          await photoSystem.db.updateOrderSyncStatus(
+            localOrder.id,
+            'synced',
+            'cancel',
+            supabaseOrderId,
+            null
+          );
+        }
+      } catch (syncErr) {
+        console.warn('[CancelOrder] Erreur mise à jour sync status (non bloquant):', syncErr.message);
+      }
+    }
+
     return { status: 'success', response };
 
   } catch (error) {
@@ -3565,6 +3688,22 @@ async function cancelOrderRemote(supabaseOrderId) {
       error: error.message,
       url: API_SYNC_CONFIG.url
     });
+
+    // Marquer l'erreur de sync dans la DB locale (rechercher par supabase_order_id)
+    if (photoSystem?.db) {
+      try {
+        const localOrder = await photoSystem.db.getOrderBySupabaseId(supabaseOrderId);
+        if (localOrder) {
+          await photoSystem.db.markOrderSyncError(
+            localOrder.id,
+            'cancel',
+            error.message
+          );
+        }
+      } catch (syncErr) {
+        console.warn('[CancelOrder] Erreur mise à jour sync error (non bloquant):', syncErr.message);
+      }
+    }
 
     return { status: 'error', error: error.message };
   }

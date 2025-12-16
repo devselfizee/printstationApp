@@ -249,6 +249,10 @@ async function createTables() {
       sync_attempts INTEGER DEFAULT 0,
       last_sync_attempt DATETIME,
       synced_at DATETIME,
+      supabase_order_id TEXT,
+      sync_status TEXT DEFAULT 'pending',
+      sync_error TEXT,
+      sync_action TEXT,
       created_at DATETIME DEFAULT (datetime('now', 'localtime')),
       updated_at DATETIME DEFAULT (datetime('now', 'localtime')),
       completed_at DATETIME,
@@ -382,6 +386,30 @@ async function migrateSyncColumns() {
     if (!columnNames.includes('synced_at')) {
       await execAsync('ALTER TABLE orders ADD COLUMN synced_at DATETIME');
       console.log('[DB] ✅ Colonne synced_at ajoutée');
+    }
+
+    // Ajouter supabase_order_id si manquant
+    if (!columnNames.includes('supabase_order_id')) {
+      await execAsync('ALTER TABLE orders ADD COLUMN supabase_order_id TEXT');
+      console.log('[DB] ✅ Colonne supabase_order_id ajoutée');
+    }
+
+    // Ajouter sync_status si manquant
+    if (!columnNames.includes('sync_status')) {
+      await execAsync("ALTER TABLE orders ADD COLUMN sync_status TEXT DEFAULT 'pending'");
+      console.log('[DB] ✅ Colonne sync_status ajoutée');
+    }
+
+    // Ajouter sync_error si manquant
+    if (!columnNames.includes('sync_error')) {
+      await execAsync('ALTER TABLE orders ADD COLUMN sync_error TEXT');
+      console.log('[DB] ✅ Colonne sync_error ajoutée');
+    }
+
+    // Ajouter sync_action si manquant
+    if (!columnNames.includes('sync_action')) {
+      await execAsync('ALTER TABLE orders ADD COLUMN sync_action TEXT');
+      console.log('[DB] ✅ Colonne sync_action ajoutée');
     }
 
   } catch (error) {
@@ -1286,9 +1314,9 @@ export async function updateMachineConfig(kioskId, salesPointId, machineName = n
 export async function getUnsyncedOrders(maxAttempts = 5) {
   return allAsync(
     `SELECT * FROM orders
-     WHERE synced_to_remote = 0
+     WHERE (synced_to_remote = 0 OR sync_status = 'error' OR sync_status = 'pending')
        AND sync_attempts < ?
-       AND status IN ('processing', 'cancelled')
+       AND status IN ('processing', 'cancelled', 'completed')
      ORDER BY created_at ASC`,
     [maxAttempts]
   );
@@ -1319,6 +1347,100 @@ export async function incrementSyncAttempts(orderId) {
          updated_at = datetime('now', 'localtime')
      WHERE id = ?`,
     [orderId]
+  );
+}
+
+/**
+ * Mettre à jour le statut de synchronisation d'une commande
+ * @param {string} orderId - ID de la commande locale
+ * @param {string} syncStatus - Statut: 'pending', 'synced', 'error'
+ * @param {string} syncAction - Action: 'create', 'update', 'cancel'
+ * @param {string} supabaseOrderId - ID de la commande Supabase (optionnel)
+ * @param {string} syncError - Message d'erreur (optionnel)
+ */
+export async function updateOrderSyncStatus(orderId, syncStatus, syncAction, supabaseOrderId = null, syncError = null) {
+  const updates = [
+    'sync_status = ?',
+    'sync_action = ?',
+    'last_sync_attempt = datetime(\'now\', \'localtime\')',
+    'updated_at = datetime(\'now\', \'localtime\')'
+  ];
+  const params = [syncStatus, syncAction];
+
+  if (supabaseOrderId) {
+    updates.push('supabase_order_id = ?');
+    params.push(supabaseOrderId);
+  }
+
+  if (syncError) {
+    updates.push('sync_error = ?');
+    params.push(syncError);
+  } else if (syncStatus === 'synced') {
+    updates.push('sync_error = NULL');
+  }
+
+  if (syncStatus === 'synced') {
+    updates.push('synced_to_remote = 1');
+    updates.push('synced_at = datetime(\'now\', \'localtime\')');
+  }
+
+  params.push(orderId);
+
+  return runAsync(
+    `UPDATE orders SET ${updates.join(', ')} WHERE id = ?`,
+    params
+  );
+}
+
+/**
+ * Marquer une commande comme ayant une erreur de synchronisation
+ */
+export async function markOrderSyncError(orderId, action, errorMessage) {
+  return runAsync(
+    `UPDATE orders
+     SET sync_status = 'error',
+         sync_action = ?,
+         sync_error = ?,
+         sync_attempts = sync_attempts + 1,
+         last_sync_attempt = datetime('now', 'localtime'),
+         updated_at = datetime('now', 'localtime')
+     WHERE id = ?`,
+    [action, errorMessage, orderId]
+  );
+}
+
+/**
+ * Récupérer les commandes avec erreur de sync pour retry
+ */
+export async function getOrdersWithSyncErrors(maxAttempts = 5) {
+  return allAsync(
+    `SELECT * FROM orders
+     WHERE sync_status = 'error'
+       AND sync_attempts < ?
+     ORDER BY last_sync_attempt ASC`,
+    [maxAttempts]
+  );
+}
+
+/**
+ * Récupérer les commandes en attente de synchronisation
+ */
+export async function getPendingSyncOrders() {
+  return allAsync(
+    `SELECT * FROM orders
+     WHERE (sync_status = 'pending' OR sync_status IS NULL)
+       AND status IN ('processing', 'completed', 'cancelled')
+     ORDER BY created_at ASC`
+  );
+}
+
+/**
+ * Récupérer une commande locale par son ID Supabase
+ */
+export async function getOrderBySupabaseId(supabaseOrderId) {
+  return getAsync(
+    `SELECT * FROM orders WHERE supabase_order_id = ?`,
+    [supabaseOrderId]
   );
 }
 
