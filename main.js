@@ -3542,11 +3542,14 @@ ipcMain.handle('order:create-completed-remote', async (event, localOrderId) => {
   console.log('[IPC] order:create-completed-remote appelé');
   console.log('[IPC] localOrderId:', localOrderId);
 
-  // Mettre à jour le status local en 'completed' avant l'appel Supabase
+  // Mettre à jour le status local en 'completed' avec les détails du paiement
   if (photoSystem?.db && localOrderId) {
     try {
-      await photoSystem.db.updateOrderStatus(localOrderId, 'completed');
-      console.log('[IPC] ✅ Status local mis à jour en completed');
+      // Mettre à jour status = completed avec note
+      await photoSystem.db.updateOrderStatus(localOrderId, 'completed', 'Commande payée');
+      // Mettre à jour payment_method = card
+      await photoSystem.db.updateOrderDetails(localOrderId, { paymentMethod: 'card' });
+      console.log('[IPC] ✅ Status local mis à jour: completed, payment_method: card');
     } catch (err) {
       console.error('[IPC] ⚠️ Erreur mise à jour status local:', err.message);
     }
