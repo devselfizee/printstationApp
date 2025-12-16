@@ -16,6 +16,7 @@ class LoggerService {
     this.appVersion = null;
     this.sessionId = null;
     this.initialized = false;
+    this.currentLogDate = null; // Date du fichier log actuel
   }
 
   /**
@@ -40,13 +41,35 @@ class LoggerService {
     }
 
     // Créer le nom du fichier log avec la date du jour
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-    this.logFile = path.join(this.logDir, `eclipso_${today}.log`);
+    this.updateLogFile();
 
     this.initialized = true;
 
     // Log initial
     this.logAppStart();
+  }
+
+  /**
+   * Met à jour le fichier log si la date a changé
+   */
+  updateLogFile() {
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+
+    // Si la date a changé, créer un nouveau fichier log
+    if (this.currentLogDate !== today) {
+      const previousDate = this.currentLogDate;
+      this.currentLogDate = today;
+      this.logFile = path.join(this.logDir, `eclipso_${today}.log`);
+
+      // Si ce n'est pas la première initialisation, logger le changement de jour
+      if (previousDate) {
+        this.write('INFO', 'APP', '═══════════════════════════════════════════════════════════════');
+        this.write('INFO', 'APP', `NOUVEAU JOUR - Rotation du fichier log`);
+        this.write('INFO', 'APP', `Ancien fichier: eclipso_${previousDate}.log`);
+        this.write('INFO', 'APP', `Nouveau fichier: eclipso_${today}.log`);
+        this.write('INFO', 'APP', '═══════════════════════════════════════════════════════════════');
+      }
+    }
   }
 
   /**
@@ -68,6 +91,9 @@ class LoggerService {
    */
   write(level, category, message, data = null) {
     if (!this.initialized) return;
+
+    // Vérifier si on doit changer de fichier log (nouveau jour)
+    this.updateLogFile();
 
     const timestamp = this.getTimestamp();
     const logEntry = {
