@@ -2469,8 +2469,13 @@ async function syncOrderToRemoteAPI(orderId) {
     console.log('[Sync] Toutes les clés de orderWithItems:', Object.keys(orderWithItems));
 
     // Mapper le statut de la DB au format API
-    // 'processing' → 'pending', 'cancelled' → 'cancelled', etc.
-    const apiStatus = orderWithItems.status === 'cancelled' ? 'cancelled' : 'pending';
+    // 'processing' → 'pending', 'completed' → 'completed', 'cancelled' → 'cancelled'
+    let apiStatus = 'pending';
+    if (orderWithItems.status === 'completed') {
+      apiStatus = 'completed';
+    } else if (orderWithItems.status === 'cancelled') {
+      apiStatus = 'cancelled';
+    }
 
     // S'assurer que total_amount est toujours un nombre valide (TTC)
     const totalAmount = orderWithItems.final_amount || orderWithItems.total_amount || 0;

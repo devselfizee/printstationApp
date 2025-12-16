@@ -1310,11 +1310,15 @@ export async function updateMachineConfig(kioskId, salesPointId, machineName = n
 
 /**
  * Récupérer les commandes non synchronisées avec l'API distante
+ * Exclut les commandes déjà synchronisées (sync_status='synced' ou supabase_order_id existe)
  */
 export async function getUnsyncedOrders(maxAttempts = 5) {
   return allAsync(
     `SELECT * FROM orders
-     WHERE (synced_to_remote = 0 OR sync_status = 'error' OR sync_status = 'pending')
+     WHERE synced_to_remote = 0
+       AND (sync_status IS NULL OR sync_status = 'pending' OR sync_status = 'error')
+       AND sync_status != 'synced'
+       AND (supabase_order_id IS NULL OR supabase_order_id = '')
        AND sync_attempts < ?
        AND status IN ('processing', 'cancelled', 'completed')
      ORDER BY created_at ASC`,
