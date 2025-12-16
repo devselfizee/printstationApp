@@ -2322,12 +2322,15 @@ async function getAuthToken() {
   }
 
   console.log('[Auth] Récupération d\'un nouveau token...');
+  logger.info('AUTH', 'Récupération d\'un nouveau token...');
 
   try {
     const authPayload = {
       email: API_SYNC_CONFIG.authEmail,
       password: API_SYNC_CONFIG.authPassword
     };
+
+    console.log('[Auth] Email:', API_SYNC_CONFIG.authEmail);
 
     // Pour Supabase, on a besoin du header apikey ET du header Authorization
     const response = await makeHttpsRequest(
@@ -2342,6 +2345,7 @@ async function getAuthToken() {
     );
 
     if (!response || !response.access_token) {
+      logger.error('AUTH', 'Réponse d\'authentification invalide', { response });
       throw new Error('Réponse d\'authentification invalide');
     }
 
@@ -2354,12 +2358,24 @@ async function getAuthToken() {
     authTokenCache.expiresAt = now + (expiresIn * 1000);
 
     console.log('[Auth] ✅ Nouveau token obtenu (expire dans', expiresIn, 'secondes)');
+    logger.info('AUTH', 'Nouveau token obtenu', { expiresIn });
     return token;
 
   } catch (error) {
     console.error('[Auth] ❌ Erreur récupération token:', error);
+    logger.error('AUTH', 'Erreur récupération token', { error: error.message });
     throw new Error(`Échec authentification: ${error.message}`);
   }
+}
+
+/**
+ * Invalider le cache du token (appelé après une erreur 401)
+ */
+function invalidateAuthToken() {
+  console.log('[Auth] Invalidation du token en cache');
+  logger.warn('AUTH', 'Invalidation du token en cache (401 reçu)');
+  authTokenCache.token = null;
+  authTokenCache.expiresAt = 0;
 }
 
 /**
@@ -3368,6 +3384,13 @@ function makeHttpsRequest(url, data, method = 'POST', customHeaders = {}, authTo
           }
         } else {
           console.error(`[HTTP] ❌ Erreur HTTP ${res.statusCode}:`, responseData);
+
+          // Si erreur 401 Unauthorized, invalider le cache du token
+          if (res.statusCode === 401) {
+            console.warn('[HTTP] ⚠️ Erreur 401 - Invalidation du token en cache');
+            invalidateAuthToken();
+          }
+
           reject(new Error(`HTTP ${res.statusCode}: ${responseData}`));
         }
       });
