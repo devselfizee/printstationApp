@@ -32,9 +32,17 @@ const flags = {
   const btn = document.createElement('button');
   btn.className = 'lang-btn' + (state.lang === l ? ' active' : '');
   btn.innerHTML = flags[l];  // ← innerHTML pour afficher le SVG
-  btn.onclick = () => { 
-    state.lang = l; 
-    window.render(); 
+  btn.onclick = () => {
+    const previousLang = state.lang;
+    state.lang = l;
+    // Logger le changement de langue
+    if (window.photoAPI?.logger?.event) {
+      window.photoAPI.logger.event('USER', 'LANG_CHANGE', {
+        from: previousLang,
+        to: l
+      });
+    }
+    window.render();
   };
   langs.appendChild(btn);
 });

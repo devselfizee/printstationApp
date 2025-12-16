@@ -299,15 +299,18 @@ class HexapayWatchdog {
     const running = await this.isHexapayRunning();
     if (!running) {
       log('warn', '⚠️ Hexapay.exe non détecté au démarrage, tentative de lancement...');
+      logger.info('HEXAPAY', 'Hexapay.exe non détecté, tentative de lancement...');
       await this.startHexapay();
     } else {
       log('info', '✅ Hexapay.exe déjà en cours d\'exécution');
+      logger.info('HEXAPAY', 'Hexapay.exe déjà en cours d\'exécution');
     }
   }
 
   async startHexapay() {
     if (process.platform !== 'win32') {
       log('warn', '⚠️ Lancement automatique de hexapay.exe uniquement sur Windows');
+      logger.warn('HEXAPAY', 'Lancement automatique uniquement sur Windows', { platform: process.platform });
       return false;
     }
 
@@ -315,10 +318,12 @@ class HexapayWatchdog {
       // Vérifier si le fichier existe
       if (!fs.existsSync(HEXAPAY_EXE_PATH)) {
         log('error', '❌ Hexapay.exe non trouvé', { path: HEXAPAY_EXE_PATH });
+        logger.error('HEXAPAY', 'Hexapay.exe non trouvé', { path: HEXAPAY_EXE_PATH });
         return false;
       }
 
       log('info', '🚀 Lancement de hexapay.exe...', { path: HEXAPAY_EXE_PATH });
+      logger.info('HEXAPAY', 'Lancement de hexapay.exe...', { path: HEXAPAY_EXE_PATH });
 
       // Lancer hexapay.exe en arrière-plan (détaché)
       const hexapayProcess = spawn(HEXAPAY_EXE_PATH, [], {
@@ -336,6 +341,7 @@ class HexapayWatchdog {
       const nowRunning = await this.isHexapayRunning();
       if (nowRunning) {
         log('info', '✅ Hexapay.exe lancé avec succès');
+        logger.info('HEXAPAY', 'Hexapay.exe lancé avec succès');
 
         // Envoyer CBinfos pour fermer la popup de licence
         await this.sendCBInfosToCloseLicensePopup();
@@ -343,10 +349,12 @@ class HexapayWatchdog {
         return true;
       } else {
         log('error', '❌ Hexapay.exe n\'a pas pu démarrer');
+        logger.error('HEXAPAY', 'Hexapay.exe n\'a pas pu démarrer');
         return false;
       }
     } catch (err) {
       log('error', '❌ Erreur lors du lancement de hexapay.exe', { error: err.message });
+      logger.error('HEXAPAY', 'Erreur lors du lancement de hexapay.exe', { error: err.message });
       return false;
     }
   }
