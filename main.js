@@ -3475,26 +3475,52 @@ function makeHttpsRequest(url, data, method = 'POST', customHeaders = {}, authTo
  * @param {number} maxRetries - Nombre maximum de tentatives (défaut: 4)
  * @returns {Promise} - Promesse résolue avec la réponse ou rejetée après toutes les tentatives
  */
-async function makeHttpsRequestWithRetry(url, data, method = 'POST', customHeaders = {}, authToken = null, maxRetries = 4) {
-  const delays = [2000, 4000, 8000, 16000]; // Backoff exponentiel: 2s, 4s, 8s, 16s
+async function makeHttpsRequestWithRetry(url, data, method = 'POST', customHeaders = {}, authToken = null, maxRetries = 3) {
+  const delays = [2000, 4000, 8000]; // Backoff exponentiel: 2s, 4s, 8s
+  let currentAuthToken = authToken;
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       console.log(`[HTTP Retry] Tentative ${attempt + 1}/${maxRetries + 1} pour ${method} ${url}`);
-      const response = await makeHttpsRequest(url, data, method, customHeaders, authToken);
+      const response = await makeHttpsRequest(url, data, method, customHeaders, currentAuthToken);
       console.log(`[HTTP Retry] ✅ Succès à la tentative ${attempt + 1}`);
       return response;
     } catch (error) {
       const isLastAttempt = attempt === maxRetries;
+
+      // Erreurs réseau (retry automatique)
       const isNetworkError = error.code === 'ECONNRESET' ||
                             error.code === 'ETIMEDOUT' ||
                             error.code === 'ECONNREFUSED' ||
                             error.code === 'ENOTFOUND';
 
+      // Erreurs HTTP qui méritent un retry
+      const isHttp401 = error.message && error.message.includes('HTTP 401');
+      const isHttp403 = error.message && error.message.includes('HTTP 403');
+      const isHttp5xx = error.message && (
+        error.message.includes('HTTP 500') ||
+        error.message.includes('HTTP 502') ||
+        error.message.includes('HTTP 503') ||
+        error.message.includes('HTTP 504')
+      );
+
+      const shouldRetry = isNetworkError || isHttp401 || isHttp403 || isHttp5xx;
+
       console.error(`[HTTP Retry] ❌ Tentative ${attempt + 1} échouée:`, error.message);
 
-      // Si c'est la dernière tentative ou ce n'est pas une erreur réseau, on rejette
-      if (isLastAttempt || !isNetworkError) {
+      // Si erreur 401/403, récupérer un nouveau token pour le prochain essai
+      if ((isHttp401 || isHttp403) && !isLastAttempt) {
+        console.log('[HTTP Retry] 🔄 Erreur d\'authentification - récupération d\'un nouveau token...');
+        try {
+          currentAuthToken = await getAuthToken();
+          console.log('[HTTP Retry] ✅ Nouveau token obtenu');
+        } catch (authError) {
+          console.error('[HTTP Retry] ❌ Impossible de récupérer un nouveau token:', authError.message);
+        }
+      }
+
+      // Si c'est la dernière tentative ou erreur non-retryable, on rejette
+      if (isLastAttempt || !shouldRetry) {
         console.error(`[HTTP Retry] ❌ Échec définitif après ${attempt + 1} tentative(s)`);
         throw error;
       }
