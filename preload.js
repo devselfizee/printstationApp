@@ -131,6 +131,7 @@ const photoAPI = {
   // Participants
   participants: {
     addOrUpdate: (participantId, universeId, status) => ipcRenderer.invoke('participant:add-or-update', participantId, universeId, status),
+    syncRemote: (participantId, universeId) => ipcRenderer.invoke('participant:sync-remote', { participantId, universeId }),
   },
 
   // Scan Stories
