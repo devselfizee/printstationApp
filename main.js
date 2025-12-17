@@ -1641,19 +1641,6 @@ ipcMain.handle('photos:scan-qr', async (event, qrContent) => {
       const seconds = String(now.getSeconds()).padStart(2, '0');
       const createdAt = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 
-      // Sync participant vers Supabase (non bloquant)
-      syncParticipantToRemote(result.participantId, result.universeId)
-        .then(syncResult => {
-          if (syncResult.status === 'success') {
-            console.log('[IPC] Participant synchronisé vers Supabase');
-          } else {
-            console.warn('[IPC] Échec sync participant:', syncResult.error);
-          }
-        })
-        .catch(err => {
-          console.error('[IPC] Erreur sync participant:', err.message);
-        });
-
       // Sync scan story vers Supabase (non bloquant)
       syncScanStoryToRemote(result.participantId, result.universeId, createdAt)
         .then(syncResult => {
@@ -3981,91 +3968,6 @@ async function syncScanStoryToRemote(participantId, universeId, createdAt) {
 ipcMain.handle('scan-story:sync-remote', async (event, { participantId, universeId, createdAt }) => {
   console.log('[IPC] scan-story:sync-remote appelé');
   return await syncScanStoryToRemote(participantId, universeId, createdAt);
-});
-
-/**
- * ===== SYNCHRONISATION PARTICIPANTS =====
- */
-
-/**
- * Synchroniser un participant vers Supabase
- * @param {string} participantId - ID du participant
- * @param {string} universeId - ID de l'univers
- */
-async function syncParticipantToRemote(participantId, universeId) {
-  if (!API_SYNC_CONFIG.enabled) {
-    console.log('[Participant] API désactivée');
-    return { status: 'skipped', message: 'API désactivée' };
-  }
-
-  try {
-    console.log('[Participant] ═══════════════════════════════════════════════');
-    console.log('[Participant] 📤 SYNCHRONISATION PARTICIPANT VERS SUPABASE');
-    console.log('[Participant] ═══════════════════════════════════════════════');
-    console.log('[Participant] participant_id:', participantId);
-    console.log('[Participant] universe_id:', universeId);
-
-    // Récupérer le kiosk_id depuis la config
-    const kioskId = API_SYNC_CONFIG.kioskId;
-    console.log('[Participant] kiosk_id:', kioskId);
-
-    // Construire le payload
-    const payload = {
-      participant_id: participantId,
-      universe_id: universeId,
-      kiosk_id: kioskId
-    };
-
-    console.log('[Participant] Payload:', JSON.stringify(payload, null, 2));
-
-    // URL de l'API participants
-    const participantsUrl = (process.env.BASE_URL || 'https://ygetxuvqrknbggplzmvy.supabase.co/functions/v1') + '/manage-participants';
-    console.log('[Participant] URL:', participantsUrl);
-
-    // Récupérer un token d'authentification
-    const authToken = await getAuthToken();
-
-    // Faire l'appel HTTP POST
-    const response = await makeHttpsRequestWithRetry(
-      participantsUrl,
-      payload,
-      'POST',
-      {
-        'apikey': API_SYNC_CONFIG.supabaseAnonKey
-      },
-      authToken
-    );
-
-    console.log('[Participant] ✅ Participant synchronisé avec succès');
-    console.log('[Participant] Réponse:', JSON.stringify(response, null, 2));
-
-    // Logger dans eclipso log
-    logger.logSupabaseSync('PARTICIPANT_SYNC_SUCCESS', {
-      participantId,
-      universeId,
-      kioskId
-    });
-
-    return { status: 'success', response };
-
-  } catch (error) {
-    console.error('[Participant] ❌ Erreur synchronisation participant:', error);
-
-    // Logger l'erreur dans eclipso log
-    logger.logSupabaseError('PARTICIPANT_SYNC_FAILED', {
-      participantId,
-      universeId,
-      error: error.message
-    });
-
-    return { status: 'error', error: error.message };
-  }
-}
-
-// Handler IPC pour synchroniser un participant
-ipcMain.handle('participant:sync-remote', async (event, { participantId, universeId }) => {
-  console.log('[IPC] participant:sync-remote appelé');
-  return await syncParticipantToRemote(participantId, universeId);
 });
 
 /**
