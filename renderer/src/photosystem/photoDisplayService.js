@@ -138,7 +138,7 @@ export async function handleQRCodeScan(qrContent) {
     await db.addOrUpdateParticipant(participantId, universeId, 'pending');
 
     // Sync participant vers Supabase via IPC (non bloquant)
-    if (window.photoAPI?.participants?.syncRemote) {
+    if (typeof window !== 'undefined' && window.photoAPI?.participants?.syncRemote) {
       window.photoAPI.participants.syncRemote(participantId, universeId)
         .then(result => {
           if (result.status === 'success') {
