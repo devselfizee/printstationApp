@@ -4003,8 +4003,32 @@ async function syncParticipantToRemote(participantId, universeId) {
     console.log('[Participant] universe_id:', universeId);
 
     // Récupérer le kiosk_id et sales_point_id depuis la config
-    const kioskId = API_SYNC_CONFIG.kioskId;
-    const salesPointId = API_SYNC_CONFIG.salesPointId;
+    let kioskId = API_SYNC_CONFIG.kioskId;
+    let salesPointId = API_SYNC_CONFIG.salesPointId;
+
+    // Si les valeurs sont vides ou par défaut, essayer de charger depuis la DB
+    if (!kioskId || kioskId === 'default-kiosk-uuid' || !salesPointId || salesPointId === 'default-sales-point-uuid') {
+      console.log('[Participant] Config incomplète, tentative de chargement depuis la DB...');
+      if (photoSystemReady && photoSystem?.db) {
+        try {
+          const dbConfig = await photoSystem.db.getMachineConfig();
+          if (dbConfig) {
+            if (dbConfig.kiosk_id) {
+              kioskId = dbConfig.kiosk_id;
+              API_SYNC_CONFIG.kioskId = kioskId;
+            }
+            if (dbConfig.sales_point_id) {
+              salesPointId = dbConfig.sales_point_id;
+              API_SYNC_CONFIG.salesPointId = salesPointId;
+            }
+            console.log('[Participant] Config chargée depuis DB:', { kioskId, salesPointId });
+          }
+        } catch (dbError) {
+          console.warn('[Participant] Erreur chargement config DB:', dbError.message);
+        }
+      }
+    }
+
     console.log('[Participant] kiosk_id:', kioskId);
     console.log('[Participant] sales_point_id:', salesPointId);
 

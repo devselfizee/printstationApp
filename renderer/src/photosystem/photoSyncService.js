@@ -318,10 +318,25 @@ async function processRemotePhoto(remotePhoto) {
     // ⭐ CORRECTION: Créer/mettre à jour le participant AVANT d'ajouter la photo
     const participantId = remotePhoto.participantId || 'unknown';
     const universeId = remotePhoto.universe || 'unknown';
-    
+
     try {
       await db.addOrUpdateParticipant(participantId, universeId, 'syncing');
       console.log(`[PhotoSync] ✅ Participant créé/mis à jour: ${participantId}`);
+
+      // Sync participant vers Supabase via IPC (non bloquant)
+      if (window.photoAPI?.participants?.syncRemote) {
+        window.photoAPI.participants.syncRemote(participantId, universeId)
+          .then(result => {
+            if (result.status === 'success') {
+              console.log(`[PhotoSync] ✅ Participant ${participantId} synchronisé vers Supabase`);
+            } else {
+              console.warn(`[PhotoSync] ⚠️  Échec sync participant Supabase:`, result.error);
+            }
+          })
+          .catch(err => {
+            console.error(`[PhotoSync] ❌ Erreur sync participant Supabase:`, err.message);
+          });
+      }
     } catch (error) {
       console.error(`[PhotoSync] ⚠️  Erreur création participant: ${error.message}`);
       // Continuer quand même pour ajouter la photo

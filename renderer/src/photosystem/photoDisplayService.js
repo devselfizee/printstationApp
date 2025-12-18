@@ -137,6 +137,21 @@ export async function handleQRCodeScan(qrContent) {
 
     await db.addOrUpdateParticipant(participantId, universeId, 'pending');
 
+    // Sync participant vers Supabase via IPC (non bloquant)
+    if (window.photoAPI?.participants?.syncRemote) {
+      window.photoAPI.participants.syncRemote(participantId, universeId)
+        .then(result => {
+          if (result.status === 'success') {
+            console.log(`[PhotoDisplay] ✅ Participant ${participantId} synchronisé vers Supabase`);
+          } else {
+            console.warn(`[PhotoDisplay] ⚠️  Échec sync participant Supabase:`, result.error);
+          }
+        })
+        .catch(err => {
+          console.error(`[PhotoDisplay] ❌ Erreur sync participant Supabase:`, err.message);
+        });
+    }
+
     // ⭐ Enregistrer le scan dans scan_stories
     await db.addScanStory(participantId, universeId);
     console.log('[PhotoDisplay] Scan enregistré dans scan_stories');
