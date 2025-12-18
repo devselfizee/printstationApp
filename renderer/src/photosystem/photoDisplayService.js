@@ -9,10 +9,10 @@
 
 import * as db from './db.js';
 import { loadUniverse } from './universeService.js';
+import { triggerParticipantSync } from './photosystem.js';
 import path from 'path';
 import * as fs from 'fs/promises';
 import os from 'os';
-import { ipcRenderer } from 'electron';
 
 function getMediasDir() {
   const platform = process.platform;
@@ -140,18 +140,8 @@ export async function handleQRCodeScan(qrContent) {
     await db.addOrUpdateParticipant(participantId, universeId, 'pending');
     console.log(`[PhotoDisplay] ✅ Participant ${participantId} ajouté/mis à jour localement`);
 
-    // Sync participant vers Supabase via IPC (non bloquant)
-    ipcRenderer.invoke('participant:sync-remote', { participantId, universeId })
-      .then(result => {
-        if (result.status === 'success') {
-          console.log(`[PhotoDisplay] ✅ Participant ${participantId} synchronisé vers Supabase`);
-        } else {
-          console.warn(`[PhotoDisplay] ⚠️  Échec sync participant Supabase:`, result.error);
-        }
-      })
-      .catch(err => {
-        console.error(`[PhotoDisplay] ❌ Erreur sync participant Supabase:`, err.message);
-      });
+    // Sync participant vers Supabase via callback (non bloquant)
+    triggerParticipantSync(participantId, universeId);
 
     // ⭐ Enregistrer le scan dans scan_stories
     await db.addScanStory(participantId, universeId);

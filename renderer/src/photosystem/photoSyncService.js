@@ -11,10 +11,10 @@
 
 import * as db from './db.js';
 import * as downloadService from './photoDownloadService.js';
+import { triggerParticipantSync } from './photosystem.js';
 import path from 'path';
 import os from 'os';
 import * as fs from 'fs/promises';
-import { ipcRenderer } from 'electron';
 
 const CONFIG = {
   SYNC_INTERVAL_MS: 30000,
@@ -325,18 +325,8 @@ async function processRemotePhoto(remotePhoto) {
       await db.addOrUpdateParticipant(participantId, universeId, 'syncing');
       console.log(`[PhotoSync] ✅ Participant ${participantId} créé/mis à jour localement`);
 
-      // Sync participant vers Supabase via IPC (non bloquant)
-      ipcRenderer.invoke('participant:sync-remote', { participantId, universeId })
-        .then(result => {
-          if (result.status === 'success') {
-            console.log(`[PhotoSync] ✅ Participant ${participantId} synchronisé vers Supabase`);
-          } else {
-            console.warn(`[PhotoSync] ⚠️  Échec sync participant Supabase:`, result.error);
-          }
-        })
-        .catch(err => {
-          console.error(`[PhotoSync] ❌ Erreur sync participant Supabase:`, err.message);
-        });
+      // Sync participant vers Supabase via callback (non bloquant)
+      triggerParticipantSync(participantId, universeId);
     } catch (error) {
       console.error(`[PhotoSync] ⚠️  Erreur création participant: ${error.message}`);
       // Continuer quand même pour ajouter la photo

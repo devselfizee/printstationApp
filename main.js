@@ -1427,6 +1427,24 @@ app.on('ready', async () => {
         console.log('[Main] ✓ Système de photos prêt');
         photoSystemReady = true;
 
+        // Configurer le callback de sync participant
+        if (photoSystem.setParticipantSyncCallback) {
+          photoSystem.setParticipantSyncCallback((participantId, universeId) => {
+            console.log('[Main] Callback sync participant appelé:', { participantId, universeId });
+            syncParticipantToRemote(participantId, universeId)
+              .then(result => {
+                if (result.status === 'success') {
+                  console.log(`[Main] ✅ Participant ${participantId} synchronisé vers Supabase`);
+                } else {
+                  console.warn(`[Main] ⚠️  Échec sync participant:`, result.error);
+                }
+              })
+              .catch(err => {
+                console.error(`[Main] ❌ Erreur sync participant:`, err.message);
+              });
+          });
+        }
+
         // Charger la configuration machine depuis la DB
         const configComplete = await loadMachineConfig();
 

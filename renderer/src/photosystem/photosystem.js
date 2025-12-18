@@ -14,6 +14,28 @@ import * as adminService from './adminService.js';
 
 let isInitialized = false;
 
+// Callback pour synchroniser un participant vers Supabase (injecté par main.js)
+let onParticipantSyncCallback = null;
+
+/**
+ * Définir le callback de sync participant (appelé par main.js)
+ */
+export function setParticipantSyncCallback(callback) {
+  onParticipantSyncCallback = callback;
+  console.log('[PhotoSystem] Callback de sync participant configuré');
+}
+
+/**
+ * Appeler le callback de sync participant (utilisé par les services internes)
+ */
+export function triggerParticipantSync(participantId, universeId) {
+  if (onParticipantSyncCallback) {
+    onParticipantSyncCallback(participantId, universeId);
+  } else {
+    console.warn('[PhotoSystem] Callback de sync participant non configuré');
+  }
+}
+
 /**
  * ===== INITIALISATION =====
  */
@@ -275,5 +297,7 @@ export default {
   getHistory,
   parseQRCode,
   admin,
+  setParticipantSyncCallback,
+  triggerParticipantSync,
   db, // Exposer le module db pour les opérations de commande
 };
