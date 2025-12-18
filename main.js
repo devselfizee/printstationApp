@@ -4283,6 +4283,20 @@ ipcMain.handle('participant:add-or-update', async (event, participantId, univers
   try {
     await photoSystem.db.addOrUpdateParticipant(participantId, universeId, status || 'active');
     console.log('[IPC] ✅ Participant créé/mis à jour:', participantId);
+
+    // Sync participant vers Supabase (non bloquant)
+    syncParticipantToRemote(participantId, universeId)
+      .then(syncResult => {
+        if (syncResult.status === 'success') {
+          console.log('[IPC] Participant synchronisé vers Supabase:', participantId);
+        } else {
+          console.warn('[IPC] Échec sync participant:', syncResult.error);
+        }
+      })
+      .catch(err => {
+        console.error('[IPC] Erreur sync participant:', err.message);
+      });
+
     return { status: 'success', participantId, universeId };
   } catch (error) {
     console.error('[IPC] ❌ Erreur création participant:', error);
