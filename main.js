@@ -4020,52 +4020,43 @@ async function syncParticipantToRemote(participantId, universeId) {
     console.log('[Participant] participant_id:', participantId);
     console.log('[Participant] universe_id:', universeId);
 
-    // Récupérer le kiosk_id et sales_point_id depuis la config
-    let kioskId = API_SYNC_CONFIG.kioskId;
-    let salesPointId = API_SYNC_CONFIG.salesPointId;
+    // Toujours récupérer la config depuis la DB pour avoir les valeurs à jour
+    let kioskId = null;
+    let salesPointId = null;
 
-    // Si les valeurs sont vides ou par défaut, essayer de charger depuis la DB
-    if (!kioskId || kioskId === 'default-kiosk-uuid' || !salesPointId || salesPointId === 'default-sales-point-uuid') {
-      console.log('[Participant] Config incomplète, tentative de chargement depuis la DB...');
-      if (photoSystemReady && photoSystem?.db) {
-        try {
-          const dbConfig = await photoSystem.db.getMachineConfig();
-          if (dbConfig) {
-            if (dbConfig.kiosk_id) {
-              kioskId = dbConfig.kiosk_id;
-              API_SYNC_CONFIG.kioskId = kioskId;
-            }
-            if (dbConfig.sales_point_id) {
-              salesPointId = dbConfig.sales_point_id;
-              API_SYNC_CONFIG.salesPointId = salesPointId;
-            }
-            console.log('[Participant] Config chargée depuis DB:', { kioskId, salesPointId });
-          }
-        } catch (dbError) {
-          console.warn('[Participant] Erreur chargement config DB:', dbError.message);
+    if (photoSystemReady && photoSystem?.db) {
+      try {
+        const dbConfig = await photoSystem.db.getMachineConfig();
+        console.log('[Participant] Config DB brute:', dbConfig);
+        if (dbConfig) {
+          kioskId = dbConfig.kiosk_id || null;
+          salesPointId = dbConfig.sales_point_id || null;
         }
+      } catch (dbError) {
+        console.warn('[Participant] Erreur chargement config DB:', dbError.message);
       }
     }
+
+    // Fallback sur API_SYNC_CONFIG si DB non disponible
+    if (!kioskId) kioskId = API_SYNC_CONFIG.kioskId;
+    if (!salesPointId) salesPointId = API_SYNC_CONFIG.salesPointId;
+
+    // Nettoyer les valeurs par défaut
+    if (kioskId === 'default-kiosk-uuid') kioskId = null;
+    if (salesPointId === 'default-sales-point-uuid') salesPointId = null;
 
     console.log('[Participant] kiosk_id:', kioskId);
     console.log('[Participant] sales_point_id:', salesPointId);
 
     // Construire le qrcode = universe_id + participant_id
-    // Vérifier que les valeurs ne sont pas vides
-    const qrcode = (universeId && universeId !== '' && participantId && participantId !== '')
-      ? `${universeId}${participantId}`
-      : null;
+    const qrcode = (universeId && participantId) ? `${universeId}${participantId}` : null;
     console.log('[Participant] qrcode:', qrcode);
-
-    if (!qrcode) {
-      console.warn('[Participant] ⚠️  qrcode est null - universeId:', universeId, 'participantId:', participantId);
-    }
 
     // Construire le payload
     const payload = {
-      universe_id: universeId,
+      universe_id: universeId || null,
       kiosk_id: kioskId,
-      participant_id: participantId,
+      participant_id: participantId || null,
       sales_point_id: salesPointId,
       qrcode: qrcode
     };
@@ -4079,30 +4070,46 @@ async function syncParticipantToRemote(participantId, universeId) {
     // Récupérer un token d'authentification
     const authToken = await getAuthToken();
 
-    // Faire l'appel HTTP POST
-    const response = await makeHttpsRequestWithRetry(
-      participantsUrl,
-      payload,
-      'POST',
-      {
-        'apikey': API_SYNC_CONFIG.supabaseAnonKey
-      },
-      authToken
-    );
+    // Faire l'appel HTTP POST (sans retry automatique pour gérer 409)
+    try {
+      const response = await makeHttpsRequest(
+        participantsUrl,
+        payload,
+        'POST',
+        {
+          'apikey': API_SYNC_CONFIG.supabaseAnonKey
+        },
+        authToken
+      );
 
-    console.log('[Participant] ✅ Participant synchronisé avec succès');
-    console.log('[Participant] Réponse:', JSON.stringify(response, null, 2));
+      console.log('[Participant] ✅ Participant synchronisé avec succès');
+      console.log('[Participant] Réponse:', JSON.stringify(response, null, 2));
 
-    // Logger dans eclipso log
-    logger.logSupabaseSync('PARTICIPANT_SYNC_SUCCESS', {
-      participantId,
-      universeId,
-      qrcode,
-      kioskId,
-      salesPointId
-    });
+      // Logger dans eclipso log
+      logger.logSupabaseSync('PARTICIPANT_SYNC_SUCCESS', {
+        participantId,
+        universeId,
+        qrcode,
+        kioskId,
+        salesPointId
+      });
 
-    return { status: 'success', response };
+      return { status: 'success', response };
+
+    } catch (httpError) {
+      // Vérifier si c'est une erreur 409 (participant existe déjà)
+      if (httpError.message && httpError.message.includes('409')) {
+        console.log('[Participant] ℹ️  Participant existe déjà (409) - Continuation sans erreur');
+        logger.logSupabaseSync('PARTICIPANT_ALREADY_EXISTS', {
+          participantId,
+          universeId,
+          qrcode
+        });
+        return { status: 'exists', message: 'Participant existe déjà' };
+      }
+      // Sinon, propager l'erreur
+      throw httpError;
+    }
 
   } catch (error) {
     console.error('[Participant] ❌ Erreur synchronisation participant:', error);
