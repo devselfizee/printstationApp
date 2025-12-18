@@ -290,12 +290,13 @@ function closeWarningModal() {
  * Gérer le timeout - retour à l'accueil
  */
 async function handleTimeout() {
-  console.log('[Inactivity] Timeout - retour à l\'accueil');
+  const currentPage = window.state?.page;
+  console.log('[Inactivity] Timeout - retour à l\'accueil depuis page:', currentPage);
 
   // Log de l'événement
   if (window.photoAPI?.logger) {
     window.photoAPI.logger.info('INACTIVITY', 'Timeout inactivité - retour accueil', {
-      previousPage: window.state?.page,
+      previousPage: currentPage,
       timeout: INACTIVITY_TIMEOUT
     });
   }
@@ -306,10 +307,16 @@ async function handleTimeout() {
   // Arrêter le timer
   stopInactivityTimer();
 
-  // Si le panier n'est pas vide, annuler la commande et l'enregistrer
-  if (window.state?.cart && window.state.cart.length > 0) {
-    console.log('[Inactivity] Panier non vide, annulation de la commande...');
-    await handleOrderCancellation('inactivity_timeout');
+  // Si on est sur la page form, ne PAS créer de commande ni poster vers Supabase
+  // Juste retourner à l'accueil
+  if (currentPage === 'form') {
+    console.log('[Inactivity] Page form - retour accueil sans création de commande');
+  } else {
+    // Si le panier n'est pas vide et qu'on n'est PAS sur form, annuler la commande et l'enregistrer
+    if (window.state?.cart && window.state.cart.length > 0) {
+      console.log('[Inactivity] Panier non vide, annulation de la commande...');
+      await handleOrderCancellation('inactivity_timeout');
+    }
   }
 
   // Réinitialiser l'état et retourner à l'accueil
