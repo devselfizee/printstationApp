@@ -1427,7 +1427,10 @@ app.on('ready', async () => {
         console.log('[Main] ✓ Système de photos prêt');
         photoSystemReady = true;
 
-        // Configurer le callback de sync participant
+        // Charger la configuration machine depuis la DB
+        const configComplete = await loadMachineConfig();
+
+        // Configurer le callback de sync participant APRÈS le chargement de la config
         if (photoSystem.setParticipantSyncCallback) {
           photoSystem.setParticipantSyncCallback((participantId, universeId) => {
             console.log('[Main] Callback sync participant appelé:', { participantId, universeId });
@@ -1444,9 +1447,6 @@ app.on('ready', async () => {
               });
           });
         }
-
-        // Charger la configuration machine depuis la DB
-        const configComplete = await loadMachineConfig();
 
         // Démarrer les services de sync UNIQUEMENT si la config est complète
         if (configComplete) {
@@ -4051,8 +4051,15 @@ async function syncParticipantToRemote(participantId, universeId) {
     console.log('[Participant] sales_point_id:', salesPointId);
 
     // Construire le qrcode = universe_id + participant_id
-    const qrcode = universeId && participantId ? `${universeId}${participantId}` : null;
+    // Vérifier que les valeurs ne sont pas vides
+    const qrcode = (universeId && universeId !== '' && participantId && participantId !== '')
+      ? `${universeId}${participantId}`
+      : null;
     console.log('[Participant] qrcode:', qrcode);
+
+    if (!qrcode) {
+      console.warn('[Participant] ⚠️  qrcode est null - universeId:', universeId, 'participantId:', participantId);
+    }
 
     // Construire le payload
     const payload = {
