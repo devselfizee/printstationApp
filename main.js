@@ -1272,7 +1272,8 @@ const API_SYNC_CONFIG = {
   tva: 20, // Taux de TVA par défaut (en %)
   enabled: process.env.ENABLE_API_SYNC !== 'false', // Activé par défaut
   retryIntervalMs: parseInt(process.env.SYNC_RETRY_INTERVAL_MS) || 60000, // 1 minute par défaut
-  maxAttempts: parseInt(process.env.SYNC_MAX_ATTEMPTS) || 3 // 3 tentatives max
+  maxAttempts: parseInt(process.env.SYNC_MAX_ATTEMPTS) || 3, // 3 tentatives max
+  machineStateSyncIntervalMs: parseInt(process.env.MACHINE_STATE_SYNC_INTERVAL_MS) || 180000 // 3 minutes par défaut
 };
 
 // Cache pour le token JWT avec expiration
@@ -1456,6 +1457,8 @@ app.on('ready', async () => {
           }
           // Démarrer le système de retry pour les commandes non synchronisées
           startSyncRetrySystem();
+          // Démarrer la synchronisation périodique de l'état de la machine
+          startMachineStateSync();
         } else {
           console.log('[Main] ⚠️  Services de sync en attente - Configuration requise');
         }
@@ -1474,8 +1477,10 @@ app.on('ready', async () => {
 });
 
 // Désenregistrer les raccourcis globaux avant la fermeture
-app.on('will-quit', () => {
+app.on('will-quit', async () => {
   globalShortcut.unregisterAll();
+  // Envoyer statut offline avant de quitter
+  await stopMachineStateSync();
 });
 
 app.on('window-all-closed', () => {
@@ -4130,6 +4135,177 @@ ipcMain.handle('participant:sync-remote', async (event, { participantId, univers
   console.log('[IPC] participant:sync-remote appelé');
   return await syncParticipantToRemote(participantId, universeId);
 });
+
+/**
+ * ===== SYNCHRONISATION ÉTAT MACHINE VERS SUPABASE =====
+ * Envoie l'état de la machine (online/offline) à intervalles réguliers
+ */
+let machineStateInterval = null;
+
+/**
+ * Obtenir la date locale au format ISO
+ */
+function getLocalDateISO() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const seconds = String(now.getSeconds()).padStart(2, '0');
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}Z`;
+}
+
+/**
+ * Synchroniser l'état de la machine vers Supabase
+ */
+async function syncMachineState(status = 'online') {
+  console.log('[MachineState] syncMachineState appelé:', status);
+
+  if (!API_SYNC_CONFIG.enabled) {
+    console.log('[MachineState] API désactivée');
+    return { status: 'skipped', message: 'API désactivée' };
+  }
+
+  try {
+    console.log('[MachineState] ═══════════════════════════════════════════════');
+    console.log('[MachineState] 📤 SYNCHRONISATION ÉTAT MACHINE VERS SUPABASE');
+    console.log('[MachineState] ═══════════════════════════════════════════════');
+    console.log('[MachineState] status:', status);
+
+    // Récupérer kiosk_id et sales_point_id depuis la DB
+    let kioskId = null;
+    let salesPointId = null;
+
+    if (photoSystemReady && photoSystem?.db) {
+      try {
+        const dbConfig = await photoSystem.db.getMachineConfig();
+        if (dbConfig) {
+          kioskId = dbConfig.kiosk_id || null;
+          salesPointId = dbConfig.sales_point_id || null;
+        }
+      } catch (dbError) {
+        console.warn('[MachineState] Erreur chargement config DB:', dbError.message);
+      }
+    }
+
+    // Fallback sur API_SYNC_CONFIG
+    if (!kioskId) kioskId = API_SYNC_CONFIG.kioskId;
+    if (!salesPointId) salesPointId = API_SYNC_CONFIG.salesPointId;
+
+    // Nettoyer les valeurs par défaut
+    if (kioskId === 'default-kiosk-uuid') kioskId = null;
+    if (salesPointId === 'default-sales-point-uuid') salesPointId = null;
+
+    console.log('[MachineState] kiosk_id:', kioskId);
+    console.log('[MachineState] sales_point_id:', salesPointId);
+
+    // Si pas de config valide, on ne peut pas synchroniser
+    if (!kioskId || !salesPointId) {
+      console.warn('[MachineState] Config machine incomplète, sync impossible');
+      return { status: 'skipped', message: 'Config machine incomplète' };
+    }
+
+    // Construire le payload
+    const payload = {
+      kiosk_id: kioskId,
+      sales_point_id: salesPointId,
+      status: status,
+      soft_type: 'command',
+      date_local: getLocalDateISO()
+    };
+
+    console.log('[MachineState] Payload:', JSON.stringify(payload, null, 2));
+
+    // URL de l'API machine state
+    const machineStateUrl = (process.env.BASE_URL || 'https://ygetxuvqrknbggplzmvy.supabase.co/functions/v1') + '/manage-machine-state';
+    console.log('[MachineState] URL:', machineStateUrl);
+
+    // Récupérer un token d'authentification
+    const authToken = await getAuthToken();
+
+    // Faire l'appel HTTP POST
+    const response = await makeHttpsRequest(
+      machineStateUrl,
+      payload,
+      'POST',
+      {
+        'apikey': API_SYNC_CONFIG.supabaseAnonKey
+      },
+      authToken
+    );
+
+    console.log('[MachineState] ✅ État machine synchronisé avec succès');
+    console.log('[MachineState] Réponse:', JSON.stringify(response, null, 2));
+
+    // Logger dans eclipso log
+    logger.logSupabaseSync('MACHINE_STATE_SYNC_SUCCESS', {
+      status,
+      kioskId,
+      salesPointId
+    });
+
+    return { status: 'success', response };
+
+  } catch (error) {
+    console.error('[MachineState] ❌ Erreur synchronisation état machine:', error);
+
+    // Logger l'erreur dans eclipso log
+    logger.logSupabaseError('MACHINE_STATE_SYNC_FAILED', {
+      status,
+      error: error.message
+    });
+
+    return { status: 'error', error: error.message };
+  }
+}
+
+/**
+ * Démarrer la synchronisation périodique de l'état de la machine
+ */
+function startMachineStateSync() {
+  if (!API_SYNC_CONFIG.enabled) {
+    console.log('[MachineState] Sync périodique désactivée (ENABLE_API_SYNC=false)');
+    return;
+  }
+
+  const intervalMs = API_SYNC_CONFIG.machineStateSyncIntervalMs;
+  console.log(`[MachineState] Démarrage sync périodique (intervalle: ${intervalMs / 1000}s)`);
+
+  // Sync immédiate au démarrage
+  syncMachineState('online').catch(err => {
+    console.error('[MachineState] Erreur sync initiale:', err.message);
+  });
+
+  // Sync périodique
+  if (machineStateInterval) {
+    clearInterval(machineStateInterval);
+  }
+  machineStateInterval = setInterval(() => {
+    syncMachineState('online').catch(err => {
+      console.error('[MachineState] Erreur sync périodique:', err.message);
+    });
+  }, intervalMs);
+}
+
+/**
+ * Arrêter la synchronisation périodique et envoyer offline
+ */
+async function stopMachineStateSync() {
+  console.log('[MachineState] Arrêt sync périodique');
+
+  if (machineStateInterval) {
+    clearInterval(machineStateInterval);
+    machineStateInterval = null;
+  }
+
+  // Envoyer statut offline
+  try {
+    await syncMachineState('offline');
+  } catch (error) {
+    console.error('[MachineState] Erreur envoi offline:', error.message);
+  }
+}
 
 /**
  * ===== HANDLERS IPC CONFIGURATION MACHINE =====
