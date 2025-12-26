@@ -1477,10 +1477,27 @@ app.on('ready', async () => {
 });
 
 // Désenregistrer les raccourcis globaux avant la fermeture
-app.on('will-quit', async () => {
+app.on('will-quit', async (event) => {
   globalShortcut.unregisterAll();
+
+  // Éviter la boucle infinie lors du second appel à app.quit()
+  if (isQuitting) {
+    return;
+  }
+
+  // Empêcher la fermeture immédiate pour attendre l'envoi du statut offline
+  event.preventDefault();
+  isQuitting = true;
+
+  console.log('[Main] Envoi du statut offline avant fermeture...');
+
   // Envoyer statut offline avant de quitter
   await stopMachineStateSync();
+
+  console.log('[Main] Statut offline envoyé, fermeture de l\'application');
+
+  // Maintenant on peut vraiment quitter
+  app.quit();
 });
 
 app.on('window-all-closed', () => {
@@ -4141,6 +4158,7 @@ ipcMain.handle('participant:sync-remote', async (event, { participantId, univers
  * Envoie l'état de la machine (online/offline) à intervalles réguliers
  */
 let machineStateInterval = null;
+let isQuitting = false;
 
 /**
  * Obtenir la date locale au format ISO
