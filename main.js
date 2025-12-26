@@ -4230,7 +4230,8 @@ async function syncMachineState(status = 'online') {
       sales_point_id: salesPointId,
       status: status,
       soft_type: 'command',
-      date_local: getLocalDateISO()
+      date_local: getLocalDateISO(),
+      version: app.getVersion()
     };
 
     console.log('[MachineState] Payload:', JSON.stringify(payload, null, 2));
