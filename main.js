@@ -4361,6 +4361,11 @@ ipcMain.handle('machine:save-config', async (event, kioskId, salesPointId, machi
     }
     startSyncRetrySystem();
 
+    // Démarrer la synchronisation d'état machine (première configuration)
+    console.log('[IPC] → Démarrage de la synchronisation d\'état machine après première config');
+    await syncMachineState('online');
+    startMachineStateSync();
+
     return { status: 'success' };
   } catch (error) {
     console.error('[IPC] Erreur sauvegarde config machine:', error);
