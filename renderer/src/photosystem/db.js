@@ -1014,7 +1014,7 @@ export async function updateOrderItemStatus(itemId, newStatus) {
 /**
  * Mettre à jour les détails d'une commande (email, optin, etc.)
  */
-export async function updateOrderDetails(orderId, { email = null, optin = null, paymentMethod = null }) {
+export async function updateOrderDetails(orderId, { email = null, optin = null, paymentMethod = null, lastStep = null }) {
   const updates = [];
   const params = [];
 
@@ -1031,6 +1031,11 @@ export async function updateOrderDetails(orderId, { email = null, optin = null, 
   if (paymentMethod !== null) {
     updates.push('payment_method = ?');
     params.push(paymentMethod);
+  }
+
+  if (lastStep !== null) {
+    updates.push('last_step = ?');
+    params.push(lastStep);
   }
 
   if (updates.length === 0) {
