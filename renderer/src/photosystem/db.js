@@ -949,57 +949,97 @@ export async function addCartItemImmediate(itemData) {
 }
 
 /**
- * Annuler un produit du panier (change statut à "cancelled")
- * Si un item cancelled existe déjà pour le même photo_id/product_id/order_id,
- * on incrémente sa quantité au lieu de créer un doublon
+ * Annuler un produit du panier
+ * - Décrémente la quantité de l'item pending (supprime si qty=0)
+ * - Incrémente la quantité de l'item cancelled (ou le crée)
+ * @param {number} itemId - ID de l'item pending à annuler
+ * @param {number} quantityToCancel - Quantité à annuler (défaut: 1)
  */
-export async function cancelCartItem(itemId) {
-  // 1. Récupérer les infos de l'item à annuler
+export async function cancelCartItem(itemId, quantityToCancel = 1) {
+  // 1. Récupérer les infos de l'item pending à annuler
   const item = await getAsync('SELECT * FROM order_items WHERE id = ?', [itemId]);
 
   if (!item) {
     throw new Error(`Item ${itemId} non trouvé`);
   }
 
-  // 2. Vérifier s'il existe déjà un item cancelled avec le même photo_id, product_id et order_id
-  const existingCancelled = await getAsync(
-    `SELECT * FROM order_items
-     WHERE photo_id = ? AND product_id = ? AND order_id IS ? AND status = 'cancelled' AND id != ?`,
-    [item.photo_id, item.product_id, item.order_id, itemId]
-  );
+  if (item.status !== 'pending') {
+    throw new Error(`Item ${itemId} n'est pas en status pending (status: ${item.status})`);
+  }
 
-  if (existingCancelled) {
-    // 3a. Incrémenter la quantité de l'item cancelled existant
-    const newQuantity = existingCancelled.quantity + item.quantity;
-    const newTotalPrice = existingCancelled.total_price + item.total_price;
+  // S'assurer qu'on n'annule pas plus que la quantité disponible
+  const actualQtyToCancel = Math.min(quantityToCancel, item.quantity);
+  const unitPrice = item.unit_price;
+  const priceToCancel = actualQtyToCancel * unitPrice;
 
+  // 2. Décrémenter la quantité de l'item pending
+  const newPendingQty = item.quantity - actualQtyToCancel;
+
+  if (newPendingQty <= 0) {
+    // Supprimer l'item pending s'il n'en reste plus
+    await runAsync('DELETE FROM order_items WHERE id = ?', [itemId]);
+    console.log(`[DB] Item pending ${itemId} supprimé (qty était: ${item.quantity})`);
+  } else {
+    // Décrémenter la quantité
     await runAsync(
       `UPDATE order_items
        SET quantity = ?,
            total_price = ?,
            updated_at = datetime('now', 'localtime')
        WHERE id = ?`,
-      [newQuantity, newTotalPrice, existingCancelled.id]
+      [newPendingQty, newPendingQty * unitPrice, itemId]
     );
+    console.log(`[DB] Item pending ${itemId} décrémenté (qty: ${item.quantity} → ${newPendingQty})`);
+  }
 
-    // Supprimer l'item courant (fusionné avec l'existant)
-    await runAsync('DELETE FROM order_items WHERE id = ?', [itemId]);
+  // 3. Vérifier s'il existe déjà un item cancelled avec le même photo_id, product_id et session_id
+  const existingCancelled = await getAsync(
+    `SELECT * FROM order_items
+     WHERE photo_id = ? AND product_id = ? AND session_id = ? AND status = 'cancelled'`,
+    [item.photo_id, item.product_id, item.session_id]
+  );
 
-    console.log(`[DB] Item ${itemId} fusionné avec item cancelled ${existingCancelled.id} (qty: ${newQuantity})`);
-    return { merged: true, cancelledItemId: existingCancelled.id, newQuantity };
-  } else {
-    // 3b. Simplement changer le status à 'cancelled'
+  if (existingCancelled) {
+    // 3a. Incrémenter la quantité de l'item cancelled existant
+    const newCancelledQty = existingCancelled.quantity + actualQtyToCancel;
+    const newCancelledPrice = existingCancelled.total_price + priceToCancel;
+
     await runAsync(
       `UPDATE order_items
-       SET status = 'cancelled',
+       SET quantity = ?,
+           total_price = ?,
            cancelled_at = datetime('now', 'localtime'),
            updated_at = datetime('now', 'localtime')
        WHERE id = ?`,
-      [itemId]
+      [newCancelledQty, newCancelledPrice, existingCancelled.id]
     );
 
-    console.log(`[DB] Item ${itemId} marqué comme cancelled`);
-    return { merged: false, cancelledItemId: itemId };
+    console.log(`[DB] Item cancelled ${existingCancelled.id} incrémenté (qty: ${existingCancelled.quantity} → ${newCancelledQty})`);
+    return {
+      pendingItemId: itemId,
+      cancelledItemId: existingCancelled.id,
+      cancelledQty: actualQtyToCancel,
+      remainingPendingQty: newPendingQty
+    };
+  } else {
+    // 3b. Créer un nouvel item cancelled
+    const result = await runAsync(
+      `INSERT INTO order_items (
+        order_id, photo_id, product_id, product_name, quantity,
+        unit_price, total_price, incrustation_id, session_id,
+        status, cancelled_at, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'cancelled', datetime('now', 'localtime'), datetime('now', 'localtime'), datetime('now', 'localtime'))`,
+      [item.order_id, item.photo_id, item.product_id, item.product_name, actualQtyToCancel,
+       unitPrice, priceToCancel, item.incrustation_id, item.session_id]
+    );
+
+    console.log(`[DB] Nouvel item cancelled créé: ${result.lastID} (qty: ${actualQtyToCancel})`);
+    return {
+      pendingItemId: itemId,
+      cancelledItemId: result.lastID,
+      cancelledQty: actualQtyToCancel,
+      remainingPendingQty: newPendingQty
+    };
   }
 }
 
