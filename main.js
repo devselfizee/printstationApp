@@ -1489,6 +1489,9 @@ app.on('will-quit', async (event) => {
   event.preventDefault();
   isQuitting = true;
 
+  // Log de fermeture dans le fichier log principal
+  logger.logAppClose('app-quit');
+
   console.log('[Main] Début du cleanup avant fermeture...');
 
   // Envoyer statut offline avant de quitter
