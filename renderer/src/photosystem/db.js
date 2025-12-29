@@ -923,16 +923,57 @@ export async function addCartItemImmediate(itemData) {
 
 /**
  * Annuler un produit du panier (change statut à "cancelled")
+ * Si un item cancelled existe déjà pour le même photo_id/product_id/order_id,
+ * on incrémente sa quantité au lieu de créer un doublon
  */
 export async function cancelCartItem(itemId) {
-  return runAsync(
-    `UPDATE order_items
-     SET status = 'cancelled',
-         cancelled_at = datetime('now', 'localtime'),
-         updated_at = datetime('now', 'localtime')
-     WHERE id = ?`,
-    [itemId]
+  // 1. Récupérer les infos de l'item à annuler
+  const item = await getAsync('SELECT * FROM order_items WHERE id = ?', [itemId]);
+
+  if (!item) {
+    throw new Error(`Item ${itemId} non trouvé`);
+  }
+
+  // 2. Vérifier s'il existe déjà un item cancelled avec le même photo_id, product_id et order_id
+  const existingCancelled = await getAsync(
+    `SELECT * FROM order_items
+     WHERE photo_id = ? AND product_id = ? AND order_id IS ? AND status = 'cancelled' AND id != ?`,
+    [item.photo_id, item.product_id, item.order_id, itemId]
   );
+
+  if (existingCancelled) {
+    // 3a. Incrémenter la quantité de l'item cancelled existant
+    const newQuantity = existingCancelled.quantity + item.quantity;
+    const newTotalPrice = existingCancelled.total_price + item.total_price;
+
+    await runAsync(
+      `UPDATE order_items
+       SET quantity = ?,
+           total_price = ?,
+           updated_at = datetime('now', 'localtime')
+       WHERE id = ?`,
+      [newQuantity, newTotalPrice, existingCancelled.id]
+    );
+
+    // Supprimer l'item courant (fusionné avec l'existant)
+    await runAsync('DELETE FROM order_items WHERE id = ?', [itemId]);
+
+    console.log(`[DB] Item ${itemId} fusionné avec item cancelled ${existingCancelled.id} (qty: ${newQuantity})`);
+    return { merged: true, cancelledItemId: existingCancelled.id, newQuantity };
+  } else {
+    // 3b. Simplement changer le status à 'cancelled'
+    await runAsync(
+      `UPDATE order_items
+       SET status = 'cancelled',
+           cancelled_at = datetime('now', 'localtime'),
+           updated_at = datetime('now', 'localtime')
+       WHERE id = ?`,
+      [itemId]
+    );
+
+    console.log(`[DB] Item ${itemId} marqué comme cancelled`);
+    return { merged: false, cancelledItemId: itemId };
+  }
 }
 
 /**
