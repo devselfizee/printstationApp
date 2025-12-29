@@ -1192,16 +1192,24 @@ export async function updateOrderDetails(orderId, { email = null, optin = null, 
 
 /**
  * Récupérer une commande avec ses items
+ * Inclut les items liés par order_id ET les items cancelled liés par session_id
  */
 export async function getOrderWithItems(orderId) {
   const order = await getAsync('SELECT * FROM orders WHERE id = ?', [orderId]);
-  
+
   if (!order) {
     return null;
   }
 
-  const items = await allAsync('SELECT * FROM order_items WHERE order_id = ?', [orderId]);
-  
+  // Récupérer les items liés à l'order_id OU les items cancelled de la même session
+  // (les items cancelled sont créés avant l'order et n'ont pas d'order_id)
+  const items = await allAsync(
+    `SELECT * FROM order_items
+     WHERE order_id = ?
+        OR (session_id = ? AND status = 'cancelled' AND order_id IS NULL)`,
+    [orderId, order.participant_id]
+  );
+
   return {
     ...order,
     items: items || []
