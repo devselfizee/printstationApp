@@ -1,4 +1,4 @@
-import { state, resetState } from './src/state.js';
+import { state, resetState, updateFurthestStep } from './src/state.js';
 import { PRODUCTS, UNIVERSES } from './src/data.js';
 import { t } from './src/i18n.js';
 import { $, updateCartCount, addOne, removeOne } from './src/utils.js';
@@ -47,6 +47,9 @@ function render() {
     });
     previousPage = state.page;
   }
+
+  // Mettre à jour l'étape la plus avancée atteinte
+  updateFurthestStep(state.page);
 
   // Nettoyer la page QR si on la quitte
   if (window.cleanupQRPage && state.page !== 'qr') {
