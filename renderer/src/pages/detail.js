@@ -128,21 +128,20 @@ el.innerHTML = `
     
     if (window.photoAPI?.cart && state.sessionId) {
       try {
-        const qty = getQty(photo.id, product.id, state.cart);
-        const unitPrice = qty === 1 ? product.first : product.next;
-        const totalPrice = lineTotal(product, qty);
-        
-        console.log('  - Quantité:', qty);
-        console.log('  - Prix unitaire:', unitPrice);
-        console.log('  - Prix total:', totalPrice);
-        
+        const currentQty = getQty(photo.id, product.id, state.cart);
+        // Prix pour cet ajout (1 item): first si c'est le 1er, next sinon
+        const unitPrice = currentQty === 1 ? product.first : product.next;
+
+        console.log('  - Quantité actuelle dans panier:', currentQty);
+        console.log('  - Prix unitaire pour cet ajout:', unitPrice);
+
         const result = await window.photoAPI.cart.addItemImmediate({
           photoId: photo.id,
           productId: product.id,
           productName: product.title,
-          quantity: qty,
+          quantity: 1,  // On ajoute toujours 1 item par clic
           unitPrice: unitPrice,
-          totalPrice: totalPrice,
+          totalPrice: unitPrice,  // Prix pour 1 item
           incrustationId: photo.incrustationId || null,
           sessionId: state.sessionId
         });
