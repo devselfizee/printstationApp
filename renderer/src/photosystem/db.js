@@ -245,6 +245,7 @@ async function createTables() {
       optin BOOLEAN DEFAULT 0,
       payment_method TEXT,
       notes TEXT,
+      last_step TEXT,
       synced_to_remote BOOLEAN DEFAULT 0,
       sync_attempts INTEGER DEFAULT 0,
       last_sync_attempt DATETIME,
@@ -468,8 +469,14 @@ async function migrateSyncColumns() {
       await execAsync("ALTER TABLE orders ADD COLUMN lang TEXT DEFAULT 'fr'");
       console.log('[DB] ✅ Colonne lang ajoutée à orders');
     }
+
+    // Ajouter last_step si manquant
+    if (!ordersColumnNames.includes('last_step')) {
+      await execAsync('ALTER TABLE orders ADD COLUMN last_step TEXT');
+      console.log('[DB] ✅ Colonne last_step ajoutée à orders');
+    }
   } catch (error) {
-    console.error('[DB] Erreur migration subtotal_ht/vat_amount/lang:', error);
+    console.error('[DB] Erreur migration subtotal_ht/vat_amount/lang/last_step:', error);
   }
 }
 
@@ -821,15 +828,16 @@ export async function createOrder(orderData) {
     email = null,
     optin = false,
     paymentMethod = null,
-    notes = null
+    notes = null,
+    lastStep = null
   } = orderData;
 
   return runAsync(
     `INSERT INTO orders (
       id, participant_id, universe_id, subtotal_ht, vat_amount, total_amount, discount_amount,
-      final_amount, lang, email, optin, payment_method, notes, status, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', datetime('now', 'localtime'), datetime('now', 'localtime'))`,
-    [orderId, participantId, universeId, subtotalHt, vatAmount, totalAmount, discountAmount, finalAmount, lang, email, optin ? 1 : 0, paymentMethod, notes]
+      final_amount, lang, email, optin, payment_method, notes, last_step, status, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', datetime('now', 'localtime'), datetime('now', 'localtime'))`,
+    [orderId, participantId, universeId, subtotalHt, vatAmount, totalAmount, discountAmount, finalAmount, lang, email, optin ? 1 : 0, paymentMethod, notes, lastStep]
   );
 }
 

@@ -224,7 +224,8 @@ attachFooterListeners({
           email: null,  // Pas d'email à cette étape
           optin: 0,
           paymentMethod: 'pending',
-          notes: 'Commande en cours de paiement'
+          notes: 'Commande en cours de paiement',
+          lastStep: state.furthestStep || 'cart'  // Étape la plus avancée atteinte
         });
 
         if (orderResult?.status === 'success') {

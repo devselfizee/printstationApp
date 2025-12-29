@@ -2657,6 +2657,7 @@ async function syncOrderToRemoteAPI(orderId) {
       lang: orderWithItems.lang || 'fr', // Langue choisie par le client
       status: apiStatus,
       optin_email: orderWithItems.optin ? true : false,
+      last_step: orderWithItems.last_step || null, // Étape la plus avancée atteinte
       order_items: itemsWithPhotoUrls.map(item => ({
         product_id: item.product_id,
         quantity: item.quantity,
@@ -2947,6 +2948,7 @@ async function createOrderRemote(orderData) {
       universe_id: universeId,
       lang: orderData.lang || 'fr', // Langue choisie par le client
       status: 'pending', // Status en attente
+      last_step: orderData.lastStep || 'cart', // Étape actuelle (cart pour les commandes en cours)
       order_items: itemsWithPhotoUrls.map(item => ({
         product_id: item.productId,
         quantity: item.qty,
@@ -3139,6 +3141,7 @@ async function createCompletedOrderRemote(localOrderId) {
       universe_id: universeId,
       lang: orderWithItems.lang || 'fr', // Langue choisie par le client
       status: 'completed', // ← STATUS COMPLETED
+      last_step: orderWithItems.last_step || 'payment', // Étape finale (payment pour les commandes complétées)
       order_items: itemsWithPhotoUrls.map(item => ({
         product_id: item.product_id,
         quantity: item.quantity,
@@ -3820,6 +3823,7 @@ async function cancelOrderRemote(supabaseOrderId) {
       universe_id: existingOrder.universe_id || null,
       lang: existingOrder.lang || 'fr', // Préserver la langue du client
       status: 'cancelled', // ← SEUL CHANGEMENT: status=cancelled
+      last_step: existingOrder.last_step || null, // Préserver l'étape la plus avancée
       order_items: existingOrder.order_items || []
     };
 

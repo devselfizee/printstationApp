@@ -241,6 +241,7 @@ export const handleOrderCancellation = async (source = 'unknown') => {
 
   console.log(`[CancelOrder] Annulation depuis: ${source}`);
   console.log(`[CancelOrder] Articles dans le panier: ${state.cart.length}`);
+  console.log(`[CancelOrder] Étape la plus avancée: ${state.furthestStep}`);
 
   try {
     // 1. Si une commande Supabase existe déjà, l'annuler via l'API
@@ -279,7 +280,8 @@ export const handleOrderCancellation = async (source = 'unknown') => {
         email: null,
         optin: 0,
         paymentMethod: null,
-        notes: `Commande annulée - source: ${source}`
+        notes: `Commande annulée - source: ${source}`,
+        lastStep: state.furthestStep || null  // Étape la plus avancée atteinte
       });
 
       if (orderResult?.status === 'success') {

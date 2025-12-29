@@ -14,7 +14,25 @@ export const state = {
   optin: false,
   timer: null,
   thanksCounter: 5,
-  photoIndex: 0
+  photoIndex: 0,
+  furthestStep: null  // Étape la plus avancée atteinte dans le parcours
+};
+
+// Ordre des étapes dans le parcours client
+const STEP_ORDER = ['qr', 'listing', 'detail', 'cart', 'form', 'payment'];
+
+/**
+ * Met à jour l'étape la plus avancée si la nouvelle page est plus loin dans le parcours
+ */
+export const updateFurthestStep = (page) => {
+  const currentIndex = STEP_ORDER.indexOf(state.furthestStep);
+  const newIndex = STEP_ORDER.indexOf(page);
+
+  // Si la nouvelle page est plus avancée (ou si furthestStep n'est pas défini)
+  if (newIndex > currentIndex) {
+    state.furthestStep = page;
+    console.log('[State] Étape la plus avancée mise à jour:', page);
+  }
 };
 
 export const resetState = () => {
@@ -32,5 +50,6 @@ export const resetState = () => {
   state.photos = [];
   state.thanksCounter = 5;
   state.photoIndex = 0;
+  state.furthestStep = null;  // Réinitialiser l'étape la plus avancée
   if (state.timer) clearTimeout(state.timer);
 };
