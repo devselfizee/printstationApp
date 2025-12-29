@@ -138,7 +138,7 @@ async function initiatePaymentFlow(totalAmount, root) {
       const durationMs = Date.now() - paymentStartTime;
       await window.photoAPI.paymentLogs.update(paymentLogId, {
         status: 'success',
-        hexapayTransactionId: confirm.transactionId || null,
+        hexapayTransactionId: payment.transactionId || null,
         durationMs: durationMs
       });
       console.log('[Payment] ✅ Payment log mis à jour - succès en', durationMs, 'ms');
