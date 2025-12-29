@@ -123,6 +123,7 @@ const photoAPI = {
     getByOrder: (orderId) => ipcRenderer.invoke('payment-log:get-by-order', orderId),
     getAll: (limit, offset) => ipcRenderer.invoke('payment-log:get-all', limit, offset),
     getStats: () => ipcRenderer.invoke('payment-log:get-stats'),
+    syncRemote: (logId) => ipcRenderer.invoke('payment-log:sync-remote', logId),
   },
 
   // Machine Configuration

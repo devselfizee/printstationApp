@@ -2447,6 +2447,144 @@ ipcMain.handle('payment-log:get-stats', async (event) => {
   }
 });
 
+// Synchroniser un log de paiement vers Supabase
+ipcMain.handle('payment-log:sync-remote', async (event, logId) => {
+  return await syncPaymentLogToRemote(logId);
+});
+
+/**
+ * ===== SYNCHRONISATION PAYMENT LOGS VERS SUPABASE =====
+ */
+
+const PAYMENT_LOGS_API_URL = (process.env.BASE_URL || 'https://ygetxuvqrknbggplzmvy.supabase.co/functions/v1') + '/manage-payment-logs';
+
+/**
+ * Synchroniser un log de paiement vers l'API Supabase
+ */
+async function syncPaymentLogToRemote(logId) {
+  if (!API_SYNC_CONFIG.enabled) {
+    console.log('[PaymentLogSync] API désactivée');
+    return { status: 'skipped', message: 'API désactivée' };
+  }
+
+  if (!photoSystemReady || !photoSystem?.db) {
+    return { status: 'error', error: 'PhotoSystem non disponible' };
+  }
+
+  try {
+    // Récupérer le log depuis la DB locale
+    const log = await photoSystem.db.getPaymentLog(logId);
+
+    if (!log) {
+      return { status: 'error', error: `Log ${logId} non trouvé` };
+    }
+
+    // Ne pas synchroniser les logs en pending
+    if (log.status === 'pending') {
+      return { status: 'skipped', message: 'Log en cours de traitement' };
+    }
+
+    console.log('[PaymentLogSync] ═══════════════════════════════════════════════');
+    console.log('[PaymentLogSync] 📤 SYNCHRONISATION PAYMENT LOG VERS SUPABASE');
+    console.log('[PaymentLogSync] ═══════════════════════════════════════════════');
+    console.log('[PaymentLogSync] Log ID:', logId);
+    console.log('[PaymentLogSync] Order ID:', log.order_id);
+    console.log('[PaymentLogSync] Status:', log.status);
+
+    // Récupérer kiosk_id et sales_point_id depuis la config
+    let kioskId = log.kiosk_id;
+    let salesPointId = log.sales_point_id;
+
+    if (!kioskId || !salesPointId) {
+      try {
+        const dbConfig = await photoSystem.db.getMachineConfig();
+        if (dbConfig) {
+          kioskId = kioskId || dbConfig.kiosk_id;
+          salesPointId = salesPointId || dbConfig.sales_point_id;
+        }
+      } catch (err) {
+        console.warn('[PaymentLogSync] Erreur récupération config:', err.message);
+      }
+    }
+
+    // Construire le payload
+    const payload = {
+      order_id: log.order_id || null,
+      supabase_order_id: log.supabase_order_id || null,
+      participant_id: log.participant_id || null,
+      universe_id: log.universe_id || null,
+      amount: log.amount || 0,
+      status: log.status,
+      payment_method: log.payment_method || 'card',
+      hexapay_transaction_id: log.hexapay_transaction_id || null,
+      error_code: log.error_code || null,
+      error_message: log.error_message || null,
+      started_at: log.started_at ? new Date(log.started_at).toISOString() : null,
+      completed_at: log.completed_at ? new Date(log.completed_at).toISOString() : null,
+      duration_ms: log.duration_ms || null,
+      kiosk_id: kioskId || null,
+      sales_point_id: salesPointId || null
+    };
+
+    console.log('[PaymentLogSync] Payload:', JSON.stringify(payload, null, 2));
+
+    // Récupérer le token d'authentification
+    const authToken = await getAuthToken();
+
+    // Envoyer vers l'API
+    const response = await makeHttpsRequest(
+      PAYMENT_LOGS_API_URL,
+      payload,
+      'POST',
+      {
+        'apikey': API_SYNC_CONFIG.supabaseAnonKey
+      },
+      authToken
+    );
+
+    console.log('[PaymentLogSync] ✅ Log synchronisé avec succès');
+    console.log('[PaymentLogSync] Réponse:', JSON.stringify(response, null, 2));
+
+    // Marquer le log comme synchronisé
+    await photoSystem.db.markPaymentLogSynced(logId);
+
+    return { status: 'success', response };
+
+  } catch (error) {
+    console.error('[PaymentLogSync] ❌ Erreur synchronisation:', error.message);
+    return { status: 'error', error: error.message };
+  }
+}
+
+/**
+ * Synchroniser tous les logs de paiement non synchronisés
+ */
+async function syncPendingPaymentLogs() {
+  if (!API_SYNC_CONFIG.enabled || !photoSystemReady || !photoSystem?.db) {
+    return;
+  }
+
+  try {
+    const unsyncedLogs = await photoSystem.db.getUnsyncedPaymentLogs();
+
+    if (unsyncedLogs.length === 0) {
+      return;
+    }
+
+    console.log(`[PaymentLogSync] 🔄 ${unsyncedLogs.length} log(s) à synchroniser`);
+
+    for (const log of unsyncedLogs) {
+      try {
+        await syncPaymentLogToRemote(log.id);
+      } catch (err) {
+        console.error(`[PaymentLogSync] Erreur sync log ${log.id}:`, err.message);
+      }
+    }
+  } catch (error) {
+    console.error('[PaymentLogSync] Erreur récupération logs non sync:', error.message);
+  }
+}
+
 /**
  * Récupérer un token d'authentification JWT depuis l'API Supabase
  * Le token est mis en cache et réutilisé tant qu'il n'est pas expiré
@@ -3796,11 +3934,15 @@ function startSyncRetrySystem() {
   console.log(`[Sync Retry] Système de retry activé (intervalle: ${API_SYNC_CONFIG.retryIntervalMs}ms)`);
 
   // Premier essai immédiat
-  setTimeout(() => retrySyncPendingOrders(), 5000); // Attendre 5s après le démarrage
+  setTimeout(() => {
+    retrySyncPendingOrders();
+    syncPendingPaymentLogs();
+  }, 5000); // Attendre 5s après le démarrage
 
   // Puis réessayer à intervalle régulier
   syncRetryInterval = setInterval(() => {
     retrySyncPendingOrders();
+    syncPendingPaymentLogs();
   }, API_SYNC_CONFIG.retryIntervalMs);
 }
 
