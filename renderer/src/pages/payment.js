@@ -133,7 +133,7 @@ async function initiatePaymentFlow(totalAmount, root) {
     const confirm = await window.hexapay.confirmPayment(totalAmount);
     if (!confirm.success) throw new Error(confirm.error);
 
-    // 5.1. Mettre à jour le log de paiement (succès)
+    // 5.1. Mettre à jour le log de paiement (succès) et synchroniser
     if (paymentLogId && window.photoAPI?.paymentLogs) {
       const durationMs = Date.now() - paymentStartTime;
       await window.photoAPI.paymentLogs.update(paymentLogId, {
@@ -142,6 +142,18 @@ async function initiatePaymentFlow(totalAmount, root) {
         durationMs: durationMs
       });
       console.log('[Payment] ✅ Payment log mis à jour - succès en', durationMs, 'ms');
+
+      // Synchroniser vers Supabase
+      try {
+        const syncResult = await window.photoAPI.paymentLogs.syncRemote(paymentLogId);
+        if (syncResult?.status === 'success') {
+          console.log('[Payment] ✅ Payment log synchronisé vers Supabase');
+        } else {
+          console.warn('[Payment] ⚠️ Sync payment log:', syncResult?.message || syncResult?.error);
+        }
+      } catch (syncErr) {
+        console.error('[Payment] ❌ Erreur sync payment log:', syncErr);
+      }
     }
 
     // 6. DEBUG: Vérifier l'état actuel
@@ -262,7 +274,7 @@ async function initiatePaymentFlow(totalAmount, root) {
   } catch (error) {
     console.error('Payment failed:', error);
 
-    // Mettre à jour le log de paiement (échec)
+    // Mettre à jour le log de paiement (échec) et synchroniser
     if (paymentLogId && window.photoAPI?.paymentLogs) {
       const durationMs = Date.now() - paymentStartTime;
       await window.photoAPI.paymentLogs.update(paymentLogId, {
@@ -271,6 +283,18 @@ async function initiatePaymentFlow(totalAmount, root) {
         durationMs: durationMs
       });
       console.log('[Payment] ❌ Payment log mis à jour - échec en', durationMs, 'ms');
+
+      // Synchroniser vers Supabase (même les échecs)
+      try {
+        const syncResult = await window.photoAPI.paymentLogs.syncRemote(paymentLogId);
+        if (syncResult?.status === 'success') {
+          console.log('[Payment] ✅ Payment log (échec) synchronisé vers Supabase');
+        } else {
+          console.warn('[Payment] ⚠️ Sync payment log:', syncResult?.message || syncResult?.error);
+        }
+      } catch (syncErr) {
+        console.error('[Payment] ❌ Erreur sync payment log:', syncErr);
+      }
     }
 
     // Log de l'échec du paiement
