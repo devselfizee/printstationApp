@@ -1114,6 +1114,22 @@ export async function cancelSessionItems(sessionId, orderId) {
 }
 
 /**
+ * Lier tous les items d'une session (pending ET cancelled) à un order_id
+ * Sans changer leur status - utilisé lors de la création de la commande
+ */
+export async function linkSessionItemsToOrder(sessionId, orderId) {
+  const result = await runAsync(
+    `UPDATE order_items
+     SET order_id = ?,
+         updated_at = datetime('now', 'localtime')
+     WHERE session_id = ? AND order_id IS NULL`,
+    [orderId, sessionId]
+  );
+  console.log(`[DB] ${result.changes} items liés à l'order ${orderId} pour session ${sessionId}`);
+  return result;
+}
+
+/**
  * Mettre à jour le statut d'une commande
  */
 export async function updateOrderStatus(orderId, newStatus, notes = null) {
@@ -1192,16 +1208,24 @@ export async function updateOrderDetails(orderId, { email = null, optin = null, 
 
 /**
  * Récupérer une commande avec ses items
+ * Inclut les items liés par order_id ET les items cancelled liés par session_id
  */
 export async function getOrderWithItems(orderId) {
   const order = await getAsync('SELECT * FROM orders WHERE id = ?', [orderId]);
-  
+
   if (!order) {
     return null;
   }
 
-  const items = await allAsync('SELECT * FROM order_items WHERE order_id = ?', [orderId]);
-  
+  // Récupérer les items liés à l'order_id OU les items cancelled de la même session
+  // (les items cancelled sont créés avant l'order et n'ont pas d'order_id)
+  const items = await allAsync(
+    `SELECT * FROM order_items
+     WHERE order_id = ?
+        OR (session_id = ? AND status = 'cancelled' AND order_id IS NULL)`,
+    [orderId, order.participant_id]
+  );
+
   return {
     ...order,
     items: items || []

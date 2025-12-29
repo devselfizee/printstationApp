@@ -104,7 +104,7 @@ const photoAPI = {
   // Cart (Panier temps réel)
   cart: {
     addItemImmediate: (itemData) => ipcRenderer.invoke('cart:add-item-immediate', itemData),
-    cancelItem: (itemId) => ipcRenderer.invoke('cart:cancel-item', itemId),
+    cancelItem: (itemId, quantityToCancel = 1) => ipcRenderer.invoke('cart:cancel-item', itemId, quantityToCancel),
     reactivateItem: (photoId, productId, sessionId) => ipcRenderer.invoke('cart:reactivate-item', photoId, productId, sessionId),
     getSessionItems: (sessionId) => ipcRenderer.invoke('cart:get-session-items', sessionId),
     getAllSessionItems: (sessionId) => ipcRenderer.invoke('cart:get-all-session-items', sessionId),
@@ -113,6 +113,7 @@ const photoAPI = {
     validateSession: (sessionId, orderId) => ipcRenderer.invoke('cart:validate-session', sessionId, orderId),
     cancelSession: (sessionId, orderId) => ipcRenderer.invoke('cart:cancel-session', sessionId, orderId),
     updateQuantity: (itemId, quantity, totalPrice) => ipcRenderer.invoke('cart:update-quantity', itemId, quantity, totalPrice),
+    linkSessionItems: (sessionId, orderId) => ipcRenderer.invoke('cart:link-session-items', sessionId, orderId),
   },
 
   // Payment Logs

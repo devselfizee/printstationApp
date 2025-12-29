@@ -101,18 +101,9 @@ export const renderCart = (root) => {
                 const product = window.PRODUCTS[line.productId];
 
                 if (act === 'minus') {
-                  const newQty = line.qty - 1;
-                  if (newQty > 0) {
-                    // Diminuer la quantité
-                    const unitPrice = newQty === 1 ? product.first : product.next;
-                    const totalPrice = lineTotal(product, newQty);
-                    await window.photoAPI.cart.updateQuantity(dbItem.id, newQty, totalPrice);
-                    console.log('✅ Quantité diminuée dans DB:', dbItem.id, 'qty:', newQty);
-                  } else {
-                    // Supprimer l'item (quantité = 0)
-                    await window.photoAPI.cart.cancelItem(dbItem.id);
-                    console.log('✅ Item supprimé de la DB:', dbItem.id);
-                  }
+                  // Utiliser cancelItem pour transférer la quantité vers cancelled (comme detail.js)
+                  await window.photoAPI.cart.cancelItem(dbItem.id, 1);
+                  console.log('✅ Item décrémenté via cancelItem:', dbItem.id);
                 }
 
                 if (act === 'plus') {
@@ -125,8 +116,8 @@ export const renderCart = (root) => {
                 }
 
                 if (act === 'del') {
-                  // Supprimer complètement l'item
-                  await window.photoAPI.cart.cancelItem(dbItem.id);
+                  // Supprimer complètement l'item (annuler toute la quantité)
+                  await window.photoAPI.cart.cancelItem(dbItem.id, dbItem.quantity);
                   console.log('✅ Item supprimé de la DB:', dbItem.id);
                 }
               }
@@ -231,35 +222,13 @@ attachFooterListeners({
         if (orderResult?.status === 'success') {
           console.log('[Cart] ✅ Commande locale créée:', orderId);
 
-          // 3. Créer les order_items dans la DB locale
-          console.log('[Cart] 📝 Création des order_items...');
-          console.log('[Cart] Nombre d\'items dans state.cart:', state.cart.length);
+          // 3. Lier les order_items existants (pending ET cancelled) à la commande
+          console.log('[Cart] 🔗 Liaison des order_items existants à la commande...');
+          console.log('[Cart] Session ID:', state.sessionId);
+          console.log('[Cart] Order ID:', orderId);
 
-          for (const cartItem of state.cart) {
-            const product = window.PRODUCTS[cartItem.productId];
-            const unitPrice = cartItem.qty === 1 ? product.first : product.next;
-            const totalPrice = lineTotal(product, cartItem.qty);
-
-            console.log('[Cart] Ajout item:', {
-              orderId,
-              photoId: cartItem.photoId,
-              productId: cartItem.productId,
-              productName: product.title,
-              quantity: cartItem.qty
-            });
-
-            await window.photoAPI.orders.addItem({
-              orderId: orderId,
-              photoId: cartItem.photoId,
-              productId: cartItem.productId,
-              productName: product.title,
-              quantity: cartItem.qty,
-              unitPrice: unitPrice,
-              totalPrice: totalPrice
-            });
-          }
-
-          console.log('[Cart] ✅ Order_items créés');
+          const linkResult = await window.photoAPI.cart.linkSessionItems(state.sessionId, orderId);
+          console.log('[Cart] ✅ Items liés:', linkResult?.changes || 0, 'items mis à jour');
 
           // 4. Synchroniser avec Supabase (status=pending)
           console.log('[Cart] 🔄 Synchronisation avec Supabase...');
