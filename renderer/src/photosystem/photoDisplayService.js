@@ -1,6 +1,6 @@
 /**
  * photoDisplayService.js - ROBUSTE
- * 
+ *
  * ⭐ Gère:
  * - Polling automatique (mise à jour live des photos)
  * - Photos en erreur ne s'affichent pas
@@ -10,24 +10,6 @@
 import * as db from './db.js';
 import { loadUniverse } from './universeService.js';
 import { triggerParticipantSync } from './photosystem.js';
-import path from 'path';
-import * as fs from 'fs/promises';
-import os from 'os';
-
-function getMediasDir() {
-  const platform = process.platform;
-  if (platform === 'win32') {
-    return path.join('C:', 'PrintStationApp', 'Medias');
-  } else if (platform === 'darwin') {
-    return path.join(os.homedir(), 'Documents', 'PrintStationApp', 'Medias');
-  } else {
-    return path.join(os.homedir(), '.PrintStationApp', 'Medias');
-  }
-}
-
-function getParticipantDir(participantId) {
-  return path.join(getMediasDir(), participantId);
-}
 
 // ⭐ Callbacks pour les mises à jour (IPC)
 let onPhotosUpdated = null;
@@ -268,11 +250,6 @@ export async function loadParticipantPhotos(participantId) {
           console.log(`[PhotoDisplay] ❌ Photo rejetée: ${photoData.id}`);
           continue;
         }
-
-        const participantDir = getParticipantDir(participantId);
-        const photoPath = path.join(participantDir, `${photoData.id}.jpg`);
-
-        const fileExists = await fs.stat(photoPath).then(() => true).catch(() => false);
 
         let source = null;
         let available = false;
