@@ -47,6 +47,53 @@ class LoggerService {
 
     // Log initial
     this.logAppStart();
+
+    // Nettoyer les vieux logs au démarrage (async, non-bloquant)
+    this.cleanupOldLogs(30); // Garder 30 jours de logs
+  }
+
+  /**
+   * Nettoie les fichiers log de plus de X jours
+   */
+  cleanupOldLogs(maxAgeDays = 30) {
+    if (!this.logDir) return;
+
+    const now = Date.now();
+    const maxAgeMs = maxAgeDays * 24 * 60 * 60 * 1000;
+
+    try {
+      const files = fs.readdirSync(this.logDir);
+      let deletedCount = 0;
+
+      for (const file of files) {
+        // Ne nettoyer que les fichiers eclipso_*.log
+        if (!file.startsWith('eclipso_') || !file.endsWith('.log')) {
+          continue;
+        }
+
+        const filePath = path.join(this.logDir, file);
+
+        try {
+          const stats = fs.statSync(filePath);
+          const fileAge = now - stats.mtime.getTime();
+
+          if (fileAge > maxAgeMs) {
+            fs.unlinkSync(filePath);
+            deletedCount++;
+            console.log(`[LoggerService] Supprimé ancien log: ${file}`);
+          }
+        } catch (err) {
+          // Ignorer les erreurs de fichiers individuels
+          console.error(`[LoggerService] Erreur suppression ${file}:`, err.message);
+        }
+      }
+
+      if (deletedCount > 0) {
+        this.write('INFO', 'APP', `Nettoyage: ${deletedCount} ancien(s) fichier(s) log supprimé(s)`);
+      }
+    } catch (err) {
+      console.error('[LoggerService] Erreur nettoyage logs:', err.message);
+    }
   }
 
   /**

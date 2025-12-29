@@ -1485,16 +1485,35 @@ app.on('will-quit', async (event) => {
     return;
   }
 
-  // Empêcher la fermeture immédiate pour attendre l'envoi du statut offline
+  // Empêcher la fermeture immédiate pour attendre le cleanup
   event.preventDefault();
   isQuitting = true;
 
-  console.log('[Main] Envoi du statut offline avant fermeture...');
+  // Log de fermeture dans le fichier log principal
+  logger.logAppClose('app-quit');
+
+  console.log('[Main] Début du cleanup avant fermeture...');
 
   // Envoyer statut offline avant de quitter
+  console.log('[Main] Envoi du statut offline...');
   await stopMachineStateSync();
 
-  console.log('[Main] Statut offline envoyé, fermeture de l\'application');
+  // Fermer proprement la base de données
+  if (photoSystemReady && photoSystem?.db?.closeDB) {
+    console.log('[Main] Fermeture de la base de données...');
+    try {
+      await new Promise((resolve) => {
+        photoSystem.db.closeDB();
+        // La fermeture est async avec callback, attendre un peu
+        setTimeout(resolve, 500);
+      });
+      console.log('[Main] Base de données fermée');
+    } catch (err) {
+      console.error('[Main] Erreur fermeture DB:', err.message);
+    }
+  }
+
+  console.log('[Main] Cleanup terminé, fermeture de l\'application');
 
   // Maintenant on peut vraiment quitter
   app.quit();

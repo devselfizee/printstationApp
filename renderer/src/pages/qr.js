@@ -265,6 +265,11 @@ let scannerBuffer = '';
 let scannerTimeout = null;
 const SCANNER_TIMEOUT_MS = 100; // Les scanners envoient les caractères très rapidement
 
+// ============================================
+// STATS POLLING - Variable module-level pour éviter les fuites
+// ============================================
+let statsPollInterval = null;
+
 function initPhysicalScanner() {
   console.log('[QR] 🔌 Initialisation de l\'écouteur scanner physique...');
 
@@ -505,17 +510,18 @@ export const renderQR = (root) => {
   loadStats();
 
   // ===== POLLING STATS TOUTES LES 5 SECONDES =====
-  let statsPollInterval = setInterval(loadStats, 5000);
-
-  // Nettoyer le polling et l'écouteur scanner quand on quitte la page
-  window.addEventListener('beforeunload', () => {
+  // Nettoyer l'ancien interval avant d'en créer un nouveau (évite les fuites)
+  if (statsPollInterval) {
     clearInterval(statsPollInterval);
-    cleanupPhysicalScanner();
-  });
+  }
+  statsPollInterval = setInterval(loadStats, 5000);
 
   // Exposer le cleanup globalement pour que le routeur puisse l'appeler
   window.cleanupQRPage = () => {
-    clearInterval(statsPollInterval);
+    if (statsPollInterval) {
+      clearInterval(statsPollInterval);
+      statsPollInterval = null;
+    }
     cleanupPhysicalScanner();
   };
 

@@ -17,6 +17,7 @@ let warningTimer = null;
 let warningModal = null;
 let countdownInterval = null;
 let isTimerActive = false;
+let isInitialized = false;
 
 // Pages exemptées du timer (page d'accueil)
 const EXEMPT_PAGES = ['qr'];
@@ -24,18 +25,42 @@ const EXEMPT_PAGES = ['qr'];
 // Pages où le timer est pausé (paiement en cours)
 const PAUSED_PAGES = ['payment'];
 
+// Liste des événements d'activité
+const ACTIVITY_EVENTS = ['click', 'touchstart', 'mousemove', 'keydown', 'scroll'];
+
 /**
  * Initialiser le système de timer d'inactivité
  */
 export function initInactivityTimer() {
-  // Écouter les événements d'activité utilisateur
-  const activityEvents = ['click', 'touchstart', 'mousemove', 'keydown', 'scroll'];
+  // Éviter les initialisations multiples (source de fuite mémoire)
+  if (isInitialized) {
+    console.log('[Inactivity] Déjà initialisé, skip');
+    return;
+  }
 
-  activityEvents.forEach(event => {
+  // Écouter les événements d'activité utilisateur
+  ACTIVITY_EVENTS.forEach(event => {
     document.addEventListener(event, handleUserActivity, { passive: true });
   });
 
+  isInitialized = true;
   console.log(`[Inactivity] Timer initialisé (timeout: ${INACTIVITY_TIMEOUT / 1000}s)`);
+}
+
+/**
+ * Nettoyer complètement le timer et les listeners (pour shutdown)
+ */
+export function cleanupInactivityTimer() {
+  stopInactivityTimer();
+
+  // Retirer les event listeners
+  if (isInitialized) {
+    ACTIVITY_EVENTS.forEach(event => {
+      document.removeEventListener(event, handleUserActivity);
+    });
+    isInitialized = false;
+    console.log('[Inactivity] Cleanup complet - listeners retirés');
+  }
 }
 
 /**
