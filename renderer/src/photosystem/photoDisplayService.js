@@ -210,7 +210,7 @@ function startPhotoPoll(participantId) {
 }
 
 /**
- * ⭐ Arrêter le polling
+ * ⭐ Arrêter le polling pour un participant
  */
 export function stopPhotoPoll(participantId) {
   if (activePolls.has(participantId)) {
@@ -218,6 +218,24 @@ export function stopPhotoPoll(participantId) {
     activePolls.delete(participantId);
     console.log(`[PhotoDisplay] ⏹️  Polling arrêté pour ${participantId}`);
   }
+}
+
+/**
+ * ⭐ Arrêter TOUS les pollings actifs (appelé lors du reset/navigation)
+ */
+export function stopAllPolls() {
+  if (activePolls.size === 0) {
+    return;
+  }
+
+  console.log(`[PhotoDisplay] ⏹️  Arrêt de ${activePolls.size} polling(s) actif(s)`);
+
+  for (const [participantId, intervalId] of activePolls) {
+    clearInterval(intervalId);
+    console.log(`[PhotoDisplay] ⏹️  Polling arrêté pour ${participantId}`);
+  }
+
+  activePolls.clear();
 }
 
 /**

@@ -7,6 +7,9 @@ import { t } from './i18n.js';
 
 let isOnline = navigator.onLine;
 let banner = null;
+let networkCheckInterval = null;
+let onlineHandler = null;
+let offlineHandler = null;
 
 /**
  * Créer le bandeau d'avertissement
@@ -126,25 +129,34 @@ async function checkRealConnectivity() {
  * Initialiser la détection réseau
  */
 export function initNetworkStatus() {
+  // Éviter les initialisations multiples
+  if (networkCheckInterval) {
+    console.log('[Network] Déjà initialisé, skip');
+    return;
+  }
+
   console.log('[Network] Initialisation détection réseau...');
   console.log(`[Network] Statut initial: ${navigator.onLine ? 'En ligne' : 'Hors ligne'}`);
 
   // Vérifier le statut initial
   updateStatus();
 
-  // Écouter les événements online/offline
-  window.addEventListener('online', () => {
+  // Écouter les événements online/offline (stocker les handlers pour cleanup)
+  onlineHandler = () => {
     console.log('[Network] Événement: online');
     updateStatus();
-  });
+  };
 
-  window.addEventListener('offline', () => {
+  offlineHandler = () => {
     console.log('[Network] Événement: offline');
     updateStatus();
-  });
+  };
+
+  window.addEventListener('online', onlineHandler);
+  window.addEventListener('offline', offlineHandler);
 
   // Vérification périodique (toutes les 30 secondes)
-  setInterval(() => {
+  networkCheckInterval = setInterval(() => {
     updateStatus();
     // Vérification réelle si on pense être en ligne
     if (navigator.onLine) {
@@ -156,6 +168,30 @@ export function initNetworkStatus() {
 }
 
 /**
+ * Nettoyer les ressources (appelé lors du shutdown)
+ */
+export function cleanupNetworkStatus() {
+  if (networkCheckInterval) {
+    clearInterval(networkCheckInterval);
+    networkCheckInterval = null;
+    console.log('[Network] Interval nettoyé');
+  }
+
+  if (onlineHandler) {
+    window.removeEventListener('online', onlineHandler);
+    onlineHandler = null;
+  }
+
+  if (offlineHandler) {
+    window.removeEventListener('offline', offlineHandler);
+    offlineHandler = null;
+  }
+
+  hideBanner();
+  console.log('[Network] Cleanup terminé');
+}
+
+/**
  * Obtenir le statut actuel
  */
 export function isNetworkOnline() {
@@ -164,5 +200,6 @@ export function isNetworkOnline() {
 
 export default {
   init: initNetworkStatus,
+  cleanup: cleanupNetworkStatus,
   isOnline: isNetworkOnline
 };

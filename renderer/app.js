@@ -17,6 +17,7 @@ import { initDevSimulator } from './src/dev-simulator.js';
 import { showSetupModal } from './src/pages/setup.js';
 import { initInactivityTimer, startInactivityTimer, stopInactivityTimer } from './src/inactivity-timer.js';
 import { initNetworkStatus } from './src/network-status.js';
+import { stopAllPolls } from './src/photosystem/photoDisplayService.js';
 
 // À appeler SEULEMENT sur la page QR
 if (state.page === 'qr') {
@@ -55,6 +56,12 @@ function render() {
   if (window.cleanupQRPage && state.page !== 'qr') {
     window.cleanupQRPage();
     window.cleanupQRPage = null;
+  }
+
+  // Arrêter tous les pollings photo si on quitte listing/detail (évite les fuites mémoire)
+  if (previousPage && (previousPage === 'listing' || previousPage === 'detail') &&
+      state.page !== 'listing' && state.page !== 'detail') {
+    stopAllPolls();
   }
 
   app.innerHTML = '';
@@ -132,6 +139,7 @@ function addUpsell(photoId, productId) {
 function backToQR() {
   clearInterval(state.timer);
   clearTimeout(state.timer);
+  stopAllPolls();  // Arrêter tous les pollings photo
   resetState();
   render();
 }
