@@ -3303,11 +3303,26 @@ async function updateOrderRemote(supabaseOrderId, email, localOrderId, optin = f
     const finalEmail = email || existingOrder.customer_email || null;
     console.log('[UpdateOrder] Email final à utiliser:', finalEmail);
 
+    // Récupérer last_step depuis la commande locale
+    let lastStep = existingOrder.last_step || null;
+    if (localOrderId) {
+      try {
+        const localOrder = await photoSystem.db.getOrderWithItems(localOrderId);
+        if (localOrder && localOrder.last_step) {
+          lastStep = localOrder.last_step;
+          console.log('[UpdateOrder] last_step depuis commande locale:', lastStep);
+        }
+      } catch (err) {
+        console.warn('[UpdateOrder] Impossible de récupérer last_step local:', err.message);
+      }
+    }
+
     // Payload minimal - uniquement les champs à mettre à jour
     const payload = {
       customer_email: finalEmail,
       status: 'completed',
-      optin_email: optin ? true : false
+      optin_email: optin ? true : false,
+      last_step: lastStep || 'form'  // Défaut: form car on vient du formulaire
     };
 
     console.log('[UpdateOrder] ═══════════════════════════════════════════════');
