@@ -150,7 +150,7 @@ el.innerHTML = `
           console.log('✅ Produit enregistré en DB:', result.itemId);
           // Log ajout au panier
           if (window.photoAPI?.logger) {
-            window.photoAPI.logger.cartAdd(photo.id, product.id, product.title, qty, totalPrice);
+            window.photoAPI.logger.cartAdd(photo.id, product.id, product.title, currentQty, unitPrice);
           }
         } else {
           console.error('❌ Erreur enregistrement:', result);
