@@ -233,15 +233,16 @@ attachFooterListeners({
                 console.error('[Form] ❌ Erreur mise à jour statut local:', localError);
               }
 
-              // Mettre à jour l'email et l'optin dans la commande locale
+              // Mettre à jour l'email, l'optin et last_step dans la commande locale
               try {
                 await window.photoAPI.orders.updateDetails(orderId, {
                   email: email || null,
-                  optin: state.optin || false
+                  optin: state.optin || false,
+                  lastStep: 'form'  // Étape finale atteinte
                 });
-                console.log('[Form] ✅ Email et optin mis à jour:', email, 'optin:', state.optin);
+                console.log('[Form] ✅ Email, optin et last_step mis à jour:', email, 'optin:', state.optin, 'last_step: form');
               } catch (detailsError) {
-                console.error('[Form] ❌ Erreur mise à jour email/optin:', detailsError);
+                console.error('[Form] ❌ Erreur mise à jour email/optin/last_step:', detailsError);
               }
             } else if (updateResult?.status === 'skipped') {
               console.log('[Form] ⏭️  Mise à jour ignorée:', updateResult.message);
@@ -262,15 +263,16 @@ attachFooterListeners({
               console.error('[Form] ❌ Erreur mise à jour statut local:', localError);
             }
 
-            // Mettre à jour l'email et l'optin dans la commande locale
+            // Mettre à jour l'email, l'optin et last_step dans la commande locale
             try {
               await window.photoAPI.orders.updateDetails(orderId, {
                 email: email || null,
-                optin: state.optin || false
+                optin: state.optin || false,
+                lastStep: 'form'  // Étape finale atteinte
               });
-              console.log('[Form] ✅ Email et optin mis à jour (local):', email, 'optin:', state.optin);
+              console.log('[Form] ✅ Email, optin et last_step mis à jour (local):', email, 'optin:', state.optin, 'last_step: form');
             } catch (detailsError) {
-              console.error('[Form] ❌ Erreur mise à jour email/optin:', detailsError);
+              console.error('[Form] ❌ Erreur mise à jour email/optin/last_step:', detailsError);
             }
           }
         } catch (updateError) {

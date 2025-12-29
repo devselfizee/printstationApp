@@ -19,7 +19,7 @@ export const state = {
 };
 
 // Ordre des étapes dans le parcours client
-const STEP_ORDER = ['qr', 'listing', 'detail', 'cart', 'form', 'payment'];
+const STEP_ORDER = ['qr', 'listing', 'detail', 'cart', 'payment', 'form'];
 
 /**
  * Met à jour l'étape la plus avancée si la nouvelle page est plus loin dans le parcours
