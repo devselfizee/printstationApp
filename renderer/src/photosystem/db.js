@@ -290,6 +290,33 @@ async function createTables() {
       FOREIGN KEY(order_id) REFERENCES orders(id)
     );`,
 
+    `CREATE TABLE IF NOT EXISTS payment_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      order_id TEXT,
+      supabase_order_id TEXT,
+      participant_id TEXT,
+      universe_id TEXT,
+      amount INTEGER NOT NULL DEFAULT 0,
+      status TEXT NOT NULL DEFAULT 'pending',
+      payment_method TEXT DEFAULT 'card',
+      hexapay_transaction_id TEXT,
+      error_code TEXT,
+      error_message TEXT,
+      started_at DATETIME DEFAULT (datetime('now', 'localtime')),
+      completed_at DATETIME,
+      duration_ms INTEGER,
+      kiosk_id TEXT,
+      sales_point_id TEXT,
+      synced_to_remote BOOLEAN DEFAULT 0,
+      sync_attempts INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT (datetime('now', 'localtime')),
+      updated_at DATETIME DEFAULT (datetime('now', 'localtime'))
+    );`,
+
+    `CREATE INDEX IF NOT EXISTS idx_payment_logs_order ON payment_logs(order_id);`,
+    `CREATE INDEX IF NOT EXISTS idx_payment_logs_status ON payment_logs(status);`,
+    `CREATE INDEX IF NOT EXISTS idx_payment_logs_created_at ON payment_logs(created_at);`,
+
     `CREATE INDEX IF NOT EXISTS idx_photos_participant ON photos(participant_id);`,
     `CREATE INDEX IF NOT EXISTS idx_photos_status ON photos(status);`,
     `CREATE INDEX IF NOT EXISTS idx_photos_participant_status ON photos(participant_id, status);`,
@@ -1476,6 +1503,134 @@ export async function getOrderBySupabaseId(supabaseOrderId) {
   return getAsync(
     `SELECT * FROM orders WHERE supabase_order_id = ?`,
     [supabaseOrderId]
+  );
+}
+
+/**
+ * ============================================
+ * GESTION DES LOGS DE PAIEMENT
+ * ============================================
+ */
+
+/**
+ * Créer un nouveau log de paiement (au début du paiement)
+ */
+export async function createPaymentLog(logData) {
+  const {
+    orderId = null,
+    supabaseOrderId = null,
+    participantId = null,
+    universeId = null,
+    amount = 0,
+    paymentMethod = 'card',
+    kioskId = null,
+    salesPointId = null
+  } = logData;
+
+  const result = await runAsync(
+    `INSERT INTO payment_logs (
+      order_id, supabase_order_id, participant_id, universe_id,
+      amount, status, payment_method, kiosk_id, sales_point_id,
+      started_at, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?, datetime('now', 'localtime'), datetime('now', 'localtime'), datetime('now', 'localtime'))`,
+    [orderId, supabaseOrderId, participantId, universeId, amount, paymentMethod, kioskId, salesPointId]
+  );
+
+  // Retourner l'ID du log créé
+  const lastId = await getAsync('SELECT last_insert_rowid() as id');
+  return { id: lastId?.id, ...logData };
+}
+
+/**
+ * Mettre à jour un log de paiement (à la fin du paiement)
+ */
+export async function updatePaymentLog(logId, updateData) {
+  const {
+    status,
+    hexapayTransactionId = null,
+    errorCode = null,
+    errorMessage = null,
+    durationMs = null
+  } = updateData;
+
+  return runAsync(
+    `UPDATE payment_logs SET
+      status = ?,
+      hexapay_transaction_id = ?,
+      error_code = ?,
+      error_message = ?,
+      duration_ms = ?,
+      completed_at = datetime('now', 'localtime'),
+      updated_at = datetime('now', 'localtime')
+    WHERE id = ?`,
+    [status, hexapayTransactionId, errorCode, errorMessage, durationMs, logId]
+  );
+}
+
+/**
+ * Récupérer un log de paiement par son ID
+ */
+export async function getPaymentLog(logId) {
+  return getAsync('SELECT * FROM payment_logs WHERE id = ?', [logId]);
+}
+
+/**
+ * Récupérer les logs de paiement d'une commande
+ */
+export async function getPaymentLogsByOrder(orderId) {
+  return allAsync(
+    'SELECT * FROM payment_logs WHERE order_id = ? ORDER BY created_at DESC',
+    [orderId]
+  );
+}
+
+/**
+ * Récupérer tous les logs de paiement (avec pagination)
+ */
+export async function getAllPaymentLogs(limit = 100, offset = 0) {
+  return allAsync(
+    `SELECT * FROM payment_logs ORDER BY created_at DESC LIMIT ? OFFSET ?`,
+    [limit, offset]
+  );
+}
+
+/**
+ * Récupérer les statistiques de paiement
+ */
+export async function getPaymentStats() {
+  const stats = await getAsync(`
+    SELECT
+      COUNT(*) as total,
+      SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as success_count,
+      SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed_count,
+      SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled_count,
+      SUM(CASE WHEN status = 'timeout' THEN 1 ELSE 0 END) as timeout_count,
+      SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending_count,
+      AVG(CASE WHEN status = 'success' THEN duration_ms ELSE NULL END) as avg_success_duration_ms,
+      SUM(CASE WHEN status = 'success' THEN amount ELSE 0 END) as total_success_amount
+    FROM payment_logs
+  `);
+  return stats;
+}
+
+/**
+ * Récupérer les logs de paiement non synchronisés
+ */
+export async function getUnsyncedPaymentLogs() {
+  return allAsync(
+    `SELECT * FROM payment_logs
+     WHERE synced_to_remote = 0 AND status != 'pending'
+     ORDER BY created_at ASC`
+  );
+}
+
+/**
+ * Marquer un log de paiement comme synchronisé
+ */
+export async function markPaymentLogSynced(logId) {
+  return runAsync(
+    `UPDATE payment_logs SET synced_to_remote = 1, updated_at = datetime('now', 'localtime') WHERE id = ?`,
+    [logId]
   );
 }
 

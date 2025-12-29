@@ -93,7 +93,27 @@ async function initiatePaymentFlow(totalAmount, root) {
     window.photoAPI.logger.hexapayStart(totalAmount, state.localOrderId);
   }
 
+  // Créer le log de paiement
+  const paymentStartTime = Date.now();
+  let paymentLogId = null;
+
   try {
+    // Créer le log de paiement au démarrage
+    if (window.photoAPI?.paymentLogs) {
+      const logResult = await window.photoAPI.paymentLogs.create({
+        orderId: state.localOrderId,
+        supabaseOrderId: state.supabaseOrderId,
+        participantId: state.participantId,
+        universeId: state.universe?.id || state.universeId,
+        amount: Math.round(totalAmount * 100), // En centimes
+        paymentMethod: 'card'
+      });
+      if (logResult?.status === 'success') {
+        paymentLogId = logResult.logId;
+        console.log('[Payment] 📝 Payment log créé:', paymentLogId);
+      }
+    }
+
     // 1. Vérifier lecteur
     const ready = await window.hexapay.checkReady();
     if (!ready.success) throw new Error('Lecteur indisponible');
@@ -112,6 +132,17 @@ async function initiatePaymentFlow(totalAmount, root) {
     // 5. Confirmer
     const confirm = await window.hexapay.confirmPayment(totalAmount);
     if (!confirm.success) throw new Error(confirm.error);
+
+    // 5.1. Mettre à jour le log de paiement (succès)
+    if (paymentLogId && window.photoAPI?.paymentLogs) {
+      const durationMs = Date.now() - paymentStartTime;
+      await window.photoAPI.paymentLogs.update(paymentLogId, {
+        status: 'success',
+        hexapayTransactionId: confirm.transactionId || null,
+        durationMs: durationMs
+      });
+      console.log('[Payment] ✅ Payment log mis à jour - succès en', durationMs, 'ms');
+    }
 
     // 6. DEBUG: Vérifier l'état actuel
     console.log('[Payment] ═══════════════════════════════════════════════');
@@ -230,6 +261,18 @@ async function initiatePaymentFlow(totalAmount, root) {
 
   } catch (error) {
     console.error('Payment failed:', error);
+
+    // Mettre à jour le log de paiement (échec)
+    if (paymentLogId && window.photoAPI?.paymentLogs) {
+      const durationMs = Date.now() - paymentStartTime;
+      await window.photoAPI.paymentLogs.update(paymentLogId, {
+        status: 'failed',
+        errorMessage: error.message,
+        durationMs: durationMs
+      });
+      console.log('[Payment] ❌ Payment log mis à jour - échec en', durationMs, 'ms');
+    }
+
     // Log de l'échec du paiement
     if (window.photoAPI?.logger) {
       window.photoAPI.logger.hexapayFailure(totalAmount, state.localOrderId, error.message);

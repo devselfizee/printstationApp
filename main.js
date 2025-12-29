@@ -2362,6 +2362,92 @@ ipcMain.handle('cart:update-quantity', async (event, itemId, quantity, totalPric
 });
 
 /**
+ * ===== HANDLERS IPC PAYMENT LOGS =====
+ */
+
+// Créer un log de paiement
+ipcMain.handle('payment-log:create', async (event, logData) => {
+  if (!photoSystemReady || !photoSystem?.db) {
+    return { status: 'error', error: 'PhotoSystem non disponible' };
+  }
+  try {
+    const result = await photoSystem.db.createPaymentLog(logData);
+    console.log('[IPC] Payment log créé:', result.id);
+    return { status: 'success', logId: result.id, log: result };
+  } catch (error) {
+    console.error('[IPC] Erreur création payment log:', error);
+    return { status: 'error', error: error.message };
+  }
+});
+
+// Mettre à jour un log de paiement
+ipcMain.handle('payment-log:update', async (event, logId, updateData) => {
+  if (!photoSystemReady || !photoSystem?.db) {
+    return { status: 'error', error: 'PhotoSystem non disponible' };
+  }
+  try {
+    await photoSystem.db.updatePaymentLog(logId, updateData);
+    console.log('[IPC] Payment log mis à jour:', logId, updateData.status);
+    return { status: 'success' };
+  } catch (error) {
+    console.error('[IPC] Erreur mise à jour payment log:', error);
+    return { status: 'error', error: error.message };
+  }
+});
+
+// Récupérer un log de paiement
+ipcMain.handle('payment-log:get', async (event, logId) => {
+  if (!photoSystemReady || !photoSystem?.db) {
+    return null;
+  }
+  try {
+    return await photoSystem.db.getPaymentLog(logId);
+  } catch (error) {
+    console.error('[IPC] Erreur récupération payment log:', error);
+    return null;
+  }
+});
+
+// Récupérer les logs de paiement d'une commande
+ipcMain.handle('payment-log:get-by-order', async (event, orderId) => {
+  if (!photoSystemReady || !photoSystem?.db) {
+    return [];
+  }
+  try {
+    return await photoSystem.db.getPaymentLogsByOrder(orderId);
+  } catch (error) {
+    console.error('[IPC] Erreur récupération payment logs:', error);
+    return [];
+  }
+});
+
+// Récupérer tous les logs de paiement
+ipcMain.handle('payment-log:get-all', async (event, limit = 100, offset = 0) => {
+  if (!photoSystemReady || !photoSystem?.db) {
+    return [];
+  }
+  try {
+    return await photoSystem.db.getAllPaymentLogs(limit, offset);
+  } catch (error) {
+    console.error('[IPC] Erreur récupération payment logs:', error);
+    return [];
+  }
+});
+
+// Récupérer les statistiques de paiement
+ipcMain.handle('payment-log:get-stats', async (event) => {
+  if (!photoSystemReady || !photoSystem?.db) {
+    return null;
+  }
+  try {
+    return await photoSystem.db.getPaymentStats();
+  } catch (error) {
+    console.error('[IPC] Erreur récupération stats paiement:', error);
+    return null;
+  }
+});
+
+/**
  * Récupérer un token d'authentification JWT depuis l'API Supabase
  * Le token est mis en cache et réutilisé tant qu'il n'est pas expiré
  */
