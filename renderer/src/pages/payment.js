@@ -123,6 +123,17 @@ async function initiatePaymentFlow(totalAmount, root) {
     console.log('[Payment] createCompletedRemote disponible:', !!window.photoAPI?.orders?.createCompletedRemote);
     console.log('[Payment] ═══════════════════════════════════════════════');
 
+    // 5.5. Mettre à jour last_step à 'payment' dans la commande locale
+    if (state.localOrderId && window.photoAPI?.orders?.updateDetails) {
+      try {
+        console.log('[Payment] 📝 Mise à jour last_step=payment dans la commande locale...');
+        await window.photoAPI.orders.updateDetails(state.localOrderId, { lastStep: 'payment' });
+        console.log('[Payment] ✅ last_step mis à jour: payment');
+      } catch (stepError) {
+        console.error('[Payment] ❌ Erreur mise à jour last_step:', stepError);
+      }
+    }
+
     // 6. Mettre à jour le statut de la commande LOCALE à "completed"
     if (state.localOrderId && window.photoAPI?.orders?.updateStatus) {
       try {
