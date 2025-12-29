@@ -2909,7 +2909,7 @@ async function syncOrderToRemoteAPI(orderId) {
         photo_id: item.photo_id || null, // ID de la photo
         photo_url: item.photo_url || null, // URL distante de la photo depuis la table photos
         date_photo: item.date_photo || null, // Date de la photo
-        status: item.status || 'active' // Statut de l'item (active, cancelled)
+        status: item.status || 'pending' // Statut de l'item (pending, completed, cancelled)
       }))
     };
 
@@ -3200,7 +3200,7 @@ async function createOrderRemote(orderData) {
         total_price: Math.round((item.totalPrice || 0) * 100),
         photo_id: item.photoId || null,
         photo_url: item.photo_url || null,
-        status: item.status || 'active' // Statut de l'item (active, cancelled)
+        status: item.status || 'pending' // Statut de l'item (pending, completed, cancelled)
       }))
     };
 
@@ -3395,7 +3395,7 @@ async function createCompletedOrderRemote(localOrderId) {
         photo_id: item.photo_id || null,
         photo_url: item.photo_url || null,
         date_photo: item.date_photo || null,
-        status: item.status || 'active' // Statut de l'item (active, cancelled)
+        status: item.status || 'pending' // Statut de l'item (pending, completed, cancelled)
       }))
     };
 
