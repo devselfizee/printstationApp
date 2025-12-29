@@ -1114,6 +1114,22 @@ export async function cancelSessionItems(sessionId, orderId) {
 }
 
 /**
+ * Lier tous les items d'une session (pending ET cancelled) à un order_id
+ * Sans changer leur status - utilisé lors de la création de la commande
+ */
+export async function linkSessionItemsToOrder(sessionId, orderId) {
+  const result = await runAsync(
+    `UPDATE order_items
+     SET order_id = ?,
+         updated_at = datetime('now', 'localtime')
+     WHERE session_id = ? AND order_id IS NULL`,
+    [orderId, sessionId]
+  );
+  console.log(`[DB] ${result.changes} items liés à l'order ${orderId} pour session ${sessionId}`);
+  return result;
+}
+
+/**
  * Mettre à jour le statut d'une commande
  */
 export async function updateOrderStatus(orderId, newStatus, notes = null) {

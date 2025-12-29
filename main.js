@@ -2256,16 +2256,30 @@ ipcMain.handle('cart:add-item-immediate', async (event, itemData) => {
   }
 });
 
-ipcMain.handle('cart:cancel-item', async (event, itemId) => {
+ipcMain.handle('cart:cancel-item', async (event, itemId, quantityToCancel = 1) => {
   if (!photoSystemReady || !photoSystem?.db) {
     return { status: 'error', error: 'PhotoSystem non disponible' };
   }
   try {
-    await photoSystem.db.cancelCartItem(itemId);
-    console.log('[IPC] Produit annulé:', itemId);
-    return { status: 'success' };
+    const result = await photoSystem.db.cancelCartItem(itemId, quantityToCancel);
+    console.log('[IPC] Produit annulé:', itemId, 'qty:', quantityToCancel);
+    return { status: 'success', ...result };
   } catch (error) {
     console.error('[IPC] Erreur annulation:', error);
+    return { status: 'error', error: error.message };
+  }
+});
+
+ipcMain.handle('cart:link-session-items', async (event, sessionId, orderId) => {
+  if (!photoSystemReady || !photoSystem?.db) {
+    return { status: 'error', error: 'PhotoSystem non disponible' };
+  }
+  try {
+    const result = await photoSystem.db.linkSessionItemsToOrder(sessionId, orderId);
+    console.log('[IPC] Items liés à l\'order:', orderId, 'pour session:', sessionId);
+    return { status: 'success', changes: result.changes };
+  } catch (error) {
+    console.error('[IPC] Erreur liaison items:', error);
     return { status: 'error', error: error.message };
   }
 });
