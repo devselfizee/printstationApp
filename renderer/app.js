@@ -17,7 +17,8 @@ import { initDevSimulator } from './src/dev-simulator.js';
 import { showSetupModal } from './src/pages/setup.js';
 import { initInactivityTimer, startInactivityTimer, stopInactivityTimer } from './src/inactivity-timer.js';
 import { initNetworkStatus } from './src/network-status.js';
-import { stopAllPolls } from './src/photosystem/photoDisplayService.js';
+
+// Note: stopAllPolls est exposé via window par photoDisplayService (chargé dans le main process)
 
 // À appeler SEULEMENT sur la page QR
 if (state.page === 'qr') {
@@ -61,7 +62,7 @@ function render() {
   // Arrêter tous les pollings photo si on quitte listing/detail (évite les fuites mémoire)
   if (previousPage && (previousPage === 'listing' || previousPage === 'detail') &&
       state.page !== 'listing' && state.page !== 'detail') {
-    stopAllPolls();
+    if (window.stopAllPolls) window.stopAllPolls();
   }
 
   app.innerHTML = '';
@@ -139,7 +140,7 @@ function addUpsell(photoId, productId) {
 function backToQR() {
   clearInterval(state.timer);
   clearTimeout(state.timer);
-  stopAllPolls();  // Arrêter tous les pollings photo
+  if (window.stopAllPolls) window.stopAllPolls();  // Arrêter tous les pollings photo
   resetState();
   render();
 }
