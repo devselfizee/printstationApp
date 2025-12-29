@@ -896,6 +896,7 @@ export async function addOrderItem(itemData) {
 
 /**
  * Ajouter un produit immédiatement lors du clic "Ajouter" (statut: pending)
+ * Si un item identique existe déjà (même photo, produit, session, status), on incrémente la quantité
  */
 export async function addCartItemImmediate(itemData) {
   const {
@@ -909,6 +910,32 @@ export async function addCartItemImmediate(itemData) {
     sessionId
   } = itemData;
 
+  // Vérifier si un item identique existe déjà (même photo, produit, session et status pending)
+  const existingItem = await getAsync(
+    `SELECT * FROM order_items
+     WHERE photo_id = ? AND product_id = ? AND session_id = ? AND status = 'pending'`,
+    [photoId, productId, sessionId]
+  );
+
+  if (existingItem) {
+    // Incrémenter la quantité de l'item existant
+    const newQuantity = existingItem.quantity + quantity;
+    const newTotalPrice = existingItem.total_price + totalPrice;
+
+    await runAsync(
+      `UPDATE order_items
+       SET quantity = ?,
+           total_price = ?,
+           updated_at = datetime('now', 'localtime')
+       WHERE id = ?`,
+      [newQuantity, newTotalPrice, existingItem.id]
+    );
+
+    console.log(`[DB] Item existant mis à jour: ${existingItem.id} (qty: ${newQuantity})`);
+    return { itemId: existingItem.id, status: 'success', merged: true, newQuantity };
+  }
+
+  // Créer un nouvel item
   const result = await runAsync(
     `INSERT INTO order_items (
       photo_id, product_id, product_name, quantity,
@@ -918,7 +945,7 @@ export async function addCartItemImmediate(itemData) {
     [photoId, productId, productName, quantity, unitPrice, totalPrice, incrustationId, sessionId]
   );
 
-  return { itemId: result.lastID, status: 'success' };
+  return { itemId: result.lastID, status: 'success', merged: false };
 }
 
 /**
