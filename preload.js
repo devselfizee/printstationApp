@@ -115,6 +115,16 @@ const photoAPI = {
     updateQuantity: (itemId, quantity, totalPrice) => ipcRenderer.invoke('cart:update-quantity', itemId, quantity, totalPrice),
   },
 
+  // Payment Logs
+  paymentLogs: {
+    create: (logData) => ipcRenderer.invoke('payment-log:create', logData),
+    update: (logId, updateData) => ipcRenderer.invoke('payment-log:update', logId, updateData),
+    get: (logId) => ipcRenderer.invoke('payment-log:get', logId),
+    getByOrder: (orderId) => ipcRenderer.invoke('payment-log:get-by-order', orderId),
+    getAll: (limit, offset) => ipcRenderer.invoke('payment-log:get-all', limit, offset),
+    getStats: () => ipcRenderer.invoke('payment-log:get-stats'),
+  },
+
   // Machine Configuration
   machine: {
     getConfig: () => ipcRenderer.invoke('machine:get-config'),
