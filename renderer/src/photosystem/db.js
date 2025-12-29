@@ -922,16 +922,19 @@ export async function addCartItemImmediate(itemData) {
     const newQuantity = existingItem.quantity + quantity;
     const newTotalPrice = existingItem.total_price + totalPrice;
 
+    // Mettre à jour unit_price avec le prix dégressif (pour les annulations futures)
+    // Après le 1er item, unit_price = prix dégressif (next price)
     await runAsync(
       `UPDATE order_items
        SET quantity = ?,
            total_price = ?,
+           unit_price = ?,
            updated_at = datetime('now', 'localtime')
        WHERE id = ?`,
-      [newQuantity, newTotalPrice, existingItem.id]
+      [newQuantity, newTotalPrice, unitPrice, existingItem.id]
     );
 
-    console.log(`[DB] Item existant mis à jour: ${existingItem.id} (qty: ${newQuantity})`);
+    console.log(`[DB] Item existant mis à jour: ${existingItem.id} (qty: ${newQuantity}, unit_price: ${unitPrice})`);
     return { itemId: existingItem.id, status: 'success', merged: true, newQuantity };
   }
 
@@ -980,16 +983,17 @@ export async function cancelCartItem(itemId, quantityToCancel = 1) {
     await runAsync('DELETE FROM order_items WHERE id = ?', [itemId]);
     console.log(`[DB] Item pending ${itemId} supprimé (qty était: ${item.quantity})`);
   } else {
-    // Décrémenter la quantité
+    // Décrémenter la quantité - soustraire le prix des items annulés (préserve le prix dégressif)
+    const newTotalPrice = item.total_price - priceToCancel;
     await runAsync(
       `UPDATE order_items
        SET quantity = ?,
            total_price = ?,
            updated_at = datetime('now', 'localtime')
        WHERE id = ?`,
-      [newPendingQty, newPendingQty * unitPrice, itemId]
+      [newPendingQty, newTotalPrice, itemId]
     );
-    console.log(`[DB] Item pending ${itemId} décrémenté (qty: ${item.quantity} → ${newPendingQty})`);
+    console.log(`[DB] Item pending ${itemId} décrémenté (qty: ${item.quantity} → ${newPendingQty}, total: ${item.total_price} → ${newTotalPrice})`);
   }
 
   // 3. Vérifier s'il existe déjà un item cancelled avec le même photo_id, product_id et session_id
