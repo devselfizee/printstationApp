@@ -967,7 +967,7 @@ export async function addCartItemImmediate(itemData) {
 
 /**
  * Annuler un produit du panier
- * - Décrémente la quantité de l'item pending (supprime si qty=0)
+ * - Décrémente la quantité de l'item pending (garde avec qty=0 pour sync Supabase)
  * - Incrémente la quantité de l'item cancelled (ou le crée)
  * @param {number} itemId - ID de l'item pending à annuler
  * @param {number} quantityToCancel - Quantité à annuler (défaut: 1)
@@ -991,22 +991,22 @@ export async function cancelCartItem(itemId, quantityToCancel = 1) {
 
   // 2. Décrémenter la quantité de l'item pending
   const newPendingQty = item.quantity - actualQtyToCancel;
+  const newTotalPrice = Math.max(0, item.total_price - priceToCancel);
+
+  // NE PAS supprimer l'item même si qty=0
+  // On le garde pour que Supabase puisse gérer la suppression côté API
+  await runAsync(
+    `UPDATE order_items
+     SET quantity = ?,
+         total_price = ?,
+         updated_at = datetime('now', 'localtime')
+     WHERE id = ?`,
+    [newPendingQty, newTotalPrice, itemId]
+  );
 
   if (newPendingQty <= 0) {
-    // Supprimer l'item pending s'il n'en reste plus
-    await runAsync('DELETE FROM order_items WHERE id = ?', [itemId]);
-    console.log(`[DB] Item pending ${itemId} supprimé (qty était: ${item.quantity})`);
+    console.log(`[DB] Item pending ${itemId} mis à qty=0 (sera supprimé par Supabase)`);
   } else {
-    // Décrémenter la quantité - soustraire le prix des items annulés (préserve le prix dégressif)
-    const newTotalPrice = item.total_price - priceToCancel;
-    await runAsync(
-      `UPDATE order_items
-       SET quantity = ?,
-           total_price = ?,
-           updated_at = datetime('now', 'localtime')
-       WHERE id = ?`,
-      [newPendingQty, newTotalPrice, itemId]
-    );
     console.log(`[DB] Item pending ${itemId} décrémenté (qty: ${item.quantity} → ${newPendingQty}, total: ${item.total_price} → ${newTotalPrice})`);
   }
 
