@@ -3106,12 +3106,40 @@ async function syncOrderToRemoteAPI(orderId, supabaseOrderId = null) {
 
       // Après un POST réussi, sauvegarder les IDs Supabase des order_items
       // pour pouvoir les mettre à jour lors des prochains PUT
-      if (!isUpdate && response.order?.order_items && response.order.order_items.length > 0) {
-        console.log('[Sync] 🔗 Sauvegarde des supabase_item_id après POST...');
-        try {
-          await photoSystem.db.updateOrderItemsSupabaseIds(orderId, response.order.order_items);
-        } catch (err) {
-          console.warn('[Sync] ⚠️ Erreur sauvegarde supabase_item_id:', err.message);
+      if (!isUpdate) {
+        console.log('[Sync] 🔗 Tentative de sauvegarde des supabase_item_id...');
+
+        // Chercher les order_items dans différentes structures possibles de la réponse
+        let supabaseItems = null;
+        if (response.order?.order_items && response.order.order_items.length > 0) {
+          supabaseItems = response.order.order_items;
+          console.log('[Sync]   → Trouvés dans response.order.order_items');
+        } else if (response.order_items && response.order_items.length > 0) {
+          supabaseItems = response.order_items;
+          console.log('[Sync]   → Trouvés dans response.order_items');
+        } else if (response.items && response.items.length > 0) {
+          supabaseItems = response.items;
+          console.log('[Sync]   → Trouvés dans response.items');
+        } else {
+          console.log('[Sync]   ⚠️ Aucun order_items trouvé dans la réponse');
+          console.log('[Sync]   📋 Clés disponibles dans response:', Object.keys(response));
+          if (response.order) {
+            console.log('[Sync]   📋 Clés disponibles dans response.order:', Object.keys(response.order));
+          }
+        }
+
+        if (supabaseItems && supabaseItems.length > 0) {
+          console.log('[Sync]   📦 Items Supabase reçus:', supabaseItems.length);
+          supabaseItems.forEach((item, idx) => {
+            console.log(`[Sync]     Item ${idx + 1}: id=${item.id}, photo_id=${item.photo_id}, product_id=${item.product_id}`);
+          });
+
+          try {
+            await photoSystem.db.updateOrderItemsSupabaseIds(orderId, supabaseItems);
+            console.log('[Sync]   ✅ supabase_item_id sauvegardés avec succès');
+          } catch (err) {
+            console.warn('[Sync]   ❌ Erreur sauvegarde supabase_item_id:', err.message);
+          }
         }
       }
     }
