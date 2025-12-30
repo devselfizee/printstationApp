@@ -2922,29 +2922,36 @@ async function syncOrderToRemoteAPI(orderId, supabaseOrderId = null) {
       status: apiStatus,
       optin_email: orderWithItems.optin ? true : false,
       last_step: orderWithItems.last_step || null, // Étape la plus avancée atteinte
-      order_items: itemsWithPhotoUrls.map(item => {
-        const orderItem = {
-          product_id: item.product_id,
-          quantity: item.quantity,
-          unit_price: Math.round((item.unit_price || 0) * 100), // Convertir en centimes
-          total_price: Math.round((item.total_price || 0) * 100), // Convertir en centimes
-          photo_id: item.photo_id || null, // ID de la photo
-          photo_url: item.photo_url || null, // URL distante de la photo depuis la table photos
-          date_photo: item.date_photo || null, // Date de la photo
-          status: item.status || 'pending' // Statut de l'item (pending, completed, cancelled)
-        };
+      order_items: itemsWithPhotoUrls
+        // Pour PUT: filtrer les items sans supabase_item_id pour éviter les doublons
+        // Ces items seront créés lors d'un prochain POST si nécessaire
+        .filter(item => {
+          if (isUpdate && !item.supabase_item_id) {
+            console.log(`[Sync]   ⏭️ Item EXCLU du PUT (pas de supabase_item_id): photo_id=${item.photo_id}, status=${item.status}`);
+            return false;
+          }
+          return true;
+        })
+        .map(item => {
+          const orderItem = {
+            product_id: item.product_id,
+            quantity: item.quantity,
+            unit_price: Math.round((item.unit_price || 0) * 100), // Convertir en centimes
+            total_price: Math.round((item.total_price || 0) * 100), // Convertir en centimes
+            photo_id: item.photo_id || null, // ID de la photo
+            photo_url: item.photo_url || null, // URL distante de la photo depuis la table photos
+            date_photo: item.date_photo || null, // Date de la photo
+            status: item.status || 'pending' // Statut de l'item (pending, completed, cancelled)
+          };
 
-        // Pour les mises à jour (PUT), utiliser l'ID Supabase stocké localement
-        // Si id est présent, l'API mettra à jour l'item existant au lieu d'en créer un nouveau
-        if (item.supabase_item_id) {
-          orderItem.id = item.supabase_item_id;
-          console.log(`[Sync]   📎 Item avec supabase_item_id: ${item.supabase_item_id}`);
-        } else if (isUpdate) {
-          console.log(`[Sync]   ⚠️ Item SANS supabase_item_id - sera créé comme nouveau: photo_id=${item.photo_id}`);
-        }
+          // Pour les mises à jour (PUT), utiliser l'ID Supabase stocké localement
+          if (item.supabase_item_id) {
+            orderItem.id = item.supabase_item_id;
+            console.log(`[Sync]   📎 Item avec supabase_item_id: ${item.supabase_item_id}`);
+          }
 
-        return orderItem;
-      })
+          return orderItem;
+        })
     };
 
     console.log('[Sync] ═══════════════════════════════════════════════════');
