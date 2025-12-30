@@ -1234,9 +1234,17 @@ export async function updateOrderItemsSupabaseIds(orderId, supabaseItems) {
 }
 
 /**
- * Mettre à jour les détails d'une commande (email, optin, etc.)
+ * Mettre à jour les détails d'une commande (email, optin, montants, etc.)
  */
-export async function updateOrderDetails(orderId, { email = null, optin = null, paymentMethod = null, lastStep = null }) {
+export async function updateOrderDetails(orderId, {
+  email = null,
+  optin = null,
+  paymentMethod = null,
+  lastStep = null,
+  totalAmount = null,
+  discountAmount = null,
+  finalAmount = null
+}) {
   const updates = [];
   const params = [];
 
@@ -1260,6 +1268,22 @@ export async function updateOrderDetails(orderId, { email = null, optin = null, 
     params.push(lastStep);
   }
 
+  // Mise à jour des montants
+  if (totalAmount !== null) {
+    updates.push('total_amount = ?');
+    params.push(totalAmount);
+  }
+
+  if (discountAmount !== null) {
+    updates.push('discount_amount = ?');
+    params.push(discountAmount);
+  }
+
+  if (finalAmount !== null) {
+    updates.push('final_amount = ?');
+    params.push(finalAmount);
+  }
+
   if (updates.length === 0) {
     return { success: true, message: 'Aucun champ à mettre à jour' };
   }
@@ -1268,6 +1292,7 @@ export async function updateOrderDetails(orderId, { email = null, optin = null, 
   params.push(orderId);
 
   const query = `UPDATE orders SET ${updates.join(', ')} WHERE id = ?`;
+  console.log('[DB] updateOrderDetails:', orderId, { totalAmount, discountAmount, finalAmount, lastStep });
   await runAsync(query, params);
 
   return { success: true };

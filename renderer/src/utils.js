@@ -242,23 +242,43 @@ export const handleOrderCancellation = async (source = 'unknown') => {
   console.log(`[CancelOrder] Annulation depuis: ${source}`);
   console.log(`[CancelOrder] Articles dans le panier: ${state.cart.length}`);
   console.log(`[CancelOrder] Étape la plus avancée: ${state.furthestStep}`);
+  console.log(`[CancelOrder] Local Order ID: ${state.localOrderId || 'non défini'}`);
+  console.log(`[CancelOrder] Supabase Order ID: ${state.supabaseOrderId || 'non défini'}`);
 
   try {
-    // 1. Si une commande Supabase existe déjà, l'annuler via l'API
-    if (state.supabaseOrderId && window.photoAPI?.orders?.cancelRemote) {
-      try {
-        console.log('[CancelOrder] Annulation de la commande sur Supabase...');
-        console.log('[CancelOrder] Supabase Order ID:', state.supabaseOrderId);
-        await window.photoAPI.orders.cancelRemote(state.supabaseOrderId);
-        console.log('[CancelOrder] ✅ Commande annulée sur Supabase');
-      } catch (error) {
-        console.error('[CancelOrder] ❌ Erreur annulation Supabase:', error);
+    // CAS 1: Une commande existe déjà (localOrderId et/ou supabaseOrderId)
+    if (state.localOrderId || state.supabaseOrderId) {
+      console.log('[CancelOrder] Commande existante détectée, mise à jour du statut...');
+
+      // 1a. Mettre à jour le statut sur Supabase si l'ID existe
+      if (state.supabaseOrderId && window.photoAPI?.orders?.cancelRemote) {
+        try {
+          console.log('[CancelOrder] Annulation sur Supabase...');
+          await window.photoAPI.orders.cancelRemote(state.supabaseOrderId);
+          console.log('[CancelOrder] ✅ Commande annulée sur Supabase');
+        } catch (error) {
+          console.error('[CancelOrder] ❌ Erreur annulation Supabase:', error);
+        }
+      }
+
+      // 1b. Mettre à jour le statut en local si l'ID existe
+      if (state.localOrderId && window.photoAPI?.orders) {
+        try {
+          // Annuler les items de la session
+          await window.photoAPI.cart.cancelSession(state.sessionId, state.localOrderId);
+          console.log('[CancelOrder] ✅ Items annulés');
+
+          // Mettre à jour le statut de la commande à "cancelled"
+          await window.photoAPI.orders.updateStatus(state.localOrderId, 'cancelled', `Annulée - ${source}`);
+          console.log('[CancelOrder] ✅ Commande locale marquée comme annulée:', state.localOrderId);
+        } catch (error) {
+          console.error('[CancelOrder] ❌ Erreur mise à jour locale:', error);
+        }
       }
     }
-
-    // 2. Enregistrer la commande annulée dans la DB locale
-    if (window.photoAPI?.orders && window.photoAPI?.cart && state.sessionId) {
-      console.log('[CancelOrder] Enregistrement de la commande annulée...');
+    // CAS 2: Aucune commande n'existe, en créer une nouvelle avec statut cancelled
+    else if (window.photoAPI?.orders && window.photoAPI?.cart && state.sessionId) {
+      console.log('[CancelOrder] Aucune commande existante, création d\'une commande annulée...');
 
       // Créer l'ID de commande
       const orderId = `order_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -295,22 +315,20 @@ export const handleOrderCancellation = async (source = 'unknown') => {
         await window.photoAPI.orders.updateStatus(orderId, 'cancelled', `Annulée - ${source}`);
         console.log('[CancelOrder] ✅ Commande marquée comme annulée');
 
-        // Synchroniser la commande annulée avec l'API distante (si pas déjà fait via cancelRemote)
-        if (!state.supabaseOrderId) {
-          try {
-            console.log('[CancelOrder] 🔄 Synchronisation de la commande annulée avec l\'API distante...');
-            const syncResult = await window.photoAPI.orders.syncRemote(orderId);
+        // Synchroniser la nouvelle commande annulée avec l'API distante
+        try {
+          console.log('[CancelOrder] 🔄 Synchronisation de la commande annulée avec l\'API distante...');
+          const syncResult = await window.photoAPI.orders.syncRemote(orderId);
 
-            if (syncResult?.status === 'success') {
-              console.log('[CancelOrder] ✅ Commande annulée synchronisée avec l\'API distante');
-            } else if (syncResult?.status === 'skipped') {
-              console.log('[CancelOrder] ⏭️  Synchronisation ignorée:', syncResult.message);
-            } else {
-              console.warn('[CancelOrder] ⚠️  Erreur synchronisation API:', syncResult?.error);
-            }
-          } catch (syncError) {
-            console.error('[CancelOrder] ❌ Erreur lors de la synchronisation:', syncError);
+          if (syncResult?.status === 'success') {
+            console.log('[CancelOrder] ✅ Commande annulée synchronisée avec l\'API distante');
+          } else if (syncResult?.status === 'skipped') {
+            console.log('[CancelOrder] ⏭️  Synchronisation ignorée:', syncResult.message);
+          } else {
+            console.warn('[CancelOrder] ⚠️  Erreur synchronisation API:', syncResult?.error);
           }
+        } catch (syncError) {
+          console.error('[CancelOrder] ❌ Erreur lors de la synchronisation:', syncError);
         }
       } else {
         console.error('[CancelOrder] ❌ Erreur création commande annulée:', orderResult?.error);
