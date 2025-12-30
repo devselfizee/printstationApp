@@ -196,10 +196,11 @@ attachFooterListeners({
         console.log('[Cart]   - discountAmount:', discountAmount);
         console.log('[Cart]   - finalAmount (après réduction):', finalAmount);
 
-        // Vérifier si une commande existe déjà
-        if (state.localOrderId && state.supabaseOrderId) {
+        // Vérifier si une commande locale existe déjà (peu importe si sync Supabase a réussi)
+        if (state.localOrderId) {
           // ✏️ MISE À JOUR de la commande existante
           console.log('[Cart] ✏️ Mise à jour de la commande existante:', state.localOrderId);
+          console.log('[Cart] Supabase Order ID existant:', state.supabaseOrderId || 'non défini');
 
           // Mettre à jour les montants dans la DB locale
           await window.photoAPI.orders.updateDetails(state.localOrderId, {
@@ -219,6 +220,11 @@ attachFooterListeners({
 
           if (syncResult?.status === 'success') {
             console.log('[Cart] ✅ Commande mise à jour dans Supabase');
+            // Récupérer supabaseOrderId si pas encore défini
+            if (!state.supabaseOrderId && syncResult.response?.order?.id) {
+              state.supabaseOrderId = syncResult.response.order.id;
+              console.log('[Cart] ✅ Supabase Order ID récupéré:', state.supabaseOrderId);
+            }
           } else {
             console.warn('[Cart] ⚠️ Erreur re-sync Supabase:', syncResult?.error);
           }

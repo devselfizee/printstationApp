@@ -314,9 +314,11 @@ export const renderDetail = (root) => {
     // Créer la commande locale et synchroniser avec Supabase
     if (state.cart.length > 0 && window.photoAPI?.orders) {
       try {
-        // Vérifier si une commande existe déjà pour cette session
-        if (state.localOrderId && state.supabaseOrderId) {
-          console.log('[Detail] Commande existante, mise à jour...');
+        // Vérifier si une commande locale existe déjà (peu importe si sync Supabase a réussi)
+        if (state.localOrderId) {
+          console.log('[Detail] Commande existante, mise à jour...', state.localOrderId);
+          console.log('[Detail] Supabase Order ID existant:', state.supabaseOrderId || 'non défini');
+
           // Mettre à jour les montants et resync
           const totalAmount = cartNominal(state.cart, window.PRODUCTS);
           const discountAmount = totalAmount - cartSubtotal(state.cart, window.PRODUCTS);
@@ -333,8 +335,15 @@ export const renderDetail = (root) => {
           await window.photoAPI.cart.linkSessionItems(state.sessionId, state.localOrderId);
 
           // Re-sync avec Supabase
-          await window.photoAPI.orders.syncRemote(state.localOrderId);
-          console.log('[Detail] ✅ Commande mise à jour');
+          const syncResult = await window.photoAPI.orders.syncRemote(state.localOrderId);
+          if (syncResult?.status === 'success') {
+            console.log('[Detail] ✅ Commande mise à jour');
+            // Récupérer supabaseOrderId si pas encore défini
+            if (!state.supabaseOrderId && syncResult.response?.order?.id) {
+              state.supabaseOrderId = syncResult.response.order.id;
+              console.log('[Detail] ✅ Supabase Order ID récupéré:', state.supabaseOrderId);
+            }
+          }
         } else {
           console.log('[Detail] 📦 Création de la commande...');
 
@@ -382,8 +391,8 @@ export const renderDetail = (root) => {
       }
     }
 
-    // Naviguer vers la page de paiement
-    state.page = 'payment';
+    // Naviguer vers la page panier (pour permettre d'ajouter d'autres produits)
+    state.page = 'cart';
     window.render();
   };
 
