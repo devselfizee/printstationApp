@@ -2903,35 +2903,6 @@ async function syncOrderToRemoteAPI(orderId, supabaseOrderId = null) {
       })
     );
 
-    // 🔄 Pour les mises à jour (PUT), récupérer les IDs des items existants via GET
-    let existingSupabaseItems = [];
-    if (isUpdate) {
-      try {
-        console.log('[Sync] 🔍 Récupération des items existants depuis Supabase...');
-        const authTokenForGet = await getAuthToken();
-        const getUrl = `${API_SYNC_CONFIG.url}?id=${supabaseOrderId}`;
-
-        const existingOrderResponse = await makeHttpsRequestWithRetry(
-          getUrl,
-          null,
-          'GET',
-          { 'apikey': API_SYNC_CONFIG.supabaseAnonKey },
-          authTokenForGet
-        );
-
-        const existingOrder = existingOrderResponse.order || existingOrderResponse;
-        if (existingOrder && existingOrder.order_items) {
-          existingSupabaseItems = existingOrder.order_items;
-          console.log('[Sync] ✅ Items existants récupérés:', existingSupabaseItems.length);
-          existingSupabaseItems.forEach((item, idx) => {
-            console.log(`[Sync]   Item Supabase ${idx + 1}: id=${item.id}, photo_id=${item.photo_id}, product_id=${item.product_id}`);
-          });
-        }
-      } catch (err) {
-        console.warn('[Sync] ⚠️ Impossible de récupérer les items existants:', err.message);
-      }
-    }
-
     // Transformer les données au format attendu par l'API
     const participantId = orderWithItems.participant_id || 'Anonymous';
     const universeId = orderWithItems.universe_id || null;
@@ -2963,25 +2934,13 @@ async function syncOrderToRemoteAPI(orderId, supabaseOrderId = null) {
           status: item.status || 'pending' // Statut de l'item (pending, completed, cancelled)
         };
 
-        // Pour les mises à jour (PUT), trouver l'ID Supabase correspondant
-        if (isUpdate) {
-          // D'abord essayer avec le supabase_item_id local
-          if (item.supabase_item_id) {
-            orderItem.id = item.supabase_item_id;
-            console.log(`[Sync]   📎 Item avec supabase_item_id local: ${item.supabase_item_id}`);
-          }
-          // Sinon, chercher dans les items récupérés par GET
-          else if (existingSupabaseItems.length > 0) {
-            const matchingItem = existingSupabaseItems.find(
-              existing => existing.photo_id === item.photo_id && existing.product_id === item.product_id
-            );
-            if (matchingItem && matchingItem.id) {
-              orderItem.id = matchingItem.id;
-              console.log(`[Sync]   📎 Item matché via GET: ${matchingItem.id} (photo_id=${item.photo_id}, product_id=${item.product_id})`);
-            } else {
-              console.log(`[Sync]   ⚠️ Aucun match trouvé pour photo_id=${item.photo_id}, product_id=${item.product_id}`);
-            }
-          }
+        // Pour les mises à jour (PUT), utiliser l'ID Supabase stocké localement
+        // Si id est présent, l'API mettra à jour l'item existant au lieu d'en créer un nouveau
+        if (item.supabase_item_id) {
+          orderItem.id = item.supabase_item_id;
+          console.log(`[Sync]   📎 Item avec supabase_item_id: ${item.supabase_item_id}`);
+        } else if (isUpdate) {
+          console.log(`[Sync]   ⚠️ Item SANS supabase_item_id - sera créé comme nouveau: photo_id=${item.photo_id}`);
         }
 
         return orderItem;
