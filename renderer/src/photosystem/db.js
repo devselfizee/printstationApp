@@ -1217,19 +1217,29 @@ export async function updateOrderItemsSupabaseIds(orderId, supabaseItems) {
 
   let updated = 0;
   for (const supaItem of supabaseItems) {
-    // Trouver l'item local correspondant par photo_id et product_id
+    // Dans la réponse Supabase:
+    // - photo_id peut être un nombre ou une string
+    // - product_id peut être dans supaItem.product_id OU supaItem.products.id
+    const supaPhotoId = String(supaItem.photo_id || '');
+    const supaProductId = String(supaItem.product_id || supaItem.products?.id || '');
+
+    console.log(`[DB]   🔍 Recherche match: photo_id="${supaPhotoId}", product_id="${supaProductId}"`);
+
+    // Trouver l'item local correspondant (comparaison en string)
     const matchingLocal = localItems.find(
-      local => local.photo_id === supaItem.photo_id && local.product_id === supaItem.product_id
+      local => String(local.photo_id) === supaPhotoId && String(local.product_id) === supaProductId
     );
 
     if (matchingLocal && supaItem.id) {
       await updateOrderItemSupabaseId(matchingLocal.id, supaItem.id);
-      console.log(`[DB]   ✅ Item ${matchingLocal.id} → supabase_item_id: ${supaItem.id}`);
+      console.log(`[DB]   ✅ Item local ${matchingLocal.id} → supabase_item_id: ${supaItem.id}`);
       updated++;
+    } else {
+      console.log(`[DB]   ⚠️ Pas de match local pour photo_id="${supaPhotoId}", product_id="${supaProductId}"`);
     }
   }
 
-  console.log(`[DB] ✅ ${updated} items liés avec succès`);
+  console.log(`[DB] ✅ ${updated}/${supabaseItems.length} items liés avec succès`);
   return { success: true, updated };
 }
 
