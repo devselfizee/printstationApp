@@ -273,6 +273,7 @@ async function createTables() {
       incrustation_id TEXT,
       status TEXT DEFAULT 'en_cours',
       session_id TEXT,
+      supabase_item_id TEXT,
       created_at DATETIME DEFAULT (datetime('now', 'localtime')),
       updated_at DATETIME DEFAULT (datetime('now', 'localtime')),
       cancelled_at DATETIME,
@@ -504,6 +505,19 @@ async function migrateSyncColumns() {
     }
   } catch (error) {
     console.error('[DB] Erreur migration subtotal_ht/vat_amount/lang/last_step:', error);
+  }
+
+  // Migration: Ajouter supabase_item_id à la table order_items
+  try {
+    const orderItemsInfo = await allAsync('PRAGMA table_info(order_items)');
+    const orderItemsColumns = orderItemsInfo.map(col => col.name);
+
+    if (!orderItemsColumns.includes('supabase_item_id')) {
+      await execAsync('ALTER TABLE order_items ADD COLUMN supabase_item_id TEXT');
+      console.log('[DB] ✅ Colonne supabase_item_id ajoutée à order_items');
+    }
+  } catch (error) {
+    console.error('[DB] Erreur migration supabase_item_id:', error);
   }
 }
 
@@ -1164,6 +1178,59 @@ export async function updateOrderItemStatus(itemId, newStatus) {
      WHERE id = ?`,
     [newStatus, itemId]
   );
+}
+
+/**
+ * Mettre à jour le supabase_item_id d'un item de commande
+ */
+export async function updateOrderItemSupabaseId(localItemId, supabaseItemId) {
+  return runAsync(
+    `UPDATE order_items
+     SET supabase_item_id = ?, updated_at = datetime('now', 'localtime')
+     WHERE id = ?`,
+    [supabaseItemId, localItemId]
+  );
+}
+
+/**
+ * Mettre à jour les supabase_item_id de plusieurs items à partir de la réponse Supabase
+ * @param {string} orderId - L'ID local de la commande
+ * @param {Array} supabaseItems - Les items retournés par Supabase avec leurs IDs
+ */
+export async function updateOrderItemsSupabaseIds(orderId, supabaseItems) {
+  if (!supabaseItems || supabaseItems.length === 0) {
+    console.log('[DB] Aucun item Supabase à lier');
+    return { success: true, updated: 0 };
+  }
+
+  console.log('[DB] 🔗 Liaison des supabase_item_id...');
+  console.log('[DB]   Order ID local:', orderId);
+  console.log('[DB]   Nombre d\'items Supabase:', supabaseItems.length);
+
+  // Récupérer les items locaux de cette commande
+  const localItems = await allAsync(
+    'SELECT id, photo_id, product_id FROM order_items WHERE order_id = ?',
+    [orderId]
+  );
+
+  console.log('[DB]   Items locaux trouvés:', localItems.length);
+
+  let updated = 0;
+  for (const supaItem of supabaseItems) {
+    // Trouver l'item local correspondant par photo_id et product_id
+    const matchingLocal = localItems.find(
+      local => local.photo_id === supaItem.photo_id && local.product_id === supaItem.product_id
+    );
+
+    if (matchingLocal && supaItem.id) {
+      await updateOrderItemSupabaseId(matchingLocal.id, supaItem.id);
+      console.log(`[DB]   ✅ Item ${matchingLocal.id} → supabase_item_id: ${supaItem.id}`);
+      updated++;
+    }
+  }
+
+  console.log(`[DB] ✅ ${updated} items liés avec succès`);
+  return { success: true, updated };
 }
 
 /**

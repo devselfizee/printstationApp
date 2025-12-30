@@ -2922,16 +2922,25 @@ async function syncOrderToRemoteAPI(orderId, supabaseOrderId = null) {
       status: apiStatus,
       optin_email: orderWithItems.optin ? true : false,
       last_step: orderWithItems.last_step || null, // Étape la plus avancée atteinte
-      order_items: itemsWithPhotoUrls.map(item => ({
-        product_id: item.product_id,
-        quantity: item.quantity,
-        unit_price: Math.round((item.unit_price || 0) * 100), // Convertir en centimes
-        total_price: Math.round((item.total_price || 0) * 100), // Convertir en centimes
-        photo_id: item.photo_id || null, // ID de la photo
-        photo_url: item.photo_url || null, // URL distante de la photo depuis la table photos
-        date_photo: item.date_photo || null, // Date de la photo
-        status: item.status || 'pending' // Statut de l'item (pending, completed, cancelled)
-      }))
+      order_items: itemsWithPhotoUrls.map(item => {
+        const orderItem = {
+          product_id: item.product_id,
+          quantity: item.quantity,
+          unit_price: Math.round((item.unit_price || 0) * 100), // Convertir en centimes
+          total_price: Math.round((item.total_price || 0) * 100), // Convertir en centimes
+          photo_id: item.photo_id || null, // ID de la photo
+          photo_url: item.photo_url || null, // URL distante de la photo depuis la table photos
+          date_photo: item.date_photo || null, // Date de la photo
+          status: item.status || 'pending' // Statut de l'item (pending, completed, cancelled)
+        };
+        // Inclure l'ID Supabase pour les mises à jour (PUT)
+        // Si id est présent, l'API mettra à jour l'item existant au lieu d'en créer un nouveau
+        if (isUpdate && item.supabase_item_id) {
+          orderItem.id = item.supabase_item_id;
+          console.log(`[Sync]   📎 Item avec supabase_item_id: ${item.supabase_item_id}`);
+        }
+        return orderItem;
+      })
     };
 
     console.log('[Sync] ═══════════════════════════════════════════════════');
@@ -3089,6 +3098,17 @@ async function syncOrderToRemoteAPI(orderId, supabaseOrderId = null) {
         response.order?.id,
         null
       );
+
+      // Après un POST réussi, sauvegarder les IDs Supabase des order_items
+      // pour pouvoir les mettre à jour lors des prochains PUT
+      if (!isUpdate && response.order?.order_items && response.order.order_items.length > 0) {
+        console.log('[Sync] 🔗 Sauvegarde des supabase_item_id après POST...');
+        try {
+          await photoSystem.db.updateOrderItemsSupabaseIds(orderId, response.order.order_items);
+        } catch (err) {
+          console.warn('[Sync] ⚠️ Erreur sauvegarde supabase_item_id:', err.message);
+        }
+      }
     }
 
     return { status: 'success', response };
