@@ -1,6 +1,6 @@
 import { state } from '../state.js';
 import { t, tProduct } from '../i18n.js';
-import { $, getQty, lineTotal, updateCartCount, toast, addOne, removeOne, cartSubtotal, handleOrderCancellation, showCancelOrderModal } from '../utils.js';
+import { $, getQty, lineTotal, updateCartCount, toast, addOne, removeOne, cartSubtotal, cartNominal, handleOrderCancellation, showCancelOrderModal } from '../utils.js';
 import { createFooterBar, attachFooterListeners, updateFooterBar, formatPrice } from '../utils.js';
 import { getProductVisual } from '../data.js';
 
@@ -306,8 +306,84 @@ export const renderDetail = (root) => {
     }
   };
 
-  footer.querySelector('.btn-continue').onclick = () => {
-    state.page = 'cart';
+  footer.querySelector('.btn-continue').onclick = async () => {
+    // Désactiver le bouton pour éviter les doubles clics
+    const continueBtn = footer.querySelector('.btn-continue');
+    if (continueBtn) continueBtn.disabled = true;
+
+    // Créer la commande locale et synchroniser avec Supabase
+    if (state.cart.length > 0 && window.photoAPI?.orders) {
+      try {
+        // Vérifier si une commande existe déjà pour cette session
+        if (state.localOrderId && state.supabaseOrderId) {
+          console.log('[Detail] Commande existante, mise à jour...');
+          // Mettre à jour les montants et resync
+          const totalAmount = cartNominal(state.cart, window.PRODUCTS);
+          const discountAmount = totalAmount - cartSubtotal(state.cart, window.PRODUCTS);
+          const finalAmount = cartSubtotal(state.cart, window.PRODUCTS);
+
+          await window.photoAPI.orders.updateDetails(state.localOrderId, {
+            totalAmount,
+            discountAmount,
+            finalAmount,
+            lastStep: 'detail'
+          });
+
+          // Re-lier les items (au cas où de nouveaux ont été ajoutés)
+          await window.photoAPI.cart.linkSessionItems(state.sessionId, state.localOrderId);
+
+          // Re-sync avec Supabase
+          await window.photoAPI.orders.syncRemote(state.localOrderId);
+          console.log('[Detail] ✅ Commande mise à jour');
+        } else {
+          console.log('[Detail] 📦 Création de la commande...');
+
+          // Calculer les montants
+          const totalAmount = cartNominal(state.cart, window.PRODUCTS);
+          const discountAmount = totalAmount - cartSubtotal(state.cart, window.PRODUCTS);
+          const finalAmount = cartSubtotal(state.cart, window.PRODUCTS);
+
+          // Créer l'ID de commande local
+          const orderId = `order_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+          // Créer la commande locale
+          const orderResult = await window.photoAPI.orders.create({
+            orderId: orderId,
+            participantId: state.participantId || state.sessionId,
+            universeId: state.universe?.id || state.universeId || 'B',
+            totalAmount: totalAmount,
+            discountAmount: discountAmount,
+            finalAmount: finalAmount,
+            lang: state.lang || 'fr',
+            email: null,
+            optin: 0,
+            paymentMethod: 'pending',
+            notes: 'Commande créée depuis page détail',
+            lastStep: 'detail'
+          });
+
+          if (orderResult?.status === 'success') {
+            console.log('[Detail] ✅ Commande locale créée:', orderId);
+            state.localOrderId = orderId;
+
+            // Lier les items à la commande
+            await window.photoAPI.cart.linkSessionItems(state.sessionId, orderId);
+
+            // Synchroniser avec Supabase
+            const syncResult = await window.photoAPI.orders.syncRemote(orderId);
+            if (syncResult?.status === 'success' && syncResult.response?.order?.id) {
+              state.supabaseOrderId = syncResult.response.order.id;
+              console.log('[Detail] ✅ Supabase Order ID:', state.supabaseOrderId);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('[Detail] ❌ Erreur création commande:', error);
+      }
+    }
+
+    // Naviguer vers la page de paiement
+    state.page = 'payment';
     window.render();
   };
 

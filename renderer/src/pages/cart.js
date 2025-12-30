@@ -183,11 +183,9 @@ attachFooterListeners({
     if (cancelBtn) cancelBtn.disabled = true;
     if (continueBtn) continueBtn.disabled = true;
 
-    // 🆕 ÉTAPE 1 : Créer la commande locale d'abord, puis synchroniser avec Supabase
+    // 🆕 Créer ou mettre à jour la commande locale, puis synchroniser avec Supabase
     if (state.cart.length > 0 && window.photoAPI?.orders) {
       try {
-        console.log('[Cart] 📦 Création de la commande locale puis synchronisation avec Supabase...');
-
         // Calculer les montants
         const totalAmount = cartNominal(state.cart, window.PRODUCTS);
         const discountAmount = totalAmount - cartSubtotal(state.cart, window.PRODUCTS);
@@ -198,74 +196,78 @@ attachFooterListeners({
         console.log('[Cart]   - discountAmount:', discountAmount);
         console.log('[Cart]   - finalAmount (après réduction):', finalAmount);
 
-        // 1. Créer l'ID de commande local
-        const orderId = `order_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        console.log('[Cart] ID de commande local:', orderId);
-        console.log('[Cart] 🌍 Langue choisie par le client (state.lang):', state.lang);
+        // Vérifier si une commande existe déjà
+        if (state.localOrderId && state.supabaseOrderId) {
+          // ✏️ MISE À JOUR de la commande existante
+          console.log('[Cart] ✏️ Mise à jour de la commande existante:', state.localOrderId);
 
-        // 2. Créer la commande locale dans la DB
-        const orderResult = await window.photoAPI.orders.create({
-          orderId: orderId,
-          participantId: state.participantId || state.sessionId,
-          universeId: state.universe?.id || state.universeId || 'B',
-          totalAmount: totalAmount,
-          discountAmount: discountAmount,
-          finalAmount: finalAmount,
-          lang: state.lang || 'fr',  // Langue choisie par le client
-          email: null,  // Pas d'email à cette étape
-          optin: 0,
-          paymentMethod: 'pending',
-          notes: 'Commande en cours de paiement',
-          lastStep: state.furthestStep || 'cart'  // Étape la plus avancée atteinte
-        });
+          // Mettre à jour les montants dans la DB locale
+          await window.photoAPI.orders.updateDetails(state.localOrderId, {
+            totalAmount,
+            discountAmount,
+            finalAmount,
+            lastStep: 'cart'
+          });
 
-        if (orderResult?.status === 'success') {
-          console.log('[Cart] ✅ Commande locale créée:', orderId);
+          // Re-lier les items (au cas où de nouveaux ont été ajoutés/modifiés)
+          const linkResult = await window.photoAPI.cart.linkSessionItems(state.sessionId, state.localOrderId);
+          console.log('[Cart] ✅ Items re-liés:', linkResult?.changes || 0, 'items mis à jour');
 
-          // 3. Lier les order_items existants (pending ET cancelled) à la commande
-          console.log('[Cart] 🔗 Liaison des order_items existants à la commande...');
-          console.log('[Cart] Session ID:', state.sessionId);
-          console.log('[Cart] Order ID:', orderId);
-
-          const linkResult = await window.photoAPI.cart.linkSessionItems(state.sessionId, orderId);
-          console.log('[Cart] ✅ Items liés:', linkResult?.changes || 0, 'items mis à jour');
-
-          // 4. Synchroniser avec Supabase (status=pending)
-          console.log('[Cart] 🔄 Synchronisation avec Supabase...');
-          const syncResult = await window.photoAPI.orders.syncRemote(orderId);
-
-          console.log('[Cart] 📋 Résultat de syncRemote:');
-          console.log('[Cart]   - status:', syncResult?.status);
-          console.log('[Cart] Résultat complet:', JSON.stringify(syncResult, null, 2));
+          // Re-synchroniser avec Supabase
+          console.log('[Cart] 🔄 Re-synchronisation avec Supabase...');
+          const syncResult = await window.photoAPI.orders.syncRemote(state.localOrderId);
 
           if (syncResult?.status === 'success') {
-            console.log('[Cart] ✅ Commande synchronisée avec Supabase');
-            console.log('[Cart] Réponse API:', JSON.stringify(syncResult.response, null, 2));
+            console.log('[Cart] ✅ Commande mise à jour dans Supabase');
+          } else {
+            console.warn('[Cart] ⚠️ Erreur re-sync Supabase:', syncResult?.error);
+          }
+        } else {
+          // 📦 CRÉATION d'une nouvelle commande
+          console.log('[Cart] 📦 Création de la commande locale...');
 
-            // Extraire l'ID Supabase de la réponse (l'API retourne response.order.id)
-            if (syncResult.response?.order?.id) {
+          const orderId = `order_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          console.log('[Cart] ID de commande local:', orderId);
+
+          const orderResult = await window.photoAPI.orders.create({
+            orderId: orderId,
+            participantId: state.participantId || state.sessionId,
+            universeId: state.universe?.id || state.universeId || 'B',
+            totalAmount: totalAmount,
+            discountAmount: discountAmount,
+            finalAmount: finalAmount,
+            lang: state.lang || 'fr',
+            email: null,
+            optin: 0,
+            paymentMethod: 'pending',
+            notes: 'Commande en cours de paiement',
+            lastStep: 'cart'
+          });
+
+          if (orderResult?.status === 'success') {
+            console.log('[Cart] ✅ Commande locale créée:', orderId);
+            state.localOrderId = orderId;
+
+            // Lier les order_items existants à la commande
+            const linkResult = await window.photoAPI.cart.linkSessionItems(state.sessionId, orderId);
+            console.log('[Cart] ✅ Items liés:', linkResult?.changes || 0, 'items');
+
+            // Synchroniser avec Supabase
+            console.log('[Cart] 🔄 Synchronisation avec Supabase...');
+            const syncResult = await window.photoAPI.orders.syncRemote(orderId);
+
+            if (syncResult?.status === 'success' && syncResult.response?.order?.id) {
               state.supabaseOrderId = syncResult.response.order.id;
-              console.log('[Cart] ✅ Order ID Supabase stocké dans state:', state.supabaseOrderId);
+              console.log('[Cart] ✅ Supabase Order ID:', state.supabaseOrderId);
             } else {
-              console.warn('[Cart] ⚠️  order.id non trouvé dans response');
-              console.warn('[Cart] Clés disponibles dans response:', Object.keys(syncResult.response || {}));
-              if (syncResult.response?.order) {
-                console.warn('[Cart] Clés disponibles dans response.order:', Object.keys(syncResult.response.order));
-              }
+              console.warn('[Cart] ⚠️ Erreur sync Supabase:', syncResult?.error);
             }
           } else {
-            console.warn('[Cart] ⚠️  Erreur synchronisation Supabase:', syncResult?.error);
-            // Continuer quand même vers la page de paiement
+            console.error('[Cart] ❌ Erreur création commande:', orderResult?.error);
           }
-
-          // Sauvegarder l'orderId local pour référence
-          state.localOrderId = orderId;
-        } else {
-          console.error('[Cart] ❌ Erreur création commande locale:', orderResult?.error);
         }
       } catch (error) {
-        console.error('[Cart] ❌ Erreur lors de la création de la commande:', error);
-        // Continuer quand même vers la page de paiement
+        console.error('[Cart] ❌ Erreur:', error);
       }
     }
 
