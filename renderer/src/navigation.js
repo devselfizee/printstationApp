@@ -5,7 +5,7 @@ import { cartNominal, cartSubtotal } from './utils.js';
  * Synchroniser la commande avec Supabase (créer ou mettre à jour)
  * Appelé lors du retour en arrière pour ne pas perdre les données
  */
-async function syncOrderOnBack(currentPage) {
+export async function syncOrderOnBack(currentPage) {
   // Ne sync que si le panier n'est pas vide
   if (!state.cart || state.cart.length === 0) {
     return;
