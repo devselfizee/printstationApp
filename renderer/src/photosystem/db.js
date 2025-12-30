@@ -1207,9 +1207,9 @@ export async function updateOrderItemsSupabaseIds(orderId, supabaseItems) {
   console.log('[DB]   Order ID local:', orderId);
   console.log('[DB]   Nombre d\'items Supabase:', supabaseItems.length);
 
-  // Récupérer les items locaux de cette commande
+  // Récupérer les items locaux de cette commande (inclure status et supabase_item_id)
   const localItems = await allAsync(
-    'SELECT id, photo_id, product_id FROM order_items WHERE order_id = ?',
+    'SELECT id, photo_id, product_id, status, supabase_item_id FROM order_items WHERE order_id = ?',
     [orderId]
   );
 
@@ -1222,20 +1222,33 @@ export async function updateOrderItemsSupabaseIds(orderId, supabaseItems) {
     // - product_id peut être dans supaItem.product_id OU supaItem.products.id
     const supaPhotoId = String(supaItem.photo_id || '');
     const supaProductId = String(supaItem.product_id || supaItem.products?.id || '');
+    const supaStatus = supaItem.status || 'pending';
 
-    console.log(`[DB]   🔍 Recherche match: photo_id="${supaPhotoId}", product_id="${supaProductId}"`);
+    console.log(`[DB]   🔍 Recherche match: photo_id="${supaPhotoId}", product_id="${supaProductId}", status="${supaStatus}"`);
 
-    // Trouver l'item local correspondant (comparaison en string)
+    // Trouver l'item local correspondant:
+    // 1. Même photo_id, product_id, status
+    // 2. N'a pas encore de supabase_item_id OU a le même supabase_item_id
     const matchingLocal = localItems.find(
-      local => String(local.photo_id) === supaPhotoId && String(local.product_id) === supaProductId
+      local => String(local.photo_id) === supaPhotoId &&
+               String(local.product_id) === supaProductId &&
+               local.status === supaStatus &&
+               (!local.supabase_item_id || local.supabase_item_id === supaItem.id)
     );
 
     if (matchingLocal && supaItem.id) {
-      await updateOrderItemSupabaseId(matchingLocal.id, supaItem.id);
-      console.log(`[DB]   ✅ Item local ${matchingLocal.id} → supabase_item_id: ${supaItem.id}`);
-      updated++;
+      // Seulement mettre à jour si pas déjà défini
+      if (!matchingLocal.supabase_item_id) {
+        await updateOrderItemSupabaseId(matchingLocal.id, supaItem.id);
+        console.log(`[DB]   ✅ Item local ${matchingLocal.id} → supabase_item_id: ${supaItem.id}`);
+        // Marquer comme déjà traité pour éviter les doublons
+        matchingLocal.supabase_item_id = supaItem.id;
+        updated++;
+      } else {
+        console.log(`[DB]   ℹ️ Item local ${matchingLocal.id} déjà lié à ${matchingLocal.supabase_item_id}`);
+      }
     } else {
-      console.log(`[DB]   ⚠️ Pas de match local pour photo_id="${supaPhotoId}", product_id="${supaProductId}"`);
+      console.log(`[DB]   ⚠️ Pas de match local pour photo_id="${supaPhotoId}", product_id="${supaProductId}", status="${supaStatus}"`);
     }
   }
 

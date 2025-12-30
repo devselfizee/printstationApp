@@ -2922,17 +2922,7 @@ async function syncOrderToRemoteAPI(orderId, supabaseOrderId = null) {
       status: apiStatus,
       optin_email: orderWithItems.optin ? true : false,
       last_step: orderWithItems.last_step || null, // Étape la plus avancée atteinte
-      order_items: itemsWithPhotoUrls
-        // Pour PUT: filtrer les items sans supabase_item_id pour éviter les doublons
-        // Ces items seront créés lors d'un prochain POST si nécessaire
-        .filter(item => {
-          if (isUpdate && !item.supabase_item_id) {
-            console.log(`[Sync]   ⏭️ Item EXCLU du PUT (pas de supabase_item_id): photo_id=${item.photo_id}, status=${item.status}`);
-            return false;
-          }
-          return true;
-        })
-        .map(item => {
+      order_items: itemsWithPhotoUrls.map(item => {
           const orderItem = {
             product_id: item.product_id,
             quantity: item.quantity,
@@ -2944,10 +2934,13 @@ async function syncOrderToRemoteAPI(orderId, supabaseOrderId = null) {
             status: item.status || 'pending' // Statut de l'item (pending, completed, cancelled)
           };
 
-          // Pour les mises à jour (PUT), utiliser l'ID Supabase stocké localement
+          // Si supabase_item_id existe, l'inclure comme id pour mise à jour
+          // Sinon, c'est un nouvel item qui sera créé
           if (item.supabase_item_id) {
             orderItem.id = item.supabase_item_id;
-            console.log(`[Sync]   📎 Item avec supabase_item_id: ${item.supabase_item_id}`);
+            console.log(`[Sync]   📎 Item existant (id: ${item.supabase_item_id})`);
+          } else {
+            console.log(`[Sync]   🆕 Nouvel item à créer: photo_id=${item.photo_id}, status=${item.status}`);
           }
 
           return orderItem;
@@ -3111,10 +3104,14 @@ async function syncOrderToRemoteAPI(orderId, supabaseOrderId = null) {
         null
       );
 
-      // Après un POST réussi, sauvegarder les IDs Supabase des order_items
-      // pour pouvoir les mettre à jour lors des prochains PUT
+      // Sauvegarder les IDs Supabase des order_items
+      // POST: utiliser la réponse directement
+      // PUT: faire un GET pour récupérer les IDs des nouveaux items
+      const hasNewItems = itemsWithPhotoUrls.some(item => !item.supabase_item_id);
+
       if (!isUpdate) {
-        console.log('[Sync] 🔗 Tentative de sauvegarde des supabase_item_id...');
+        // Après POST: sauvegarder depuis la réponse
+        console.log('[Sync] 🔗 Tentative de sauvegarde des supabase_item_id (POST)...');
 
         // Chercher les order_items dans différentes structures possibles de la réponse
         let supabaseItems = null;
@@ -3147,6 +3144,46 @@ async function syncOrderToRemoteAPI(orderId, supabaseOrderId = null) {
           } catch (err) {
             console.warn('[Sync]   ❌ Erreur sauvegarde supabase_item_id:', err.message);
           }
+        }
+      } else if (hasNewItems && supabaseOrderId) {
+        // Après PUT avec nouveaux items: faire un GET pour récupérer les IDs
+        console.log('[Sync] 🔗 Nouveaux items créés lors du PUT, récupération des IDs via GET...');
+
+        try {
+          const getUrl = `${API_SYNC_CONFIG.url}?id=${supabaseOrderId}`;
+          console.log('[Sync]   GET URL:', getUrl);
+
+          const getResponse = await makeHttpsRequest(
+            getUrl,
+            null,
+            'GET',
+            {
+              'apikey': API_SYNC_CONFIG.supabaseAnonKey
+            },
+            authToken
+          );
+
+          // Chercher les order_items dans la réponse GET
+          let supabaseItems = null;
+          if (getResponse.order?.order_items && getResponse.order.order_items.length > 0) {
+            supabaseItems = getResponse.order.order_items;
+          } else if (getResponse.order_items && getResponse.order_items.length > 0) {
+            supabaseItems = getResponse.order_items;
+          }
+
+          if (supabaseItems && supabaseItems.length > 0) {
+            console.log('[Sync]   📦 Items récupérés via GET:', supabaseItems.length);
+            supabaseItems.forEach((item, idx) => {
+              console.log(`[Sync]     Item ${idx + 1}: id=${item.id}, photo_id=${item.photo_id}, product_id=${item.product_id}, status=${item.status}`);
+            });
+
+            await photoSystem.db.updateOrderItemsSupabaseIds(orderId, supabaseItems);
+            console.log('[Sync]   ✅ supabase_item_id sauvegardés après PUT');
+          } else {
+            console.log('[Sync]   ⚠️ Aucun order_items trouvé dans la réponse GET');
+          }
+        } catch (getErr) {
+          console.warn('[Sync]   ⚠️ Erreur GET après PUT (non bloquant):', getErr.message);
         }
       }
     }
