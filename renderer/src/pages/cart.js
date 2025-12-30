@@ -214,9 +214,10 @@ attachFooterListeners({
           const linkResult = await window.photoAPI.cart.linkSessionItems(state.sessionId, state.localOrderId);
           console.log('[Cart] ✅ Items re-liés:', linkResult?.changes || 0, 'items mis à jour');
 
-          // Re-synchroniser avec Supabase
+          // Re-synchroniser avec Supabase (PUT si supabaseOrderId existe)
           console.log('[Cart] 🔄 Re-synchronisation avec Supabase...');
-          const syncResult = await window.photoAPI.orders.syncRemote(state.localOrderId);
+          console.log('[Cart] Supabase Order ID pour PUT:', state.supabaseOrderId || 'null (sera POST)');
+          const syncResult = await window.photoAPI.orders.syncRemote(state.localOrderId, state.supabaseOrderId);
 
           if (syncResult?.status === 'success') {
             console.log('[Cart] ✅ Commande mise à jour dans Supabase');

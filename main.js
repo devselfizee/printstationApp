@@ -2792,7 +2792,7 @@ async function fetchProductsFromAPI() {
 /**
  * Synchroniser une commande validée avec l'API distante
  */
-async function syncOrderToRemoteAPI(orderId) {
+async function syncOrderToRemoteAPI(orderId, supabaseOrderId = null) {
   if (!API_SYNC_CONFIG.enabled) {
     console.log('[Sync] Synchronisation désactivée');
     return { status: 'skipped', message: 'Synchronisation désactivée' };
@@ -2800,6 +2800,13 @@ async function syncOrderToRemoteAPI(orderId) {
 
   if (!photoSystemReady || !photoSystem?.db) {
     return { status: 'error', error: 'PhotoSystem non disponible' };
+  }
+
+  // Déterminer si c'est une mise à jour ou une création
+  const isUpdate = !!supabaseOrderId;
+  console.log('[Sync] Mode:', isUpdate ? 'MISE À JOUR (PUT)' : 'CRÉATION (POST)');
+  if (isUpdate) {
+    console.log('[Sync] Supabase Order ID:', supabaseOrderId);
   }
 
   try {
@@ -3020,11 +3027,17 @@ async function syncOrderToRemoteAPI(orderId) {
     console.log('═'.repeat(80));
     console.log('\n');
 
-    // Faire l'appel HTTP POST avec le token et l'apikey header
+    // Faire l'appel HTTP (POST pour création, PUT pour mise à jour)
+    const httpMethod = isUpdate ? 'PUT' : 'POST';
+    const requestUrl = isUpdate ? `${API_SYNC_CONFIG.url}?id=${supabaseOrderId}` : API_SYNC_CONFIG.url;
+
+    console.log('[Sync] HTTP Method:', httpMethod);
+    console.log('[Sync] Request URL:', requestUrl);
+
     const response = await makeHttpsRequest(
-      API_SYNC_CONFIG.url,
+      requestUrl,
       payload,
-      'POST',
+      httpMethod,
       {
         'apikey': API_SYNC_CONFIG.supabaseAnonKey
       },
@@ -3983,8 +3996,8 @@ function startSyncRetrySystem() {
 }
 
 // Handler IPC pour synchroniser une commande
-ipcMain.handle('order:sync-remote', async (event, orderId) => {
-  return await syncOrderToRemoteAPI(orderId);
+ipcMain.handle('order:sync-remote', async (event, orderId, supabaseOrderId = null) => {
+  return await syncOrderToRemoteAPI(orderId, supabaseOrderId);
 });
 
 // Handler IPC pour créer une commande sur Supabase (status=pending)

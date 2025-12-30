@@ -334,8 +334,9 @@ export const renderDetail = (root) => {
           // Re-lier les items (au cas où de nouveaux ont été ajoutés)
           await window.photoAPI.cart.linkSessionItems(state.sessionId, state.localOrderId);
 
-          // Re-sync avec Supabase
-          const syncResult = await window.photoAPI.orders.syncRemote(state.localOrderId);
+          // Re-sync avec Supabase (PUT si supabaseOrderId existe)
+          console.log('[Detail] Supabase Order ID pour PUT:', state.supabaseOrderId || 'null (sera POST)');
+          const syncResult = await window.photoAPI.orders.syncRemote(state.localOrderId, state.supabaseOrderId);
           if (syncResult?.status === 'success') {
             console.log('[Detail] ✅ Commande mise à jour');
             // Récupérer supabaseOrderId si pas encore défini
