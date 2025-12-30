@@ -254,7 +254,8 @@ export const handleOrderCancellation = async (source = 'unknown') => {
       if (state.supabaseOrderId && window.photoAPI?.orders?.cancelRemote) {
         try {
           console.log('[CancelOrder] Annulation sur Supabase...');
-          await window.photoAPI.orders.cancelRemote(state.supabaseOrderId);
+          console.log('[CancelOrder] Passage de furthestStep:', state.furthestStep);
+          await window.photoAPI.orders.cancelRemote(state.supabaseOrderId, state.furthestStep);
           console.log('[CancelOrder] ✅ Commande annulée sur Supabase');
         } catch (error) {
           console.error('[CancelOrder] ❌ Erreur annulation Supabase:', error);

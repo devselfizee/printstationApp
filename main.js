@@ -4102,8 +4102,11 @@ ipcMain.handle('order:create-completed-remote', async (event, localOrderId) => {
  * 1. GET la commande existante depuis Supabase
  * 2. Réutiliser toutes ses données
  * 3. Mettre à jour uniquement status=cancelled
+ *
+ * @param {string} supabaseOrderId - L'ID de la commande Supabase
+ * @param {string} lastStep - L'étape la plus avancée atteinte (optionnel, passé depuis le client)
  */
-async function cancelOrderRemote(supabaseOrderId) {
+async function cancelOrderRemote(supabaseOrderId, lastStep = null) {
   if (!API_SYNC_CONFIG.enabled) {
     console.log('[CancelOrder] API désactivée');
     return { status: 'skipped', message: 'API désactivée' };
@@ -4168,7 +4171,7 @@ async function cancelOrderRemote(supabaseOrderId) {
       universe_id: existingOrder.universe_id || null,
       lang: existingOrder.lang || 'fr', // Préserver la langue du client
       status: 'cancelled', // ← SEUL CHANGEMENT: status=cancelled
-      last_step: existingOrder.last_step || null, // Préserver l'étape la plus avancée
+      last_step: lastStep || existingOrder.last_step || null, // Utiliser le lastStep passé en paramètre, sinon celui de Supabase
       order_items: existingOrder.order_items || []
     };
 
@@ -4258,11 +4261,12 @@ async function cancelOrderRemote(supabaseOrderId) {
 }
 
 // Handler IPC pour annuler une commande sur Supabase
-ipcMain.handle('order:cancel-remote', async (event, supabaseOrderId) => {
+ipcMain.handle('order:cancel-remote', async (event, supabaseOrderId, lastStep = null) => {
   console.log('[IPC] ═══════════════════════════════════════════════');
   console.log('[IPC] order:cancel-remote appelé');
   console.log('[IPC] supabaseOrderId:', supabaseOrderId);
-  const result = await cancelOrderRemote(supabaseOrderId);
+  console.log('[IPC] lastStep:', lastStep);
+  const result = await cancelOrderRemote(supabaseOrderId, lastStep);
   console.log('[IPC] Résultat:', JSON.stringify(result, null, 2));
   console.log('[IPC] ═══════════════════════════════════════════════');
   return result;
