@@ -993,21 +993,10 @@ export async function cancelCartItem(itemId, quantityToCancel = 1) {
   const newPendingQty = item.quantity - actualQtyToCancel;
   const newTotalPrice = Math.max(0, item.total_price - priceToCancel);
 
-  // NE PAS supprimer l'item même si qty=0
-  // On le garde pour que Supabase puisse gérer la suppression côté API
-  // MAIS on supprime le supabase_item_id quand qty=0 car Supabase supprime l'item
-  // Ainsi, quand l'utilisateur ajoute à nouveau le produit, ce sera un nouvel item côté Supabase
+  // Supprimer l'item local si qty=0 (sync en temps réel, pas besoin de garder)
   if (newPendingQty <= 0) {
-    await runAsync(
-      `UPDATE order_items
-       SET quantity = ?,
-           total_price = ?,
-           supabase_item_id = NULL,
-           updated_at = datetime('now', 'localtime')
-       WHERE id = ?`,
-      [newPendingQty, newTotalPrice, itemId]
-    );
-    console.log(`[DB] Item pending ${itemId} mis à qty=0, supabase_item_id supprimé (sera recréé si ajouté à nouveau)`);
+    await runAsync(`DELETE FROM order_items WHERE id = ?`, [itemId]);
+    console.log(`[DB] Item pending ${itemId} supprimé (qty=0)`);
   } else {
     await runAsync(
       `UPDATE order_items
