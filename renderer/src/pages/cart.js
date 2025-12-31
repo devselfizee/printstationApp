@@ -2,7 +2,6 @@ import { state } from '../state.js';
 import { t, tProduct } from '../i18n.js';
 import { lineTotal, cartSubtotal, cartNominal, updateCartCount, addOne, removeOne, createFooterBar, attachFooterListeners, updateFooterBar, formatPrice } from '../utils.js';
 import { getProductVisual, UNIVERSES } from '../data.js';
-import { syncOrderOnBack } from '../navigation.js';
 
 // Spinner SVG pour les boutons
 const SPINNER_SVG = '<svg class="spinner" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle><path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite"/></path></svg>';
@@ -277,25 +276,8 @@ sum.innerHTML = `
 footer.classList.add('footer-bar-cart');
 root.appendChild(footer);
 attachFooterListeners({
-  onCancel: async () => {
-    // Synchroniser avec Supabase avant de retourner (comme le bouton bleu en haut)
-    const cancelBtn = document.querySelector('.btn-cancel');
-
-    // Afficher le loader sur le bouton
-    if (cancelBtn) {
-      cancelBtn.disabled = true;
-      const originalHTML = cancelBtn.innerHTML;
-      cancelBtn.innerHTML = `<svg class="spinner" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle><path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite"/></path></svg> ${t('back')}`;
-    }
-
-    try {
-      // Sync avant de naviguer
-      await syncOrderOnBack('cart');
-    } catch (error) {
-      console.error('[Cart] ❌ Erreur sync:', error);
-    }
-
-    // Retourner à la page detail (pas listing, pour cohérence avec le bouton bleu)
+  onCancel: () => {
+    // Retourner à la page detail
     state.page = 'detail';
     window.render();
   },
