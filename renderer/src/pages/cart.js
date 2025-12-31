@@ -132,6 +132,37 @@ export const renderCart = (root) => {
           if (act === 'plus') state.cart = addOne(line.photoId, line.productId, state.cart, window.PRODUCTS);
           if (act === 'del') state.cart = state.cart.filter(l => l.key !== line.key);
           updateCartCount();
+
+          // 🆕 Synchroniser avec Supabase après modification
+          if (state.localOrderId && window.photoAPI?.orders) {
+            try {
+              console.log('[Cart] 🔄 Sync Supabase après modification...');
+              // Mettre à jour les montants
+              const totalAmount = cartNominal(state.cart, window.PRODUCTS);
+              const discountAmount = totalAmount - cartSubtotal(state.cart, window.PRODUCTS);
+              const finalAmount = cartSubtotal(state.cart, window.PRODUCTS);
+
+              await window.photoAPI.orders.updateDetails(state.localOrderId, {
+                totalAmount,
+                discountAmount,
+                finalAmount
+              });
+
+              // Re-lier les items
+              if (state.sessionId) {
+                await window.photoAPI.cart.linkSessionItems(state.sessionId, state.localOrderId);
+              }
+
+              // Sync avec Supabase
+              const syncResult = await window.photoAPI.orders.syncRemote(state.localOrderId, state.supabaseOrderId);
+              if (syncResult?.status === 'success') {
+                console.log('[Cart] ✅ Sync Supabase réussi');
+              }
+            } catch (syncError) {
+              console.error('[Cart] ❌ Erreur sync Supabase:', syncError);
+            }
+          }
+
           window.render();
         };
       });

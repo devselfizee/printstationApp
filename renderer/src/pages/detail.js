@@ -175,7 +175,7 @@ el.innerHTML = `
   if (retirer) {
     retirer.onclick = async (e) => {
       e.preventDefault();
-      
+
       // Retirer du panier local
       state.cart = removeOne(photo.id, product.id, state.cart);
       updateCartCount();
@@ -186,10 +186,10 @@ el.innerHTML = `
         try {
           // Récupérer les items actifs de la session
           const items = await window.photoAPI.cart.getActiveSessionItems(state.sessionId);
-          
+
           // Trouver l'item correspondant
           const item = items.find(i => i.photo_id === photo.id && i.product_id === product.id);
-          
+
           if (item) {
             await window.photoAPI.cart.cancelItem(item.id);
             console.log('✅ Produit annulé dans DB:', item.id);
@@ -202,7 +202,37 @@ el.innerHTML = `
           console.error('❌ Erreur annulation produit:', error);
         }
       }
-      
+
+      // 🆕 Synchroniser avec Supabase après modification
+      if (state.localOrderId && window.photoAPI?.orders) {
+        try {
+          console.log('[Detail] 🔄 Sync Supabase après Retirer...');
+          // Mettre à jour les montants
+          const totalAmount = cartNominal(state.cart, window.PRODUCTS);
+          const discountAmount = totalAmount - cartSubtotal(state.cart, window.PRODUCTS);
+          const finalAmount = cartSubtotal(state.cart, window.PRODUCTS);
+
+          await window.photoAPI.orders.updateDetails(state.localOrderId, {
+            totalAmount,
+            discountAmount,
+            finalAmount
+          });
+
+          // Re-lier les items
+          if (state.sessionId) {
+            await window.photoAPI.cart.linkSessionItems(state.sessionId, state.localOrderId);
+          }
+
+          // Sync avec Supabase
+          const syncResult = await window.photoAPI.orders.syncRemote(state.localOrderId, state.supabaseOrderId);
+          if (syncResult?.status === 'success') {
+            console.log('[Detail] ✅ Sync Supabase réussi');
+          }
+        } catch (syncError) {
+          console.error('[Detail] ❌ Erreur sync Supabase:', syncError);
+        }
+      }
+
       const parent = el.parentElement;
       const idx = Array.from(parent.children).indexOf(el);
       parent.replaceChild(renderOffer(photo, product), parent.children[idx]);
