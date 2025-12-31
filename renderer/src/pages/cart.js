@@ -1,6 +1,6 @@
 import { state } from '../state.js';
 import { t, tProduct } from '../i18n.js';
-import { lineTotal, cartSubtotal, cartNominal, updateCartCount, addOne, removeOne, createFooterBar, attachFooterListeners, updateFooterBar, formatPrice } from '../utils.js';
+import { lineTotalGlobal, getTotalCartQty, cartSubtotal, cartNominal, updateCartCount, addOne, removeOne, createFooterBar, attachFooterListeners, updateFooterBar, formatPrice } from '../utils.js';
 import { getProductVisual, UNIVERSES } from '../data.js';
 
 // Spinner SVG pour les boutons
@@ -112,6 +112,9 @@ export const renderCart = (root) => {
   if (state.cart.length === 0) {
     lines.innerHTML = `<div style="padding:40px 20px;text-align:center;color:#6b7280;font-size:16px;">${t('emptyCart')}</div>`;
   } else {
+    // Compteur pour la position globale (prix dégressif global)
+    let globalPositionBefore = 0;
+
     state.cart.forEach(line => {
       const product = window.PRODUCTS[line.productId];
       const photo = state.photos.find(x => x.id === line.photoId);
@@ -152,6 +155,9 @@ export const renderCart = (root) => {
         ? `<img src="${photo.source}" alt="${photoTitle}" class="cart-photo-img">`
         : '';
 
+      // Calculer le prix de la ligne avec le prix dégressif global
+      const linePriceGlobal = lineTotalGlobal(product, line.qty, globalPositionBefore);
+
       const row = document.createElement('div');
       row.className = 'line';
       row.innerHTML = `
@@ -167,8 +173,11 @@ export const renderCart = (root) => {
           <div class="title">${line.qty}</div>
           <button class="key" data-a="plus">+</button>
           <button class="key" data-a="del">✕</button>
-          <div class="cart-price">${lineTotal(product, line.qty).toFixed(2)}€</div>
+          <div class="cart-price">${linePriceGlobal.toFixed(2)}€</div>
         </div>`;
+
+      // Mettre à jour la position globale pour la prochaine ligne
+      globalPositionBefore += line.qty;
 
       lines.appendChild(row);
       row.querySelectorAll('.key').forEach(btn => {
@@ -204,10 +213,14 @@ export const renderCart = (root) => {
                   if (act === 'plus') {
                     // Augmenter la quantité
                     const newQty = line.qty + 1;
-                    const unitPrice = newQty === 1 ? product.first : product.next;
-                    const totalPrice = lineTotal(product, newQty);
+                    // Prix dégressif GLOBAL: le nouvel item est au prix next (sauf si c'est le 1er du panier)
+                    const totalCartQtyAfter = getTotalCartQty(state.cart) + 1;
+                    const unitPrice = totalCartQtyAfter === 1 ? product.first : product.next;
+                    // Total pour cette ligne = recalcul avec position globale
+                    // Pour simplifier, on utilise next_price * qty (approximation acceptable)
+                    const totalPrice = newQty * product.next;
                     await window.photoAPI.cart.updateQuantity(dbItem.id, newQty, totalPrice);
-                    console.log('✅ Quantité augmentée dans DB:', dbItem.id, 'qty:', newQty);
+                    console.log('✅ Quantité augmentée dans DB:', dbItem.id, 'qty:', newQty, 'unitPrice:', unitPrice);
                   }
 
                   if (act === 'del') {

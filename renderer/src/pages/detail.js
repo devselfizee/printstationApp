@@ -1,6 +1,6 @@
 import { state } from '../state.js';
 import { t, tProduct } from '../i18n.js';
-import { $, getQty, lineTotal, updateCartCount, toast, addOne, removeOne, cartSubtotal, cartNominal, handleOrderCancellation, showCancelOrderModal } from '../utils.js';
+import { $, getQty, getTotalCartQty, updateCartCount, toast, addOne, removeOne, cartSubtotal, cartNominal, handleOrderCancellation, showCancelOrderModal } from '../utils.js';
 import { createFooterBar, attachFooterListeners, updateFooterBar, formatPrice } from '../utils.js';
 import { getProductVisual } from '../data.js';
 
@@ -220,12 +220,12 @@ el.innerHTML = `
 
       if (window.photoAPI?.cart && state.sessionId) {
         try {
-          const currentQty = getQty(photo.id, product.id, state.cart);
-          // Prix pour cet ajout (1 item): first si c'est le 1er, next sinon
-          const unitPrice = currentQty === 1 ? product.first : product.next;
+          // Prix dégressif GLOBAL: 1er article du panier = first, tous les autres = next
+          const totalCartQty = getTotalCartQty(state.cart); // Quantité après ajout (cart déjà mis à jour)
+          const unitPrice = totalCartQty === 1 ? product.first : product.next;
 
-          console.log('  - Quantité actuelle dans panier:', currentQty);
-          console.log('  - Prix unitaire pour cet ajout:', unitPrice);
+          console.log('  - Quantité totale dans panier:', totalCartQty);
+          console.log('  - Prix unitaire (dégressif global):', unitPrice);
 
           const result = await window.photoAPI.cart.addItemImmediate({
             photoId: photo.id,
@@ -242,7 +242,7 @@ el.innerHTML = `
             console.log('✅ Produit enregistré en DB:', result.itemId);
             // Log ajout au panier
             if (window.photoAPI?.logger) {
-              window.photoAPI.logger.cartAdd(photo.id, product.id, product.title, currentQty, unitPrice);
+              window.photoAPI.logger.cartAdd(photo.id, product.id, product.title, totalCartQty, unitPrice);
             }
           } else {
             console.error('❌ Erreur enregistrement:', result);

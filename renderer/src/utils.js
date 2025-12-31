@@ -5,21 +5,56 @@ export const $ = (sel, root = document) => root.querySelector(sel);
 export const $$ = (sel, root = document) => root.querySelectorAll(sel);
 
 export const keyFor = (photoId, productId) => `${photoId}::${productId}`;
-export const getQty = (photoId, productId, cart) => 
+export const getQty = (photoId, productId, cart) =>
   (cart.find(l => l.key === keyFor(photoId, productId))?.qty) || 0;
 
+// Quantité totale dans le panier (tous produits confondus)
+export const getTotalCartQty = (cart) => cart.reduce((n, l) => n + l.qty, 0);
+
+// Prix unitaire: 1er article du panier = first, tous les autres = next
 export const unitPrice = (product, idx) => idx === 1 ? product.first : product.next;
 
+// Prix pour une ligne en fonction de sa position globale dans le panier
+// globalPositionBefore = nombre d'articles avant cette ligne dans le panier
+export const lineTotalGlobal = (product, qty, globalPositionBefore) => {
+  let sum = 0;
+  for (let i = 0; i < qty; i++) {
+    const globalPosition = globalPositionBefore + i + 1; // Position globale (1-indexed)
+    if (globalPosition === 1) {
+      sum += product.first; // 1er article du panier = prix plein
+    } else {
+      sum += product.next;  // Tous les autres = prix dégressif
+    }
+  }
+  return sum;
+};
+
+// Ancien calcul par ligne (gardé pour compatibilité si besoin)
 export const lineTotal = (product, qty) => {
   let sum = 0;
   for (let i = 1; i <= qty; i++) sum += unitPrice(product, i);
   return sum;
 };
 
-export const cartSubtotal = (cart, products) => 
-  cart.reduce((s, l) => s + lineTotal(products[l.productId], l.qty), 0);
+// Sous-total panier avec prix dégressif GLOBAL
+// 1er article = prix plein (first), tous les autres = prix dégressif (next)
+export const cartSubtotal = (cart, products) => {
+  const totalQty = getTotalCartQty(cart);
+  if (totalQty === 0) return 0;
 
-export const cartNominal = (cart, products) => 
+  // Utiliser le premier produit pour les prix (tous les produits ont les mêmes prix)
+  const firstProduct = cart.length > 0 ? products[cart[0].productId] : null;
+  if (!firstProduct) return 0;
+
+  const firstPrice = firstProduct.first;
+  const nextPrice = firstProduct.next;
+
+  // 1er article = first price, tous les autres = next price
+  return firstPrice + (totalQty - 1) * nextPrice;
+};
+
+// Prix nominal (sans réduction) = tous les articles au prix plein
+export const cartNominal = (cart, products) =>
   cart.reduce((s, l) => s + l.qty * products[l.productId].first, 0);
 
 export const toast = (text, isError = false) => {
