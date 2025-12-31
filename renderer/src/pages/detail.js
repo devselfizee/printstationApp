@@ -4,6 +4,91 @@ import { $, getQty, lineTotal, updateCartCount, toast, addOne, removeOne, cartSu
 import { createFooterBar, attachFooterListeners, updateFooterBar, formatPrice } from '../utils.js';
 import { getProductVisual } from '../data.js';
 
+// Spinner SVG pour les boutons
+const SPINNER_SVG = '<svg class="spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle><path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite"/></path></svg>';
+
+/**
+ * Créer ou mettre à jour la commande locale + sync Supabase
+ */
+async function syncOrderAfterChange() {
+  if (!window.photoAPI?.orders || !window.PRODUCTS || !state.sessionId) {
+    return;
+  }
+
+  // Ne sync que si le panier n'est pas vide OU si on a déjà une commande (pour sync qty=0)
+  if (state.cart.length === 0 && !state.localOrderId) {
+    return;
+  }
+
+  try {
+    // Calculer les montants
+    const totalAmount = cartNominal(state.cart, window.PRODUCTS);
+    const discountAmount = totalAmount - cartSubtotal(state.cart, window.PRODUCTS);
+    const finalAmount = cartSubtotal(state.cart, window.PRODUCTS);
+
+    if (state.localOrderId) {
+      // MISE À JOUR de la commande existante
+      console.log('[Detail] ✏️ Mise à jour commande:', state.localOrderId);
+
+      await window.photoAPI.orders.updateDetails(state.localOrderId, {
+        totalAmount,
+        discountAmount,
+        finalAmount,
+        lastStep: 'detail'
+      });
+
+      // Re-lier les items
+      await window.photoAPI.cart.linkSessionItems(state.sessionId, state.localOrderId);
+
+      // Sync avec Supabase
+      const syncResult = await window.photoAPI.orders.syncRemote(state.localOrderId, state.supabaseOrderId);
+      if (syncResult?.status === 'success') {
+        console.log('[Detail] ✅ Sync Supabase réussi');
+        if (!state.supabaseOrderId && syncResult.response?.order?.id) {
+          state.supabaseOrderId = syncResult.response.order.id;
+        }
+      }
+    } else {
+      // CRÉATION d'une nouvelle commande
+      console.log('[Detail] 📦 Création nouvelle commande...');
+
+      const orderId = `order_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+      const orderResult = await window.photoAPI.orders.create({
+        orderId: orderId,
+        participantId: state.participantId || state.sessionId,
+        universeId: state.universe?.id || state.universeId || 'B',
+        totalAmount: totalAmount,
+        discountAmount: discountAmount,
+        finalAmount: finalAmount,
+        lang: state.lang || 'fr',
+        email: null,
+        optin: 0,
+        paymentMethod: 'pending',
+        notes: 'Commande créée depuis page détail',
+        lastStep: 'detail'
+      });
+
+      if (orderResult?.status === 'success') {
+        state.localOrderId = orderId;
+        console.log('[Detail] ✅ Commande créée:', orderId);
+
+        // Lier les items à la commande
+        await window.photoAPI.cart.linkSessionItems(state.sessionId, orderId);
+
+        // Sync avec Supabase
+        const syncResult = await window.photoAPI.orders.syncRemote(orderId);
+        if (syncResult?.status === 'success' && syncResult.response?.order?.id) {
+          state.supabaseOrderId = syncResult.response.order.id;
+          console.log('[Detail] ✅ Supabase Order ID:', state.supabaseOrderId);
+        }
+      }
+    }
+  } catch (error) {
+    console.error('[Detail] ❌ Erreur sync:', error);
+  }
+}
+
 // Helper pour générer les labels du footer
 const getAbandonLabel = () => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;vertical-align:middle;margin-right:6px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>${t('abandon')}`;
 
@@ -114,88 +199,74 @@ el.innerHTML = `
   el.querySelector('.cmd').onclick = async (e) => {
     e.stopPropagation();
 
-    // Ajouter au panier local (pour l'UI)
-    state.cart = addOne(photo.id, product.id, state.cart, window.PRODUCTS);
-    updateCartCount();
-    updateDetailFooter();
+    // Récupérer le bouton et afficher le loader
+    const cmdBtn = el.querySelector('.cmd');
+    const originalHTML = cmdBtn.innerHTML;
+    cmdBtn.disabled = true;
+    cmdBtn.innerHTML = SPINNER_SVG;
 
-    // 🆕 Enregistrer immédiatement dans la DB (statut: en_cours)
-    console.log('🔍 Debug ajout produit:');
-    console.log('  - sessionId:', state.sessionId);
-    console.log('  - photoAPI.cart exists:', !!window.photoAPI?.cart);
-    console.log('  - photo.id:', photo.id);
-    console.log('  - product.id:', product.id);
+    try {
+      // Ajouter au panier local (pour l'UI)
+      state.cart = addOne(photo.id, product.id, state.cart, window.PRODUCTS);
+      updateCartCount();
+      updateDetailFooter();
 
-    if (window.photoAPI?.cart && state.sessionId) {
-      try {
-        const currentQty = getQty(photo.id, product.id, state.cart);
-        // Prix pour cet ajout (1 item): first si c'est le 1er, next sinon
-        const unitPrice = currentQty === 1 ? product.first : product.next;
+      // 🆕 Enregistrer immédiatement dans la DB (statut: en_cours)
+      console.log('🔍 Debug ajout produit:');
+      console.log('  - sessionId:', state.sessionId);
+      console.log('  - photoAPI.cart exists:', !!window.photoAPI?.cart);
+      console.log('  - photo.id:', photo.id);
+      console.log('  - product.id:', product.id);
 
-        console.log('  - Quantité actuelle dans panier:', currentQty);
-        console.log('  - Prix unitaire pour cet ajout:', unitPrice);
+      if (window.photoAPI?.cart && state.sessionId) {
+        try {
+          const currentQty = getQty(photo.id, product.id, state.cart);
+          // Prix pour cet ajout (1 item): first si c'est le 1er, next sinon
+          const unitPrice = currentQty === 1 ? product.first : product.next;
 
-        const result = await window.photoAPI.cart.addItemImmediate({
-          photoId: photo.id,
-          productId: product.id,
-          productName: product.title,
-          quantity: 1,  // On ajoute toujours 1 item par clic
-          unitPrice: unitPrice,
-          totalPrice: unitPrice,  // Prix pour 1 item
-          incrustationId: photo.incrustationId || null,
-          sessionId: state.sessionId
-        });
+          console.log('  - Quantité actuelle dans panier:', currentQty);
+          console.log('  - Prix unitaire pour cet ajout:', unitPrice);
 
-        if (result?.status === 'success') {
-          console.log('✅ Produit enregistré en DB:', result.itemId);
-          // Log ajout au panier
-          if (window.photoAPI?.logger) {
-            window.photoAPI.logger.cartAdd(photo.id, product.id, product.title, currentQty, unitPrice);
+          const result = await window.photoAPI.cart.addItemImmediate({
+            photoId: photo.id,
+            productId: product.id,
+            productName: product.title,
+            quantity: 1,  // On ajoute toujours 1 item par clic
+            unitPrice: unitPrice,
+            totalPrice: unitPrice,  // Prix pour 1 item
+            incrustationId: photo.incrustationId || null,
+            sessionId: state.sessionId
+          });
+
+          if (result?.status === 'success') {
+            console.log('✅ Produit enregistré en DB:', result.itemId);
+            // Log ajout au panier
+            if (window.photoAPI?.logger) {
+              window.photoAPI.logger.cartAdd(photo.id, product.id, product.title, currentQty, unitPrice);
+            }
+          } else {
+            console.error('❌ Erreur enregistrement:', result);
           }
-        } else {
-          console.error('❌ Erreur enregistrement:', result);
+        } catch (error) {
+          console.error('❌ Erreur enregistrement produit:', error);
         }
-      } catch (error) {
-        console.error('❌ Erreur enregistrement produit:', error);
+      } else {
+        console.error('❌ Impossible d\'enregistrer:');
+        console.error('  - photoAPI.cart:', !!window.photoAPI?.cart);
+        console.error('  - sessionId:', state.sessionId);
       }
-    } else {
-      console.error('❌ Impossible d\'enregistrer:');
-      console.error('  - photoAPI.cart:', !!window.photoAPI?.cart);
-      console.error('  - sessionId:', state.sessionId);
+
+      // 🆕 Créer ou mettre à jour la commande + sync Supabase
+      await syncOrderAfterChange();
+
+      // TOAST au click "Ajouter"
+      toast(t('added'));
+    } finally {
+      // Restaurer le bouton
+      cmdBtn.disabled = false;
+      cmdBtn.innerHTML = originalHTML;
     }
 
-    // 🆕 Synchroniser avec Supabase après ajout
-    if (state.localOrderId && window.photoAPI?.orders) {
-      try {
-        console.log('[Detail] 🔄 Sync Supabase après Ajouter...');
-        // Mettre à jour les montants
-        const totalAmount = cartNominal(state.cart, window.PRODUCTS);
-        const discountAmount = totalAmount - cartSubtotal(state.cart, window.PRODUCTS);
-        const finalAmount = cartSubtotal(state.cart, window.PRODUCTS);
-
-        await window.photoAPI.orders.updateDetails(state.localOrderId, {
-          totalAmount,
-          discountAmount,
-          finalAmount
-        });
-
-        // Re-lier les items
-        if (state.sessionId) {
-          await window.photoAPI.cart.linkSessionItems(state.sessionId, state.localOrderId);
-        }
-
-        // Sync avec Supabase
-        const syncResult = await window.photoAPI.orders.syncRemote(state.localOrderId, state.supabaseOrderId);
-        if (syncResult?.status === 'success') {
-          console.log('[Detail] ✅ Sync Supabase réussi');
-        }
-      } catch (syncError) {
-        console.error('[Detail] ❌ Erreur sync Supabase:', syncError);
-      }
-    }
-
-    // TOAST au click "Ajouter"
-    toast(t('added'));
     const parent = el.parentElement;
     const idx = Array.from(parent.children).indexOf(el);
     parent.replaceChild(renderOffer(photo, product), parent.children[idx]);
@@ -206,61 +277,45 @@ el.innerHTML = `
     retirer.onclick = async (e) => {
       e.preventDefault();
 
-      // Retirer du panier local
-      state.cart = removeOne(photo.id, product.id, state.cart);
-      updateCartCount();
-      updateDetailFooter();
+      // Afficher le loader sur le lien "Retirer"
+      const originalText = retirer.textContent;
+      retirer.style.pointerEvents = 'none';
+      retirer.innerHTML = SPINNER_SVG;
 
-      // 🆕 Annuler dans la DB (statut: annulé)
-      if (window.photoAPI?.cart && state.sessionId) {
-        try {
-          // Récupérer les items actifs de la session
-          const items = await window.photoAPI.cart.getActiveSessionItems(state.sessionId);
+      try {
+        // Retirer du panier local
+        state.cart = removeOne(photo.id, product.id, state.cart);
+        updateCartCount();
+        updateDetailFooter();
 
-          // Trouver l'item correspondant
-          const item = items.find(i => i.photo_id === photo.id && i.product_id === product.id);
+        // 🆕 Annuler dans la DB (statut: annulé)
+        if (window.photoAPI?.cart && state.sessionId) {
+          try {
+            // Récupérer les items actifs de la session
+            const items = await window.photoAPI.cart.getActiveSessionItems(state.sessionId);
 
-          if (item) {
-            await window.photoAPI.cart.cancelItem(item.id);
-            console.log('✅ Produit annulé dans DB:', item.id);
-            // Log retrait du panier
-            if (window.photoAPI?.logger) {
-              window.photoAPI.logger.cartRemove(photo.id, product.id);
+            // Trouver l'item correspondant
+            const item = items.find(i => i.photo_id === photo.id && i.product_id === product.id);
+
+            if (item) {
+              await window.photoAPI.cart.cancelItem(item.id);
+              console.log('✅ Produit annulé dans DB:', item.id);
+              // Log retrait du panier
+              if (window.photoAPI?.logger) {
+                window.photoAPI.logger.cartRemove(photo.id, product.id);
+              }
             }
+          } catch (error) {
+            console.error('❌ Erreur annulation produit:', error);
           }
-        } catch (error) {
-          console.error('❌ Erreur annulation produit:', error);
         }
-      }
 
-      // 🆕 Synchroniser avec Supabase après modification
-      if (state.localOrderId && window.photoAPI?.orders) {
-        try {
-          console.log('[Detail] 🔄 Sync Supabase après Retirer...');
-          // Mettre à jour les montants
-          const totalAmount = cartNominal(state.cart, window.PRODUCTS);
-          const discountAmount = totalAmount - cartSubtotal(state.cart, window.PRODUCTS);
-          const finalAmount = cartSubtotal(state.cart, window.PRODUCTS);
-
-          await window.photoAPI.orders.updateDetails(state.localOrderId, {
-            totalAmount,
-            discountAmount,
-            finalAmount
-          });
-
-          // Re-lier les items
-          if (state.sessionId) {
-            await window.photoAPI.cart.linkSessionItems(state.sessionId, state.localOrderId);
-          }
-
-          // Sync avec Supabase
-          const syncResult = await window.photoAPI.orders.syncRemote(state.localOrderId, state.supabaseOrderId);
-          if (syncResult?.status === 'success') {
-            console.log('[Detail] ✅ Sync Supabase réussi');
-          }
-        } catch (syncError) {
-          console.error('[Detail] ❌ Erreur sync Supabase:', syncError);
-        }
+        // 🆕 Créer ou mettre à jour la commande + sync Supabase
+        await syncOrderAfterChange();
+      } finally {
+        // Restaurer le lien (même si ça va être re-rendu)
+        retirer.style.pointerEvents = '';
+        retirer.textContent = originalText;
       }
 
       const parent = el.parentElement;

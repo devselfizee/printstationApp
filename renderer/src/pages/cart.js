@@ -4,6 +4,91 @@ import { lineTotal, cartSubtotal, cartNominal, updateCartCount, addOne, removeOn
 import { getProductVisual, UNIVERSES } from '../data.js';
 import { syncOrderOnBack } from '../navigation.js';
 
+// Spinner SVG pour les boutons
+const SPINNER_SVG = '<svg class="spinner" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle><path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite"/></path></svg>';
+
+/**
+ * Créer ou mettre à jour la commande locale + sync Supabase
+ */
+async function syncOrderAfterChange() {
+  if (!window.photoAPI?.orders || !window.PRODUCTS || !state.sessionId) {
+    return;
+  }
+
+  // Ne sync que si le panier n'est pas vide OU si on a déjà une commande (pour sync qty=0)
+  if (state.cart.length === 0 && !state.localOrderId) {
+    return;
+  }
+
+  try {
+    // Calculer les montants
+    const totalAmount = cartNominal(state.cart, window.PRODUCTS);
+    const discountAmount = totalAmount - cartSubtotal(state.cart, window.PRODUCTS);
+    const finalAmount = cartSubtotal(state.cart, window.PRODUCTS);
+
+    if (state.localOrderId) {
+      // MISE À JOUR de la commande existante
+      console.log('[Cart] ✏️ Mise à jour commande:', state.localOrderId);
+
+      await window.photoAPI.orders.updateDetails(state.localOrderId, {
+        totalAmount,
+        discountAmount,
+        finalAmount,
+        lastStep: 'cart'
+      });
+
+      // Re-lier les items
+      await window.photoAPI.cart.linkSessionItems(state.sessionId, state.localOrderId);
+
+      // Sync avec Supabase
+      const syncResult = await window.photoAPI.orders.syncRemote(state.localOrderId, state.supabaseOrderId);
+      if (syncResult?.status === 'success') {
+        console.log('[Cart] ✅ Sync Supabase réussi');
+        if (!state.supabaseOrderId && syncResult.response?.order?.id) {
+          state.supabaseOrderId = syncResult.response.order.id;
+        }
+      }
+    } else {
+      // CRÉATION d'une nouvelle commande
+      console.log('[Cart] 📦 Création nouvelle commande...');
+
+      const orderId = `order_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+      const orderResult = await window.photoAPI.orders.create({
+        orderId: orderId,
+        participantId: state.participantId || state.sessionId,
+        universeId: state.universe?.id || state.universeId || 'B',
+        totalAmount: totalAmount,
+        discountAmount: discountAmount,
+        finalAmount: finalAmount,
+        lang: state.lang || 'fr',
+        email: null,
+        optin: 0,
+        paymentMethod: 'pending',
+        notes: 'Commande créée depuis page panier',
+        lastStep: 'cart'
+      });
+
+      if (orderResult?.status === 'success') {
+        state.localOrderId = orderId;
+        console.log('[Cart] ✅ Commande créée:', orderId);
+
+        // Lier les items à la commande
+        await window.photoAPI.cart.linkSessionItems(state.sessionId, orderId);
+
+        // Sync avec Supabase
+        const syncResult = await window.photoAPI.orders.syncRemote(orderId);
+        if (syncResult?.status === 'success' && syncResult.response?.order?.id) {
+          state.supabaseOrderId = syncResult.response.order.id;
+          console.log('[Cart] ✅ Supabase Order ID:', state.supabaseOrderId);
+        }
+      }
+    }
+  } catch (error) {
+    console.error('[Cart] ❌ Erreur sync:', error);
+  }
+}
+
 export const renderCart = (root) => {
  const main = document.createElement('div');
   main.className = 'main';
@@ -91,76 +176,65 @@ export const renderCart = (root) => {
         btn.onclick = async () => {
           const act = btn.dataset.a;
 
-          // 🆕 Synchroniser avec la DB lors des modifications de quantité
-          if (window.photoAPI?.cart && state.sessionId) {
-            try {
-              // Récupérer les items actifs de la session pour trouver l'itemId
-              const items = await window.photoAPI.cart.getActiveSessionItems(state.sessionId);
-              const dbItem = items.find(i => i.photo_id === line.photoId && i.product_id === line.productId);
+          // Afficher le loader sur le bouton et le désactiver
+          const originalHTML = btn.innerHTML;
+          btn.disabled = true;
+          btn.innerHTML = SPINNER_SVG;
 
-              if (dbItem) {
-                const product = window.PRODUCTS[line.productId];
+          // Désactiver aussi les autres boutons de cette ligne pour éviter les clics multiples
+          const allBtns = row.querySelectorAll('.key');
+          allBtns.forEach(b => b.disabled = true);
 
-                if (act === 'minus') {
-                  // Utiliser cancelItem pour transférer la quantité vers cancelled (comme detail.js)
-                  await window.photoAPI.cart.cancelItem(dbItem.id, 1);
-                  console.log('✅ Item décrémenté via cancelItem:', dbItem.id);
+          try {
+            // 🆕 Synchroniser avec la DB lors des modifications de quantité
+            if (window.photoAPI?.cart && state.sessionId) {
+              try {
+                // Récupérer les items actifs de la session pour trouver l'itemId
+                const items = await window.photoAPI.cart.getActiveSessionItems(state.sessionId);
+                const dbItem = items.find(i => i.photo_id === line.photoId && i.product_id === line.productId);
+
+                if (dbItem) {
+                  const product = window.PRODUCTS[line.productId];
+
+                  if (act === 'minus') {
+                    // Utiliser cancelItem pour transférer la quantité vers cancelled (comme detail.js)
+                    await window.photoAPI.cart.cancelItem(dbItem.id, 1);
+                    console.log('✅ Item décrémenté via cancelItem:', dbItem.id);
+                  }
+
+                  if (act === 'plus') {
+                    // Augmenter la quantité
+                    const newQty = line.qty + 1;
+                    const unitPrice = newQty === 1 ? product.first : product.next;
+                    const totalPrice = lineTotal(product, newQty);
+                    await window.photoAPI.cart.updateQuantity(dbItem.id, newQty, totalPrice);
+                    console.log('✅ Quantité augmentée dans DB:', dbItem.id, 'qty:', newQty);
+                  }
+
+                  if (act === 'del') {
+                    // Supprimer complètement l'item (annuler toute la quantité)
+                    await window.photoAPI.cart.cancelItem(dbItem.id, dbItem.quantity);
+                    console.log('✅ Item supprimé de la DB:', dbItem.id);
+                  }
                 }
-
-                if (act === 'plus') {
-                  // Augmenter la quantité
-                  const newQty = line.qty + 1;
-                  const unitPrice = newQty === 1 ? product.first : product.next;
-                  const totalPrice = lineTotal(product, newQty);
-                  await window.photoAPI.cart.updateQuantity(dbItem.id, newQty, totalPrice);
-                  console.log('✅ Quantité augmentée dans DB:', dbItem.id, 'qty:', newQty);
-                }
-
-                if (act === 'del') {
-                  // Supprimer complètement l'item (annuler toute la quantité)
-                  await window.photoAPI.cart.cancelItem(dbItem.id, dbItem.quantity);
-                  console.log('✅ Item supprimé de la DB:', dbItem.id);
-                }
+              } catch (error) {
+                console.error('❌ Erreur synchronisation DB:', error);
               }
-            } catch (error) {
-              console.error('❌ Erreur synchronisation DB:', error);
             }
-          }
 
-          // Mettre à jour l'état local (comme avant)
-          if (act === 'minus') state.cart = removeOne(line.photoId, line.productId, state.cart);
-          if (act === 'plus') state.cart = addOne(line.photoId, line.productId, state.cart, window.PRODUCTS);
-          if (act === 'del') state.cart = state.cart.filter(l => l.key !== line.key);
-          updateCartCount();
+            // Mettre à jour l'état local (comme avant)
+            if (act === 'minus') state.cart = removeOne(line.photoId, line.productId, state.cart);
+            if (act === 'plus') state.cart = addOne(line.photoId, line.productId, state.cart, window.PRODUCTS);
+            if (act === 'del') state.cart = state.cart.filter(l => l.key !== line.key);
+            updateCartCount();
 
-          // 🆕 Synchroniser avec Supabase après modification
-          if (state.localOrderId && window.photoAPI?.orders) {
-            try {
-              console.log('[Cart] 🔄 Sync Supabase après modification...');
-              // Mettre à jour les montants
-              const totalAmount = cartNominal(state.cart, window.PRODUCTS);
-              const discountAmount = totalAmount - cartSubtotal(state.cart, window.PRODUCTS);
-              const finalAmount = cartSubtotal(state.cart, window.PRODUCTS);
-
-              await window.photoAPI.orders.updateDetails(state.localOrderId, {
-                totalAmount,
-                discountAmount,
-                finalAmount
-              });
-
-              // Re-lier les items
-              if (state.sessionId) {
-                await window.photoAPI.cart.linkSessionItems(state.sessionId, state.localOrderId);
-              }
-
-              // Sync avec Supabase
-              const syncResult = await window.photoAPI.orders.syncRemote(state.localOrderId, state.supabaseOrderId);
-              if (syncResult?.status === 'success') {
-                console.log('[Cart] ✅ Sync Supabase réussi');
-              }
-            } catch (syncError) {
-              console.error('[Cart] ❌ Erreur sync Supabase:', syncError);
-            }
+            // 🆕 Créer ou mettre à jour la commande + sync Supabase
+            await syncOrderAfterChange();
+          } finally {
+            // Restaurer les boutons (le render va les recréer de toute façon)
+            btn.disabled = false;
+            btn.innerHTML = originalHTML;
+            allBtns.forEach(b => b.disabled = false);
           }
 
           window.render();
