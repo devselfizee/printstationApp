@@ -3182,6 +3182,10 @@ async function syncOrderToRemoteAPI(orderId, supabaseOrderId = null) {
           console.warn('[Sync]   ⚠️ Erreur GET après PUT (non bloquant):', getErr.message);
         }
       }
+
+      // Supprimer les items locaux avec qty=0 après sync réussi
+      // Ces items ont été envoyés à Supabase pour suppression
+      await photoSystem.db.deleteZeroQuantityItems(orderId);
     }
 
     return { status: 'success', response };

@@ -993,31 +993,21 @@ export async function cancelCartItem(itemId, quantityToCancel = 1) {
   const newPendingQty = item.quantity - actualQtyToCancel;
   const newTotalPrice = Math.max(0, item.total_price - priceToCancel);
 
-  // NE PAS supprimer l'item même si qty=0
-  // On le garde pour que Supabase puisse gérer la suppression côté API
-  // MAIS on supprime le supabase_item_id quand qty=0 car Supabase supprime l'item
-  // Ainsi, quand l'utilisateur ajoute à nouveau le produit, ce sera un nouvel item côté Supabase
+  // Garder l'item avec qty=0 pour le sync vers Supabase
+  // L'item sera supprimé après la sync (dans main.js)
+  await runAsync(
+    `UPDATE order_items
+     SET quantity = ?,
+         total_price = ?,
+         updated_at = datetime('now', 'localtime')
+     WHERE id = ?`,
+    [newPendingQty, newTotalPrice, itemId]
+  );
+
   if (newPendingQty <= 0) {
-    await runAsync(
-      `UPDATE order_items
-       SET quantity = ?,
-           total_price = ?,
-           supabase_item_id = NULL,
-           updated_at = datetime('now', 'localtime')
-       WHERE id = ?`,
-      [newPendingQty, newTotalPrice, itemId]
-    );
-    console.log(`[DB] Item pending ${itemId} mis à qty=0, supabase_item_id supprimé (sera recréé si ajouté à nouveau)`);
+    console.log(`[DB] Item pending ${itemId} mis à qty=0 (sera supprimé après sync Supabase)`);
   } else {
-    await runAsync(
-      `UPDATE order_items
-       SET quantity = ?,
-           total_price = ?,
-           updated_at = datetime('now', 'localtime')
-       WHERE id = ?`,
-      [newPendingQty, newTotalPrice, itemId]
-    );
-    console.log(`[DB] Item pending ${itemId} décrémenté (qty: ${item.quantity} → ${newPendingQty}, total: ${item.total_price} → ${newTotalPrice})`);
+    console.log(`[DB] Item pending ${itemId} décrémenté (qty: ${item.quantity} → ${newPendingQty})`);
   }
 
   // 3. Vérifier s'il existe déjà un item cancelled avec le même photo_id, product_id et session_id
@@ -1264,6 +1254,22 @@ export async function updateOrderItemsSupabaseIds(orderId, supabaseItems) {
 
   console.log(`[DB] ✅ ${updated}/${supabaseItems.length} items liés avec succès`);
   return { success: true, updated };
+}
+
+/**
+ * Supprimer les order_items avec quantity=0 après sync Supabase
+ * Ces items ont été envoyés à Supabase pour suppression, on peut les supprimer localement
+ * @param {string} orderId - L'ID local de la commande
+ */
+export async function deleteZeroQuantityItems(orderId) {
+  const result = await runAsync(
+    `DELETE FROM order_items WHERE order_id = ? AND quantity <= 0`,
+    [orderId]
+  );
+  if (result.changes > 0) {
+    console.log(`[DB] 🗑️ ${result.changes} items avec qty=0 supprimés après sync`);
+  }
+  return { success: true, deleted: result.changes };
 }
 
 /**
