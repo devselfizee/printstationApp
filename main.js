@@ -2922,17 +2922,7 @@ async function syncOrderToRemoteAPI(orderId, supabaseOrderId = null) {
       status: apiStatus,
       optin_email: orderWithItems.optin ? true : false,
       last_step: orderWithItems.last_step || null, // Étape la plus avancée atteinte
-      order_items: itemsWithPhotoUrls
-        // Filtrer: ne pas envoyer les items avec qty=0 et sans supabase_item_id
-        // (ils n'ont jamais existé sur Supabase, pas besoin de les envoyer)
-        .filter(item => {
-          if (item.quantity <= 0 && !item.supabase_item_id) {
-            console.log(`[Sync]   🚫 Item ignoré (qty=0, pas de supabase_item_id): photo_id=${item.photo_id}`);
-            return false;
-          }
-          return true;
-        })
-        .map(item => {
+      order_items: itemsWithPhotoUrls.map(item => {
           const orderItem = {
             product_id: item.product_id,
             quantity: item.quantity,
