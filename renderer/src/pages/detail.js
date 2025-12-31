@@ -152,9 +152,13 @@ const updateDetailFooter = () => {
 };
 
 export const renderOffer = (photo, product) => {
-  const qty = getQty(photo.id, product.id, state.cart);
-  const nextPrice = qty >= 1 ? product.next : product.first;
-  const showOld = qty >= 1;
+  const qty = getQty(photo.id, product.id, state.cart); // Quantité de CE produit (pour le message "déjà X dans le panier")
+  const totalCartQty = getTotalCartQty(state.cart); // Quantité TOTALE du panier (pour le prix dégressif global)
+
+  // Prix dégressif GLOBAL: si panier non vide, afficher le prix next
+  const nextPrice = totalCartQty >= 1 ? product.next : product.first;
+  const showOld = totalCartQty >= 1; // Afficher le prix barré si panier non vide
+
   const el = document.createElement('div');
   el.className = 'offer';
   
