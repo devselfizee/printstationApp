@@ -113,7 +113,7 @@ el.innerHTML = `
   
   el.querySelector('.cmd').onclick = async (e) => {
     e.stopPropagation();
-    
+
     // Ajouter au panier local (pour l'UI)
     state.cart = addOne(photo.id, product.id, state.cart, window.PRODUCTS);
     updateCartCount();
@@ -125,7 +125,7 @@ el.innerHTML = `
     console.log('  - photoAPI.cart exists:', !!window.photoAPI?.cart);
     console.log('  - photo.id:', photo.id);
     console.log('  - product.id:', product.id);
-    
+
     if (window.photoAPI?.cart && state.sessionId) {
       try {
         const currentQty = getQty(photo.id, product.id, state.cart);
@@ -145,7 +145,7 @@ el.innerHTML = `
           incrustationId: photo.incrustationId || null,
           sessionId: state.sessionId
         });
-        
+
         if (result?.status === 'success') {
           console.log('✅ Produit enregistré en DB:', result.itemId);
           // Log ajout au panier
@@ -162,6 +162,36 @@ el.innerHTML = `
       console.error('❌ Impossible d\'enregistrer:');
       console.error('  - photoAPI.cart:', !!window.photoAPI?.cart);
       console.error('  - sessionId:', state.sessionId);
+    }
+
+    // 🆕 Synchroniser avec Supabase après ajout
+    if (state.localOrderId && window.photoAPI?.orders) {
+      try {
+        console.log('[Detail] 🔄 Sync Supabase après Ajouter...');
+        // Mettre à jour les montants
+        const totalAmount = cartNominal(state.cart, window.PRODUCTS);
+        const discountAmount = totalAmount - cartSubtotal(state.cart, window.PRODUCTS);
+        const finalAmount = cartSubtotal(state.cart, window.PRODUCTS);
+
+        await window.photoAPI.orders.updateDetails(state.localOrderId, {
+          totalAmount,
+          discountAmount,
+          finalAmount
+        });
+
+        // Re-lier les items
+        if (state.sessionId) {
+          await window.photoAPI.cart.linkSessionItems(state.sessionId, state.localOrderId);
+        }
+
+        // Sync avec Supabase
+        const syncResult = await window.photoAPI.orders.syncRemote(state.localOrderId, state.supabaseOrderId);
+        if (syncResult?.status === 'success') {
+          console.log('[Detail] ✅ Sync Supabase réussi');
+        }
+      } catch (syncError) {
+        console.error('[Detail] ❌ Erreur sync Supabase:', syncError);
+      }
     }
 
     // TOAST au click "Ajouter"
