@@ -1518,6 +1518,32 @@ body.page-payment { overflow: hidden; }
   color: #ff6b6b;
 }
 
+.force-retry-btn {
+  margin-top: 10px;
+  background: rgba(255, 107, 107, 0.2);
+  border: 1px solid rgba(255, 107, 107, 0.5);
+  border-radius: 6px;
+  color: #fff;
+  font-size: 12px;
+  font-weight: bold;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.force-retry-btn:hover {
+  background: rgba(255, 107, 107, 0.4);
+}
+
+.force-retry-btn:active {
+  transform: scale(0.96);
+}
+
+.force-retry-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* PERIOD STATS */
 .period-stats {
   display: grid;

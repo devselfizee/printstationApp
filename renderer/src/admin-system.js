@@ -534,6 +534,11 @@ async function showAdminDashboard() {
           <div class="stat-card">
             <div class="stat-label">Erreurs</div>
             <div class="stat-value error">${photos.errors || 0}</div>
+            ${(photos.errors || 0) > 0 ? `
+              <button id="forceRetryBtn" class="force-retry-btn">
+                Forcer retry
+              </button>
+            ` : ''}
           </div>
           <div class="stat-card">
             <div class="stat-label">Participants</div>
@@ -689,6 +694,31 @@ async function showAdminDashboard() {
   if (quitBtn) {
     quitBtn.addEventListener('click', () => {
       showQuitConfirmModal();
+    });
+  }
+
+  // Bouton Forcer retry (visible seulement s'il y a des erreurs)
+  const forceRetryBtn = $('#forceRetryBtn');
+  if (forceRetryBtn) {
+    forceRetryBtn.addEventListener('click', async () => {
+      forceRetryBtn.disabled = true;
+      forceRetryBtn.textContent = 'Retry en cours...';
+
+      try {
+        const result = await window.photoAPI.admin.forceRetryAll();
+        console.log('[Admin] Force retry result:', result);
+        forceRetryBtn.textContent = `${result.count} photo(s) relancées`;
+
+        // Rafraîchir le dashboard après 2 secondes
+        setTimeout(() => {
+          closeDashboard();
+          showAdminDashboard();
+        }, 2000);
+      } catch (error) {
+        console.error('[Admin] Force retry error:', error);
+        forceRetryBtn.textContent = 'Erreur!';
+        forceRetryBtn.disabled = false;
+      }
     });
   }
 
