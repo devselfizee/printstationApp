@@ -1,6 +1,6 @@
 import { state } from '../state.js';
 import { t, tProduct } from '../i18n.js';
-import { lineTotal, cartSubtotal, toast } from '../utils.js';
+import { lineTotalGlobal, cartSubtotal, toast } from '../utils.js';
 import { getProductVisual } from '../data.js';
 
 export const renderPayment = (root) => {
@@ -28,12 +28,14 @@ export const renderPayment = (root) => {
   // Calculer le total de manière synchrone
   const total = cartSubtotal(state.cart, window.PRODUCTS);
 
+  let globalPosition = 0;
   state.cart.forEach(l => {
     const product = window.PRODUCTS[l.productId];
     const row = document.createElement('div');
     row.className = 'line';
 
-    const itemTotal = lineTotal(product, l.qty);
+    const itemTotal = lineTotalGlobal(product, l.qty, globalPosition);
+    globalPosition += l.qty;
 
     // Récupérer la photo commandée
     const photo = state.photos?.find(p => p.id === l.photoId);
