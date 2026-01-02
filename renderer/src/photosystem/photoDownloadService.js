@@ -163,36 +163,64 @@ function calculatePriority(photo) {
 
 /**
  * Reprendre les téléchargements échoués
+ * ⭐ Relance vraiment les téléchargements
  */
 async function resumeFailedDownloads() {
   try {
     console.log('[PhotoDownload] 🔄 Recherche photos échouées...');
-    
+
     const failedPhotos = await db.getPhotosByStatus('error', 1000);
-    const resumedCount = failedPhotos.filter(p => {
+    const pendingPhotos = await db.getPhotosByStatus('pending', 1000);
+
+    let resumedCount = 0;
+    let skippedCount = 0;
+
+    // Traiter les photos en erreur
+    for (const p of failedPhotos) {
       const retryCount = p.retry_count || 0;
       const corruptCount = p.corruption_count || 0;
-      
-      // ⭐ Ne pas retry si:
-      // - Déjà 3+ retries
-      // - Déjà 3+ corruptions
+
+      // ⭐ Ne pas retry si limites atteintes
       if (retryCount >= CONFIG.MAX_RETRIES_PER_PHOTO) {
-        console.log(`[PhotoDownload] ⏭️  ${p.id} max retries atteint`);
-        return false;
+        console.log(`[PhotoDownload] ⏭️  ${p.id} max retries atteint (${retryCount})`);
+        logger.warn('PHOTO_DL', `Photo ${p.id} ignorée: max retries atteint`, { retryCount, photoId: p.id });
+        skippedCount++;
+        continue;
       }
-      
+
       if (corruptCount >= CONFIG.MAX_CORRUPTION_COUNT) {
-        console.log(`[PhotoDownload] ⏭️  ${p.id} max corruptions atteint`);
-        return false;
+        console.log(`[PhotoDownload] ⏭️  ${p.id} max corruptions atteint (${corruptCount})`);
+        logger.warn('PHOTO_DL', `Photo ${p.id} ignorée: max corruptions atteint`, { corruptCount, photoId: p.id });
+        skippedCount++;
+        continue;
       }
-      
-      return true;
-    }).length;
-    
-    console.log(`[PhotoDownload] ✅ ${resumedCount} photos à retry`);
-    
+
+      // ⭐ Relancer le téléchargement
+      await db.updatePhotoStatus(p.id, 'pending');
+      await enqueueDownload(p.id);
+      resumedCount++;
+    }
+
+    // Traiter les photos pending (non terminées)
+    for (const p of pendingPhotos) {
+      await enqueueDownload(p.id);
+      resumedCount++;
+    }
+
+    console.log(`[PhotoDownload] ✅ ${resumedCount} photos relancées, ${skippedCount} ignorées`);
+    logger.info('PHOTO_DL', 'Reprise téléchargements échoués', {
+      resumed: resumedCount,
+      skipped: skippedCount,
+      totalFailed: failedPhotos.length,
+      totalPending: pendingPhotos.length
+    });
+
   } catch (error) {
     console.error('[PhotoDownload] Erreur resume failed:', error.message);
+    logger.error('PHOTO_DL', 'Erreur reprise téléchargements', {
+      error: error.message,
+      stack: error.stack
+    });
   }
 }
 
@@ -302,23 +330,45 @@ async function downloadPhoto(queueItem) {
 
   } catch (error) {
     downloadStats.totalAttempts++;
+    downloadStats.failedDownloads++;
 
     const photo = await db.getPhoto(photoId);
     const retryCount = (photo?.retry_count || 0) + 1;
 
+    // ⭐ Log détaillé de l'erreur
+    const errorDetails = {
+      photoId,
+      url,
+      retryCount,
+      errorMessage: error.message,
+      errorCode: error.code || null,
+      errorType: error.name || 'Error',
+      stack: error.stack?.split('\n').slice(0, 5).join('\n') || null,
+      participantId,
+      timestamp: new Date().toISOString()
+    };
+
     console.error(`[PhotoDownload] ❌ ${photoId} erreur: ${error.message} (retry ${retryCount})`);
-    logger.logPhotoDownloadError(photoId, `${error.message} (retry ${retryCount})`);
+    console.error(`[PhotoDownload] 📋 Détails:`, JSON.stringify(errorDetails, null, 2));
+
+    // Log dans le fichier avec tous les détails
+    logger.error('PHOTO_DL', `Échec téléchargement photo ${photoId}`, errorDetails);
 
     if (retryCount >= CONFIG.MAX_RETRIES_PER_PHOTO) {
       await db.markPhotoError(photoId, error.message);
-      downloadStats.failedDownloads++;
-      console.error(`[PhotoDownload] 🚫 ${photoId} échec définitif après ${retryCount} tentatives`);
+      console.error(`[PhotoDownload] 🚫 ${photoId} ÉCHEC DÉFINITIF après ${retryCount} tentatives`);
+      logger.error('PHOTO_DL', `Photo ${photoId} ABANDON après ${retryCount} tentatives`, {
+        ...errorDetails,
+        finalStatus: 'abandoned'
+      });
     } else {
       await db.incrementPhotoRetry(photoId, error.message);
-      
+      const nextRetryMs = CONFIG.RETRY_DELAY_MS * retryCount;
+      console.log(`[PhotoDownload] ⏳ ${photoId} retry dans ${nextRetryMs / 1000}s...`);
+
       setTimeout(() => {
         enqueueDownload(photoId);
-      }, CONFIG.RETRY_DELAY_MS * retryCount);
+      }, nextRetryMs);
     }
 
     try {
@@ -347,7 +397,28 @@ async function downloadFileWithRetry(url, destinationPath, photoId) {
     console.log(`[PhotoDownload] 📊 HTTP ${response.status} ${response.statusText}`);
 
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
+      // ⭐ Log détaillé des erreurs HTTP
+      const errorDetails = {
+        photoId,
+        url,
+        httpStatus: response.status,
+        httpStatusText: response.statusText,
+        contentType: response.headers.get('content-type'),
+        contentLength: response.headers.get('content-length'),
+        server: response.headers.get('server'),
+        timestamp: new Date().toISOString()
+      };
+
+      // Essayer de lire le body de l'erreur
+      try {
+        const errorBody = await response.text();
+        errorDetails.responseBody = errorBody.substring(0, 500); // Limiter la taille
+      } catch (e) {}
+
+      console.error(`[PhotoDownload] ❌ HTTP Error:`, JSON.stringify(errorDetails, null, 2));
+      logger.error('PHOTO_DL', `Erreur HTTP ${response.status} pour photo ${photoId}`, errorDetails);
+
+      throw new Error(`HTTP ${response.status} ${response.statusText}`);
     }
 
     const reader = response.body.getReader();
@@ -368,6 +439,21 @@ async function downloadFileWithRetry(url, destinationPath, photoId) {
 
     console.log(`[PhotoDownload] 📦 Reçu: ${formatBytes(receivedBytes)}`);
 
+  } catch (error) {
+    // ⭐ Log détaillé des erreurs réseau (timeout, abort, etc.)
+    if (error.name === 'AbortError') {
+      const timeoutError = new Error(`Timeout après ${CONFIG.DOWNLOAD_TIMEOUT_MS / 1000}s`);
+      timeoutError.code = 'TIMEOUT';
+      timeoutError.originalError = error;
+      logger.error('PHOTO_DL', `Timeout téléchargement photo ${photoId}`, {
+        photoId,
+        url,
+        timeoutMs: CONFIG.DOWNLOAD_TIMEOUT_MS,
+        timestamp: new Date().toISOString()
+      });
+      throw timeoutError;
+    }
+    throw error;
   } finally {
     clearTimeout(timeout);
   }
