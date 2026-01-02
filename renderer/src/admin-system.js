@@ -536,17 +536,13 @@ async function showAdminDashboard() {
             <div class="stat-value error">${photos.errors || 0}</div>
             ${(photos.errors || 0) > 0 ? `
               <button id="forceRetryBtn" class="force-retry-btn">
-                Forcer retry
+                Relancer
               </button>
             ` : ''}
           </div>
           <div class="stat-card">
             <div class="stat-label">Participants</div>
             <div class="stat-value">${participants.total || 0}</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Univers</div>
-            <div class="stat-value">${universes.total || 0}</div>
           </div>
         </div>
       </section>
@@ -702,7 +698,7 @@ async function showAdminDashboard() {
   if (forceRetryBtn) {
     forceRetryBtn.addEventListener('click', async () => {
       forceRetryBtn.disabled = true;
-      forceRetryBtn.textContent = 'Retry en cours...';
+      forceRetryBtn.textContent = 'Relance en cours...';
 
       try {
         const result = await window.photoAPI.admin.forceRetryAll();
