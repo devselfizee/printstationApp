@@ -460,6 +460,22 @@ async function migrateSyncColumns() {
       await execAsync('ALTER TABLE photos ADD COLUMN borne_info TEXT');
       console.log('[DB] ✅ Colonne borne_info ajoutée à photos');
     }
+
+    // Ajouter colonnes pour la stratégie de retry en 4 phases
+    if (!photosColumnNames.includes('next_retry_at')) {
+      await execAsync('ALTER TABLE photos ADD COLUMN next_retry_at INTEGER');
+      console.log('[DB] ✅ Colonne next_retry_at ajoutée à photos');
+    }
+
+    if (!photosColumnNames.includes('last_error_code')) {
+      await execAsync('ALTER TABLE photos ADD COLUMN last_error_code TEXT');
+      console.log('[DB] ✅ Colonne last_error_code ajoutée à photos');
+    }
+
+    if (!photosColumnNames.includes('retry_phase')) {
+      await execAsync('ALTER TABLE photos ADD COLUMN retry_phase INTEGER DEFAULT 1');
+      console.log('[DB] ✅ Colonne retry_phase ajoutée à photos');
+    }
   } catch (error) {
     console.error('[DB] Erreur migration photos:', error);
   }
@@ -844,6 +860,98 @@ export async function getPhotoStats(participantId) {
   );
 
   return stats || { total: 0, downloaded: 0, pending: 0, errors: 0 };
+}
+
+/**
+ * ============================================
+ * STRATÉGIE DE RETRY EN 4 PHASES
+ * ============================================
+ */
+
+/**
+ * Mettre à jour les infos de retry après un échec
+ */
+export async function updatePhotoRetryInfo(photoId, {
+  retryCount,
+  retryPhase,
+  nextRetryAt,
+  lastErrorCode,
+  lastErrorMessage,
+  status
+}) {
+  return runAsync(
+    `UPDATE photos
+     SET retry_count = ?,
+         retry_phase = ?,
+         next_retry_at = ?,
+         last_error_code = ?,
+         last_error = ?,
+         status = ?
+     WHERE id = ?`,
+    [retryCount, retryPhase, nextRetryAt, lastErrorCode, lastErrorMessage, status, photoId]
+  );
+}
+
+/**
+ * Obtenir les photos prêtes pour retry (next_retry_at <= maintenant)
+ */
+export async function getPhotosReadyForRetry(limit = 100) {
+  const now = Math.floor(Date.now() / 1000);
+  return allAsync(
+    `SELECT * FROM photos
+     WHERE status IN ('failed_temp', 'failed_long_retry')
+       AND next_retry_at IS NOT NULL
+       AND next_retry_at <= ?
+     ORDER BY next_retry_at ASC
+     LIMIT ?`,
+    [now, limit]
+  );
+}
+
+/**
+ * Forcer le retry d'une photo (reset complet)
+ */
+export async function forcePhotoRetry(photoId) {
+  const now = Math.floor(Date.now() / 1000);
+  return runAsync(
+    `UPDATE photos
+     SET retry_count = 0,
+         retry_phase = 1,
+         next_retry_at = ?,
+         status = 'pending',
+         last_error = NULL,
+         last_error_code = NULL
+     WHERE id = ?`,
+    [now, photoId]
+  );
+}
+
+/**
+ * Obtenir toutes les photos en échec (pour l'affichage support)
+ */
+export async function getFailedPhotos(limit = 500) {
+  return allAsync(
+    `SELECT id, participant_id, file_name, status, retry_count, retry_phase,
+            next_retry_at, last_error_code, last_error, created_at
+     FROM photos
+     WHERE status IN ('failed_temp', 'failed_long_retry', 'error')
+     ORDER BY next_retry_at ASC
+     LIMIT ?`,
+    [limit]
+  );
+}
+
+/**
+ * Marquer une photo comme téléchargement en cours
+ */
+export async function markPhotoDownloading(photoId) {
+  return runAsync(
+    `UPDATE photos
+     SET status = 'downloading',
+         download_started_at = CURRENT_TIMESTAMP
+     WHERE id = ?`,
+    [photoId]
+  );
 }
 
 /**
