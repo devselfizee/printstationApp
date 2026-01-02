@@ -274,14 +274,14 @@ async function initiatePaymentFlow(totalAmount, root) {
   } catch (error) {
     console.error('Payment failed:', error);
 
-    // Mettre à jour last_step à 'payment_failed' dans la commande locale et Supabase
+    // Mettre à jour last_step à 'payment' dans la commande locale et Supabase
     if (state.localOrderId && window.photoAPI?.orders) {
       try {
-        console.log('[Payment] 📝 Mise à jour last_step=payment_failed...');
+        console.log('[Payment] 📝 Mise à jour last_step=payment...');
 
         // Mettre à jour localement
-        await window.photoAPI.orders.updateDetails(state.localOrderId, { lastStep: 'payment_failed' });
-        console.log('[Payment] ✅ last_step local mis à jour: payment_failed');
+        await window.photoAPI.orders.updateDetails(state.localOrderId, { lastStep: 'payment' });
+        console.log('[Payment] ✅ last_step local mis à jour: payment');
 
         // Synchroniser avec Supabase
         if (state.supabaseOrderId) {
