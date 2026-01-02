@@ -30,7 +30,7 @@ initAdminButton();
 initInactivityTimer();
 
 window.state = state;
-window.PRODUCTS = PRODUCTS;
+window.PRODUCTS = {}; // Vide par défaut, sera rempli par l'API Supabase
 window.UNIVERSES = UNIVERSES;
 
 // Variable pour tracker la page précédente
@@ -183,25 +183,29 @@ async function loadProducts() {
     const result = await window.photoAPI.products.fetch();
 
     if (result.status === 'success' && result.products && Object.keys(result.products).length > 0) {
-      // Remplacer les produits par ceux de l'API seulement s'il y en a
+      // Remplacer les produits par ceux de l'API
       window.PRODUCTS = result.products;
       console.log('[App] ✅ Produits chargés depuis l\'API:', Object.keys(result.products).length, 'produit(s)');
       console.log('[App] Produits disponibles:', result.products);
     } else if (result.status === 'success') {
-      console.warn('[App] ⚠️  L\'API a retourné 0 produits - utilisation des produits par défaut');
-      // Garder les produits par défaut de data.js
+      // L'API a retourné 0 produits - garder vide pour éviter confusion d'IDs
+      window.PRODUCTS = {};
+      console.warn('[App] ⚠️  L\'API a retourné 0 produits - aucun produit disponible');
     } else if (result.status === 'skipped') {
+      // Pas de connexion ou config manquante - garder vide
+      window.PRODUCTS = {};
       console.log('[App] ⏭️  Chargement des produits ignoré:', result.message);
-      // Garder les produits par défaut
     } else {
+      // Erreur API - garder vide pour éviter confusion d'IDs
+      window.PRODUCTS = {};
       console.warn('[App] ⚠️  Erreur chargement produits:', result.error);
-      console.log('[App] 🔄 Utilisation des produits par défaut');
-      // Garder les produits par défaut de data.js
+      console.log('[App] ❌ Aucun produit disponible (erreur API)');
     }
   } catch (error) {
+    // Erreur système - garder vide pour éviter confusion d'IDs
+    window.PRODUCTS = {};
     console.error('[App] ❌ Erreur chargement produits:', error);
-    console.log('[App] 🔄 Utilisation des produits par défaut');
-    // Garder les produits par défaut de data.js
+    console.log('[App] ❌ Aucun produit disponible (erreur système)');
   }
 }
 
