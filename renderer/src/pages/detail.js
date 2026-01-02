@@ -331,6 +331,32 @@ el.innerHTML = `
   return el;
 };
 
+// Fonction pour recharger les produits si la liste est vide
+async function retryLoadProducts() {
+  if (Object.keys(window.PRODUCTS).length > 0) {
+    return; // Produits déjà chargés
+  }
+
+  console.log('[Detail] 🔄 Produits vides, tentative de rechargement...');
+
+  try {
+    if (window.photoAPI?.products?.fetch) {
+      const result = await window.photoAPI.products.fetch();
+
+      if (result.status === 'success' && result.products && Object.keys(result.products).length > 0) {
+        window.PRODUCTS = result.products;
+        console.log('[Detail] ✅ Produits rechargés:', Object.keys(result.products).length, 'produit(s)');
+        // Re-render la page pour afficher les produits
+        window.render();
+      } else {
+        console.warn('[Detail] ⚠️ Aucun produit récupéré');
+      }
+    }
+  } catch (error) {
+    console.error('[Detail] ❌ Erreur rechargement produits:', error);
+  }
+}
+
 export const renderDetail = (root) => {
   const p = state.currentPhoto || state.photos[0];
   const main = document.createElement('div');
@@ -346,6 +372,18 @@ export const renderDetail = (root) => {
       </svg>
       <span>${t('pickupNotice')}</span>
     </div>`;
+
+  // Si aucun produit, tenter de recharger
+  if (Object.keys(window.PRODUCTS).length === 0) {
+    section.innerHTML += `<div style="padding:20px;text-align:center;color:#6b7280;">
+      <div class="spinner" style="margin:0 auto 10px;width:24px;height:24px;border:2px solid #e5e7eb;border-top-color:#3b82f6;border-radius:50%;animation:spin 1s linear infinite;"></div>
+      <div>${t('loadingProducts') || 'Chargement des produits...'}</div>
+    </div>
+    <style>@keyframes spin { to { transform: rotate(360deg); } }</style>`;
+
+    // Lancer le rechargement en arrière-plan
+    retryLoadProducts();
+  }
 
   // Afficher les produits filtrés par univers
   const currentUniverseId = state.universe?.id || state.universeId;
