@@ -274,6 +274,29 @@ async function initiatePaymentFlow(totalAmount, root) {
   } catch (error) {
     console.error('Payment failed:', error);
 
+    // Mettre à jour last_step à 'payment_failed' dans la commande locale et Supabase
+    if (state.localOrderId && window.photoAPI?.orders) {
+      try {
+        console.log('[Payment] 📝 Mise à jour last_step=payment_failed...');
+
+        // Mettre à jour localement
+        await window.photoAPI.orders.updateDetails(state.localOrderId, { lastStep: 'payment_failed' });
+        console.log('[Payment] ✅ last_step local mis à jour: payment_failed');
+
+        // Synchroniser avec Supabase
+        if (state.supabaseOrderId) {
+          const syncResult = await window.photoAPI.orders.syncRemote(state.localOrderId, state.supabaseOrderId);
+          if (syncResult?.status === 'success') {
+            console.log('[Payment] ✅ last_step synchronisé vers Supabase');
+          } else {
+            console.warn('[Payment] ⚠️ Erreur sync last_step:', syncResult?.error);
+          }
+        }
+      } catch (stepError) {
+        console.error('[Payment] ❌ Erreur mise à jour last_step:', stepError);
+      }
+    }
+
     // Mettre à jour le log de paiement (échec) et synchroniser
     if (paymentLogId && window.photoAPI?.paymentLogs) {
       const durationMs = Date.now() - paymentStartTime;
