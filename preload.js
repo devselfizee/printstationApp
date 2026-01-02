@@ -70,6 +70,10 @@ const photoAPI = {
     exportParticipant: (participantId) =>
       ipcRenderer.invoke('admin:export-participant', participantId),
     getPurchaseReport: () => ipcRenderer.invoke('admin:purchase-report'),
+    // Retry photos (stratégie 4 phases)
+    forceRetryPhoto: (photoId) => ipcRenderer.invoke('admin:force-retry-photo', photoId),
+    forceRetryAll: () => ipcRenderer.invoke('admin:force-retry-all'),
+    getFailedPhotos: () => ipcRenderer.invoke('admin:get-failed-photos'),
   },
 
   // Payment

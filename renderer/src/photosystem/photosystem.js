@@ -182,6 +182,11 @@ export const admin = {
   clearCache: adminService.clearParticipantCache,
   deleteParticipant: adminService.deleteParticipantCompletely,
 
+  // Retry (stratégie 4 phases)
+  forceRetryPhoto: downloadService.forceRetry,
+  forceRetryAll: downloadService.forceRetryAll,
+  getFailedPhotos: downloadService.getFailedPhotosInfo,
+
   // Disque
   getDiskUsage: adminService.calculateDiskUsage,
   freeUpSpace: adminService.freeUpSpace,

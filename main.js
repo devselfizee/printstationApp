@@ -1922,6 +1922,34 @@ ipcMain.handle('admin:purchase-report', () => {
 });
 
 /**
+ * ===== IPC HANDLERS - RETRY PHOTOS (Stratégie 4 phases) =====
+ */
+
+// Forcer le retry d'une photo spécifique
+ipcMain.handle('admin:force-retry-photo', async (event, photoId) => {
+  if (!photoSystemReady || !photoSystem?.admin) {
+    return { status: 'error', error: 'PhotoSystem non disponible' };
+  }
+  return photoSystem.admin.forceRetryPhoto(photoId);
+});
+
+// Forcer le retry de toutes les photos en échec
+ipcMain.handle('admin:force-retry-all', async () => {
+  if (!photoSystemReady || !photoSystem?.admin) {
+    return { status: 'error', error: 'PhotoSystem non disponible' };
+  }
+  return photoSystem.admin.forceRetryAll();
+});
+
+// Obtenir la liste des photos en échec avec détails
+ipcMain.handle('admin:get-failed-photos', async () => {
+  if (!photoSystemReady || !photoSystem?.admin) {
+    return [];
+  }
+  return photoSystem.admin.getFailedPhotos();
+});
+
+/**
  * ===== IPC HANDLERS - LOGGER =====
  */
 
