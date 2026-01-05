@@ -762,6 +762,13 @@ async function showAdminDashboard() {
         const result = await window.photoAPI.admin.updateDefaultLang(newLang);
         if (result.status === 'success') {
           console.log('[Admin] Langue mise à jour:', newLang);
+
+          // Appliquer immédiatement la nouvelle langue
+          if (window.state) {
+            window.state.lang = newLang;
+            console.log('[Admin] Langue appliquée immédiatement:', newLang);
+          }
+
           // Afficher un feedback visuel
           defaultLangSelect.style.borderColor = '#10b981';
           setTimeout(() => {
