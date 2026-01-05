@@ -344,8 +344,10 @@ async function handleTimeout() {
     }
   }
 
-  // Réinitialiser l'état et retourner à l'accueil
-  if (window.state) {
+  // Réinitialiser l'état et retourner à l'accueil (utilise backToQR pour reset langue)
+  if (window.backToQR) {
+    await window.backToQR();
+  } else if (window.state) {
     window.state.page = 'qr';
     window.state.universe = null;
     window.state.photos = [];
@@ -356,8 +358,6 @@ async function handleTimeout() {
     if (window.render) {
       window.render();
     }
-  } else if (window.backToQR) {
-    window.backToQR();
   }
 }
 

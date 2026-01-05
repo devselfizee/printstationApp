@@ -7,6 +7,11 @@ export const goBack = async () => {
   if (state.page === 'qr') return;
 
   if (state.page === 'listing') {
+    // Retour à l'accueil depuis listing - utiliser backToQR pour reset langue
+    if (window.backToQR) {
+      await window.backToQR();
+      return;
+    }
     state.page = 'qr';
     state.universe = null;
     state.photos = [];
@@ -26,6 +31,11 @@ export const goBack = async () => {
     state.page = 'cart';
   }
   else if (state.page === 'thanks') {
+    // Retour à l'accueil depuis thanks - utiliser backToQR pour reset langue
+    if (window.backToQR) {
+      await window.backToQR();
+      return;
+    }
     state.page = 'qr';
   }
 

@@ -390,13 +390,17 @@ export const attachFooterListeners = (config = {}) => {
     const cancelBtn = document.querySelector('.btn-cancel');
     const continueBtn = document.querySelector('.btn-continue');
 
-    // Action par défaut pour quitter
+    // Action par défaut pour quitter (avec reset langue)
     const defaultQuitAction = () => {
-      state.page = 'qr';
-      state.universe = null;
-      state.photos = [];
-      state.cart = [];
-      window.render();
+      if (window.backToQR) {
+        window.backToQR();
+      } else {
+        state.page = 'qr';
+        state.universe = null;
+        state.photos = [];
+        state.cart = [];
+        window.render();
+      }
     };
 
     // Handlers custom ou defaults

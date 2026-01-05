@@ -115,23 +115,31 @@ export const renderListing = (root) => {
         // Annuler la commande et l'enregistrer dans la DB
         await handleOrderCancellation('listing_abandonner');
 
-        // Réinitialiser l'état et retourner au QR
+        // Réinitialiser l'état et retourner au QR (avec reset langue)
+        if (window.backToQR) {
+          await window.backToQR();
+        } else {
+          state.page = 'qr';
+          state.universe = null;
+          state.photos = [];
+          state.cart = [];
+          state.localOrderId = null;
+          state.supabaseOrderId = null;
+          updateCartCount();
+          window.render();
+        }
+      });
+    } else {
+      // Panier vide, retourner directement au QR (avec reset langue)
+      if (window.backToQR) {
+        window.backToQR();
+      } else {
         state.page = 'qr';
         state.universe = null;
         state.photos = [];
         state.cart = [];
-        state.localOrderId = null;
-        state.supabaseOrderId = null;
-        updateCartCount();
         window.render();
-      });
-    } else {
-      // Panier vide, retourner directement au QR
-      state.page = 'qr';
-      state.universe = null;
-      state.photos = [];
-      state.cart = [];
-      window.render();
+      }
     }
   };
 
