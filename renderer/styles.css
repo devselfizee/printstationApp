@@ -1211,7 +1211,7 @@ body.page-payment { overflow: hidden; }
 .thanks-btn{ margin-top:30px; padding:18px 60px; border:none; border-radius:12px; background:#10b981; color:#fff; font-weight:900; font-size:20px; cursor:pointer; transition: all .2s ease; text-transform:uppercase; letter-spacing:.05em; }
 .thanks-btn:hover{ box-shadow: 0 12px 24px rgba(16,185,129,.4); transform:translateY(-2px); }
 .thanks-timer{ margin-top:24px; font-size:16px; color:rgba(255,255,255,.6); }
-.thanks-logo-bottom{ width:180px; height:auto; margin-top:40px; opacity:0.8; }
+.thanks-logo-bottom{ position:absolute; bottom:60px; left:50%; transform:translateX(-50%); width:180px; height:auto; opacity:0.9; }
 
 
 
