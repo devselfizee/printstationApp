@@ -137,11 +137,13 @@ function addUpsell(photoId, productId) {
   render();
 }
 
-function backToQR() {
+async function backToQR() {
   clearInterval(state.timer);
   clearTimeout(state.timer);
   if (window.stopAllPolls) window.stopAllPolls();  // Arrêter tous les pollings photo
   resetState();
+  // Recharger la langue par défaut depuis la config (sans re-render car on le fait après)
+  await loadDefaultLang(false);
   render();
 }
 
@@ -209,6 +211,28 @@ async function loadProducts() {
   }
 }
 
+// Charger la langue par défaut depuis la configuration
+async function loadDefaultLang(shouldRender = true) {
+  try {
+    await waitForPhotoAPI();
+
+    if (window.photoAPI?.admin?.getMachineConfig) {
+      const result = await window.photoAPI.admin.getMachineConfig();
+      if (result.status === 'success' && result.config?.default_lang) {
+        state.lang = result.config.default_lang;
+        console.log('[App] 🌍 Langue par défaut chargée:', state.lang);
+        // Re-render pour appliquer la langue (optionnel)
+        if (shouldRender) {
+          render();
+        }
+      }
+    }
+  } catch (error) {
+    console.error('[App] Erreur chargement langue par défaut:', error);
+    // Garder 'fr' par défaut en cas d'erreur
+  }
+}
+
 // Vérifier la configuration au démarrage
 async function checkSetup() {
   try {
@@ -246,6 +270,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   initNetworkStatus();
 
   render();
+
+  // Charger la langue par défaut depuis la configuration
+  loadDefaultLang();
 
   // Charger les produits depuis l'API en parallèle
   loadProducts();

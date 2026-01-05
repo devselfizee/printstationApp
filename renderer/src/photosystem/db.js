@@ -489,8 +489,14 @@ async function migrateSyncColumns() {
       await execAsync('ALTER TABLE machine_config ADD COLUMN tva REAL DEFAULT 20');
       console.log('[DB] ✅ Colonne tva ajoutée à machine_config');
     }
+
+    // Migration: Ajouter default_lang à la table machine_config
+    if (!machineConfigColumns.includes('default_lang')) {
+      await execAsync("ALTER TABLE machine_config ADD COLUMN default_lang TEXT DEFAULT 'fr'");
+      console.log('[DB] ✅ Colonne default_lang ajoutée à machine_config');
+    }
   } catch (error) {
-    console.error('[DB] Erreur migration tva:', error);
+    console.error('[DB] Erreur migration machine_config:', error);
   }
 
   // Migration: Ajouter subtotal_ht et vat_amount à la table orders
@@ -1713,27 +1719,41 @@ export async function isSetupCompleted() {
 /**
  * Sauvegarder la configuration de la machine
  */
-export async function saveMachineConfig(kioskId, salesPointId, machineName = null, tva = 20) {
+export async function saveMachineConfig(kioskId, salesPointId, machineName = null, tva = 20, defaultLang = 'fr') {
   return runAsync(
-    `INSERT OR REPLACE INTO machine_config (id, kiosk_id, sales_point_id, machine_name, tva, setup_completed, updated_at)
-     VALUES (1, ?, ?, ?, ?, 1, datetime('now', 'localtime'))`,
-    [kioskId, salesPointId, machineName, tva]
+    `INSERT OR REPLACE INTO machine_config (id, kiosk_id, sales_point_id, machine_name, tva, default_lang, setup_completed, updated_at)
+     VALUES (1, ?, ?, ?, ?, ?, 1, datetime('now', 'localtime'))`,
+    [kioskId, salesPointId, machineName, tva, defaultLang]
   );
 }
 
 /**
  * Mettre à jour la configuration de la machine
  */
-export async function updateMachineConfig(kioskId, salesPointId, machineName = null, tva = 20) {
+export async function updateMachineConfig(kioskId, salesPointId, machineName = null, tva = 20, defaultLang = 'fr') {
   return runAsync(
     `UPDATE machine_config
      SET kiosk_id = ?,
          sales_point_id = ?,
          machine_name = ?,
          tva = ?,
+         default_lang = ?,
          updated_at = datetime('now', 'localtime')
      WHERE id = 1`,
-    [kioskId, salesPointId, machineName, tva]
+    [kioskId, salesPointId, machineName, tva, defaultLang]
+  );
+}
+
+/**
+ * Mettre à jour uniquement la langue par défaut
+ */
+export async function updateDefaultLang(lang) {
+  return runAsync(
+    `UPDATE machine_config
+     SET default_lang = ?,
+         updated_at = datetime('now', 'localtime')
+     WHERE id = 1`,
+    [lang]
   );
 }
 
