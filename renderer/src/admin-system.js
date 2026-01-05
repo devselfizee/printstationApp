@@ -509,6 +509,22 @@ async function showAdminDashboard() {
   // Calculer le total revenue de tous les temps
   const totalRevenue = monthStats?.total_revenue || 0;
 
+  // Charger la configuration machine (pour la langue par défaut)
+  let machineConfig = null;
+  let currentDefaultLang = 'fr';
+  try {
+    if (window.photoAPI?.admin?.getMachineConfig) {
+      const result = await window.photoAPI.admin.getMachineConfig();
+      if (result.status === 'success' && result.config) {
+        machineConfig = result.config;
+        currentDefaultLang = machineConfig.default_lang || 'fr';
+        console.log('[Admin] Config machine:', machineConfig);
+      }
+    }
+  } catch (error) {
+    console.error('[Admin] Erreur config machine:', error);
+  }
+
   dashboard.innerHTML = `
     <div class="admin-dashboard-container">
       <div class="admin-header">
@@ -593,6 +609,23 @@ async function showAdminDashboard() {
         <div class="admin-total">
           <div>TOTAL (ce mois)</div>
           <div class="total-value">${formatEuro(totalRevenue)} €</div>
+        </div>
+      </section>
+
+      <section class="admin-section">
+        <h2>⚙️ Paramètres</h2>
+        <div class="admin-settings">
+          <div class="setting-row">
+            <label for="defaultLangSelect">Langue par défaut</label>
+            <select id="defaultLangSelect" class="admin-select">
+              <option value="fr" ${currentDefaultLang === 'fr' ? 'selected' : ''}>Français</option>
+              <option value="en" ${currentDefaultLang === 'en' ? 'selected' : ''}>English</option>
+              <option value="es" ${currentDefaultLang === 'es' ? 'selected' : ''}>Español</option>
+              <option value="de" ${currentDefaultLang === 'de' ? 'selected' : ''}>Deutsch</option>
+              <option value="it" ${currentDefaultLang === 'it' ? 'selected' : ''}>Italiano</option>
+              <option value="zh" ${currentDefaultLang === 'zh' ? 'selected' : ''}>中文</option>
+            </select>
+          </div>
         </div>
       </section>
 
@@ -714,6 +747,33 @@ async function showAdminDashboard() {
         console.error('[Admin] Force retry error:', error);
         forceRetryBtn.textContent = 'Erreur!';
         forceRetryBtn.disabled = false;
+      }
+    });
+  }
+
+  // Sélecteur de langue par défaut
+  const defaultLangSelect = $('#defaultLangSelect');
+  if (defaultLangSelect) {
+    defaultLangSelect.addEventListener('change', async (e) => {
+      const newLang = e.target.value;
+      console.log('[Admin] Changement langue par défaut:', newLang);
+
+      try {
+        const result = await window.photoAPI.admin.updateDefaultLang(newLang);
+        if (result.status === 'success') {
+          console.log('[Admin] Langue mise à jour:', newLang);
+          // Afficher un feedback visuel
+          defaultLangSelect.style.borderColor = '#10b981';
+          setTimeout(() => {
+            defaultLangSelect.style.borderColor = '';
+          }, 2000);
+        } else {
+          console.error('[Admin] Erreur mise à jour langue:', result.error);
+          defaultLangSelect.style.borderColor = '#ef4444';
+        }
+      } catch (error) {
+        console.error('[Admin] Erreur changement langue:', error);
+        defaultLangSelect.style.borderColor = '#ef4444';
       }
     });
   }

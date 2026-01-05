@@ -74,6 +74,9 @@ const photoAPI = {
     forceRetryPhoto: (photoId) => ipcRenderer.invoke('admin:force-retry-photo', photoId),
     forceRetryAll: () => ipcRenderer.invoke('admin:force-retry-all'),
     getFailedPhotos: () => ipcRenderer.invoke('admin:get-failed-photos'),
+    // Configuration machine
+    getMachineConfig: () => ipcRenderer.invoke('admin:get-machine-config'),
+    updateDefaultLang: (lang) => ipcRenderer.invoke('admin:update-default-lang', lang),
   },
 
   // Payment

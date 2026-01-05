@@ -1949,6 +1949,35 @@ ipcMain.handle('admin:get-failed-photos', async () => {
   return photoSystem.admin.getFailedPhotos();
 });
 
+// Obtenir la configuration machine
+ipcMain.handle('admin:get-machine-config', async () => {
+  if (!photoSystemReady || !photoSystem?.db) {
+    return { status: 'error', error: 'PhotoSystem non disponible' };
+  }
+  try {
+    const config = await photoSystem.db.getMachineConfig();
+    return { status: 'success', config };
+  } catch (error) {
+    console.error('[IPC] Erreur get-machine-config:', error);
+    return { status: 'error', error: error.message };
+  }
+});
+
+// Mettre à jour la langue par défaut
+ipcMain.handle('admin:update-default-lang', async (event, lang) => {
+  if (!photoSystemReady || !photoSystem?.db) {
+    return { status: 'error', error: 'PhotoSystem non disponible' };
+  }
+  try {
+    await photoSystem.db.updateDefaultLang(lang);
+    console.log('[IPC] Langue par défaut mise à jour:', lang);
+    return { status: 'success', lang };
+  } catch (error) {
+    console.error('[IPC] Erreur update-default-lang:', error);
+    return { status: 'error', error: error.message };
+  }
+});
+
 /**
  * ===== IPC HANDLERS - LOGGER =====
  */
