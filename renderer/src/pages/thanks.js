@@ -20,7 +20,6 @@ export const renderThanks = (root) => {
         <p class="thanks-line2">${t('thanksLine2')}</p>
       </div>
       <button class="thanks-btn" onclick="window.backToQR()">${t('thanksBtn')}</button>
-      <div class="thanks-timer">${t('thanksTimer')} <span id="counter">${state.thanksCounter}</span>s</div>
       <img src="./assets/logo.png" alt="Eclipso" class="thanks-logo-bottom">
     </div>`;
   root.appendChild(thanks);
@@ -28,8 +27,6 @@ export const renderThanks = (root) => {
   state.thanksCounter = 10;
   state.timer = setInterval(() => {
     state.thanksCounter--;
-    const cnt = $('#counter');
-    if (cnt) cnt.textContent = state.thanksCounter;
     if (state.thanksCounter <= 0) {
       clearInterval(state.timer);
       window.backToQR();
