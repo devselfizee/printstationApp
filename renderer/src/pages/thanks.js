@@ -7,16 +7,25 @@ export const renderThanks = (root) => {
   thanks.className = 'thanks-page';
   thanks.innerHTML = `
     <div class="thanks-content">
-      <img src="./assets/logo.png" alt="Eclipso" class="thanks-logo">
-      <h2>${t('thanksTitle')}</h2>
-      <p class="thanks-message">${t('thanksMessage')}</p>
-      <p class="thanks-email">${state.email ? t('receipt') + ' ' + state.email : ''}</p>
-      <button class="thanks-btn" onclick="window.backToQR()">${t('backHome')}</button>
-      <div class="thanks-timer">${t('backHome')} in <span id="counter">${state.thanksCounter}</span>s</div>
+      <div class="thanks-checkmark">
+        <svg viewBox="0 0 52 52" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="26" cy="26" r="25" fill="#10b981"/>
+          <path fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" d="M14 27l7 7 16-16"/>
+        </svg>
+      </div>
+      <h1 class="thanks-title">${t('thanksTitle')}</h1>
+      <p class="thanks-subtitle">${t('thanksSubtitle')}</p>
+      <div class="thanks-instructions">
+        <p class="thanks-line1">${t('thanksLine1')}</p>
+        <p class="thanks-line2">${t('thanksLine2')}</p>
+      </div>
+      <button class="thanks-btn" onclick="window.backToQR()">${t('thanksBtn')}</button>
+      <div class="thanks-timer">${t('thanksTimer')} <span id="counter">${state.thanksCounter}</span>s</div>
+      <img src="./assets/logo.png" alt="Eclipso" class="thanks-logo-bottom">
     </div>`;
   root.appendChild(thanks);
-  
-  state.thanksCounter = 8;
+
+  state.thanksCounter = 10;
   state.timer = setInterval(() => {
     state.thanksCounter--;
     const cnt = $('#counter');
