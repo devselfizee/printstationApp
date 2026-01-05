@@ -77,6 +77,11 @@ const photoAPI = {
     // Configuration machine
     getMachineConfig: () => ipcRenderer.invoke('admin:get-machine-config'),
     updateDefaultLang: (lang) => ipcRenderer.invoke('admin:update-default-lang', lang),
+    // Messages de remerciement
+    getThanksMessages: () => ipcRenderer.invoke('admin:get-thanks-messages'),
+    getThanksMessage: (lang) => ipcRenderer.invoke('admin:get-thanks-message', lang),
+    updateThanksMessage: (lang, title, subtitle) => ipcRenderer.invoke('admin:update-thanks-message', { lang, title, subtitle }),
+    deleteThanksMessage: (lang) => ipcRenderer.invoke('admin:delete-thanks-message', lang),
   },
 
   // Payment

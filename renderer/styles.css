@@ -1704,6 +1704,75 @@ body.page-payment { overflow: hidden; }
   color: #fff;
 }
 
+.admin-input {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 14px;
+  padding: 12px 16px;
+  width: 100%;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+}
+
+.admin-input:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.admin-input:focus {
+  outline: none;
+  border-color: #5eb7ff;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.admin-input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.admin-btn-save {
+  background: rgba(16, 185, 129, 0.3);
+  border: 1px solid rgba(16, 185, 129, 0.5);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 10px 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.admin-btn-save:hover {
+  background: rgba(16, 185, 129, 0.5);
+}
+
+.admin-btn-save:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.admin-btn-reset {
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 10px 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.admin-btn-reset:hover {
+  background: rgba(239, 68, 68, 0.4);
+}
+
+.admin-btn-reset:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 
 /**
  * dev-simulator-styles.css - Styles pour le QR simulator

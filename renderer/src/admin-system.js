@@ -525,6 +525,22 @@ async function showAdminDashboard() {
     console.error('[Admin] Erreur config machine:', error);
   }
 
+  // Charger les messages de remerciement personnalisés
+  let thanksMessages = {};
+  try {
+    if (window.photoAPI?.admin?.getThanksMessages) {
+      const result = await window.photoAPI.admin.getThanksMessages();
+      if (result.status === 'success' && result.messages) {
+        result.messages.forEach(msg => {
+          thanksMessages[msg.lang] = { title: msg.title, subtitle: msg.subtitle };
+        });
+        console.log('[Admin] Messages remerciement:', thanksMessages);
+      }
+    }
+  } catch (error) {
+    console.error('[Admin] Erreur messages remerciement:', error);
+  }
+
   dashboard.innerHTML = `
     <div class="admin-dashboard-container">
       <div class="admin-header">
@@ -625,6 +641,35 @@ async function showAdminDashboard() {
               <option value="it" ${currentDefaultLang === 'it' ? 'selected' : ''}>Italiano</option>
               <option value="zh" ${currentDefaultLang === 'zh' ? 'selected' : ''}>中文</option>
             </select>
+          </div>
+        </div>
+      </section>
+
+      <section class="admin-section">
+        <h2>📝 Messages de remerciement</h2>
+        <div class="admin-settings">
+          <div class="setting-row">
+            <label for="thanksLangSelect">Langue à configurer</label>
+            <select id="thanksLangSelect" class="admin-select">
+              <option value="fr">Français</option>
+              <option value="en">English</option>
+              <option value="es">Español</option>
+              <option value="de">Deutsch</option>
+              <option value="it">Italiano</option>
+              <option value="zh">中文</option>
+            </select>
+          </div>
+          <div class="setting-row" style="flex-direction: column; align-items: stretch; gap: 10px;">
+            <label for="thanksTitleInput">Ligne 1 (titre principal)</label>
+            <input type="text" id="thanksTitleInput" class="admin-input" placeholder="Ex: Dirigez-vous vers le comptoir de la boutique">
+          </div>
+          <div class="setting-row" style="flex-direction: column; align-items: stretch; gap: 10px;">
+            <label for="thanksSubtitleInput">Ligne 2 (sous-titre)</label>
+            <input type="text" id="thanksSubtitleInput" class="admin-input" placeholder="Ex: pour récupérer votre commande.">
+          </div>
+          <div class="setting-row" style="justify-content: flex-end; gap: 10px;">
+            <button id="thanksResetBtn" class="admin-btn-reset">Réinitialiser</button>
+            <button id="thanksSaveBtn" class="admin-btn-save">Enregistrer</button>
           </div>
         </div>
       </section>
@@ -783,6 +828,119 @@ async function showAdminDashboard() {
         defaultLangSelect.style.borderColor = '#ef4444';
       }
     });
+  }
+
+  // Gestion des messages de remerciement
+  const thanksLangSelect = $('#thanksLangSelect');
+  const thanksTitleInput = $('#thanksTitleInput');
+  const thanksSubtitleInput = $('#thanksSubtitleInput');
+  const thanksSaveBtn = $('#thanksSaveBtn');
+  const thanksResetBtn = $('#thanksResetBtn');
+
+  // Fonction pour charger les valeurs pour une langue
+  function loadThanksValuesForLang(lang) {
+    if (thanksMessages[lang]) {
+      thanksTitleInput.value = thanksMessages[lang].title || '';
+      thanksSubtitleInput.value = thanksMessages[lang].subtitle || '';
+    } else {
+      // Valeurs par défaut vides (utilisera les traductions i18n)
+      thanksTitleInput.value = '';
+      thanksSubtitleInput.value = '';
+    }
+  }
+
+  // Charger les valeurs initiales (français par défaut)
+  if (thanksLangSelect && thanksTitleInput && thanksSubtitleInput) {
+    loadThanksValuesForLang('fr');
+
+    // Changer de langue
+    thanksLangSelect.addEventListener('change', (e) => {
+      loadThanksValuesForLang(e.target.value);
+      resetDashboardTimer();
+    });
+
+    // Sauvegarder
+    if (thanksSaveBtn) {
+      thanksSaveBtn.addEventListener('click', async () => {
+        const lang = thanksLangSelect.value;
+        const title = thanksTitleInput.value.trim();
+        const subtitle = thanksSubtitleInput.value.trim();
+
+        if (!title || !subtitle) {
+          thanksSaveBtn.style.background = '#ef4444';
+          thanksSaveBtn.textContent = 'Champs requis!';
+          setTimeout(() => {
+            thanksSaveBtn.style.background = '';
+            thanksSaveBtn.textContent = 'Enregistrer';
+          }, 2000);
+          return;
+        }
+
+        try {
+          thanksSaveBtn.disabled = true;
+          thanksSaveBtn.textContent = 'Enregistrement...';
+
+          const result = await window.photoAPI.admin.updateThanksMessage(lang, title, subtitle);
+          if (result.status === 'success') {
+            // Mettre à jour le cache local
+            thanksMessages[lang] = { title, subtitle };
+            thanksSaveBtn.style.background = '#10b981';
+            thanksSaveBtn.textContent = 'Enregistré!';
+            console.log('[Admin] Message remerciement mis à jour:', lang);
+          } else {
+            thanksSaveBtn.style.background = '#ef4444';
+            thanksSaveBtn.textContent = 'Erreur!';
+          }
+        } catch (error) {
+          console.error('[Admin] Erreur sauvegarde message:', error);
+          thanksSaveBtn.style.background = '#ef4444';
+          thanksSaveBtn.textContent = 'Erreur!';
+        }
+
+        setTimeout(() => {
+          thanksSaveBtn.disabled = false;
+          thanksSaveBtn.style.background = '';
+          thanksSaveBtn.textContent = 'Enregistrer';
+        }, 2000);
+      });
+    }
+
+    // Réinitialiser (supprimer la config personnalisée)
+    if (thanksResetBtn) {
+      thanksResetBtn.addEventListener('click', async () => {
+        const lang = thanksLangSelect.value;
+
+        try {
+          thanksResetBtn.disabled = true;
+          thanksResetBtn.textContent = 'Réinitialisation...';
+
+          const result = await window.photoAPI.admin.deleteThanksMessage(lang);
+          if (result.status === 'success') {
+            // Supprimer du cache local
+            delete thanksMessages[lang];
+            // Vider les champs
+            thanksTitleInput.value = '';
+            thanksSubtitleInput.value = '';
+            thanksResetBtn.style.background = '#10b981';
+            thanksResetBtn.textContent = 'Réinitialisé!';
+            console.log('[Admin] Message remerciement réinitialisé:', lang);
+          } else {
+            thanksResetBtn.style.background = '#ef4444';
+            thanksResetBtn.textContent = 'Erreur!';
+          }
+        } catch (error) {
+          console.error('[Admin] Erreur réinitialisation:', error);
+          thanksResetBtn.style.background = '#ef4444';
+          thanksResetBtn.textContent = 'Erreur!';
+        }
+
+        setTimeout(() => {
+          thanksResetBtn.disabled = false;
+          thanksResetBtn.style.background = '';
+          thanksResetBtn.textContent = 'Réinitialiser';
+        }, 2000);
+      });
+    }
   }
 
   // Fermer avec Escape

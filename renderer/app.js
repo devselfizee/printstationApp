@@ -36,7 +36,7 @@ window.UNIVERSES = UNIVERSES;
 // Variable pour tracker la page précédente
 let previousPage = null;
 
-function render() {
+async function render() {
   const app = $('#app');
   if (!app) return;
 
@@ -105,7 +105,7 @@ function render() {
   else if (state.page === 'cart') renderCart(app);
   else if (state.page === 'payment') renderPayment(app);
   else if (state.page === 'form') renderForm(app);
-  else if (state.page === 'thanks') renderThanks(app);
+  else if (state.page === 'thanks') await renderThanks(app);
 
   updateCartCount();
 

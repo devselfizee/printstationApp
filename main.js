@@ -1978,6 +1978,64 @@ ipcMain.handle('admin:update-default-lang', async (event, lang) => {
   }
 });
 
+// Récupérer tous les messages de remerciement
+ipcMain.handle('admin:get-thanks-messages', async () => {
+  if (!photoSystemReady || !photoSystem?.db) {
+    return { status: 'error', error: 'PhotoSystem non disponible' };
+  }
+  try {
+    const messages = await photoSystem.db.getThanksMessages();
+    return { status: 'success', messages };
+  } catch (error) {
+    console.error('[IPC] Erreur get-thanks-messages:', error);
+    return { status: 'error', error: error.message };
+  }
+});
+
+// Récupérer un message de remerciement par langue
+ipcMain.handle('admin:get-thanks-message', async (event, lang) => {
+  if (!photoSystemReady || !photoSystem?.db) {
+    return { status: 'error', error: 'PhotoSystem non disponible' };
+  }
+  try {
+    const message = await photoSystem.db.getThanksMessage(lang);
+    return { status: 'success', message };
+  } catch (error) {
+    console.error('[IPC] Erreur get-thanks-message:', error);
+    return { status: 'error', error: error.message };
+  }
+});
+
+// Mettre à jour un message de remerciement
+ipcMain.handle('admin:update-thanks-message', async (event, { lang, title, subtitle }) => {
+  if (!photoSystemReady || !photoSystem?.db) {
+    return { status: 'error', error: 'PhotoSystem non disponible' };
+  }
+  try {
+    await photoSystem.db.updateThanksMessage(lang, title, subtitle);
+    console.log('[IPC] Message de remerciement mis à jour:', lang);
+    return { status: 'success', lang };
+  } catch (error) {
+    console.error('[IPC] Erreur update-thanks-message:', error);
+    return { status: 'error', error: error.message };
+  }
+});
+
+// Supprimer un message de remerciement (reset aux valeurs par défaut)
+ipcMain.handle('admin:delete-thanks-message', async (event, lang) => {
+  if (!photoSystemReady || !photoSystem?.db) {
+    return { status: 'error', error: 'PhotoSystem non disponible' };
+  }
+  try {
+    await photoSystem.db.deleteThanksMessage(lang);
+    console.log('[IPC] Message de remerciement supprimé:', lang);
+    return { status: 'success', lang };
+  } catch (error) {
+    console.error('[IPC] Erreur delete-thanks-message:', error);
+    return { status: 'error', error: error.message };
+  }
+});
+
 /**
  * ===== IPC HANDLERS - LOGGER =====
  */

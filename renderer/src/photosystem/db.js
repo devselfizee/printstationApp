@@ -370,6 +370,15 @@ async function createTables() {
     `CREATE INDEX IF NOT EXISTS idx_scan_stories_participant ON scan_stories(participant_id);`,
     `CREATE INDEX IF NOT EXISTS idx_scan_stories_universe ON scan_stories(universe_id);`,
     `CREATE INDEX IF NOT EXISTS idx_scan_stories_created_at ON scan_stories(created_at);`,
+
+    `CREATE TABLE IF NOT EXISTS thanks_messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      lang TEXT NOT NULL UNIQUE,
+      title TEXT NOT NULL,
+      subtitle TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );`,
   ];
 
   for (const stmt of statements) {
@@ -2027,6 +2036,46 @@ export async function markPaymentLogSynced(logId) {
     `UPDATE payment_logs SET synced_to_remote = 1, updated_at = datetime('now', 'localtime') WHERE id = ?`,
     [logId]
   );
+}
+
+/**
+ * ===== MESSAGES DE REMERCIEMENT =====
+ */
+
+/**
+ * Récupérer tous les messages de remerciement
+ */
+export async function getThanksMessages() {
+  return allAsync('SELECT * FROM thanks_messages ORDER BY lang');
+}
+
+/**
+ * Récupérer un message de remerciement par langue
+ */
+export async function getThanksMessage(lang) {
+  return getAsync('SELECT * FROM thanks_messages WHERE lang = ?', [lang]);
+}
+
+/**
+ * Mettre à jour ou créer un message de remerciement
+ */
+export async function updateThanksMessage(lang, title, subtitle) {
+  return runAsync(
+    `INSERT INTO thanks_messages (lang, title, subtitle, created_at, updated_at)
+     VALUES (?, ?, ?, datetime('now', 'localtime'), datetime('now', 'localtime'))
+     ON CONFLICT(lang) DO UPDATE SET
+       title = excluded.title,
+       subtitle = excluded.subtitle,
+       updated_at = datetime('now', 'localtime')`,
+    [lang, title, subtitle]
+  );
+}
+
+/**
+ * Supprimer un message de remerciement
+ */
+export async function deleteThanksMessage(lang) {
+  return runAsync('DELETE FROM thanks_messages WHERE lang = ?', [lang]);
 }
 
 /**
