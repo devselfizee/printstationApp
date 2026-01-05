@@ -151,6 +151,28 @@ const updateDetailFooter = () => {
   if (cartDetailCount) cartDetailCount.textContent = getArticleLabel();
 };
 
+/**
+ * Rafraîchir toutes les offres pour mettre à jour les prix dégressifs
+ */
+const refreshAllOffers = (photo) => {
+  const offerElements = document.querySelectorAll('.offer');
+  const currentUniverseId = state.universe?.id || state.universeId;
+
+  // Récupérer les produits filtrés par univers (même logique que dans render)
+  const products = Object.values(window.PRODUCTS).filter(product => {
+    return !product.universe_id || product.universe_id === currentUniverseId;
+  });
+
+  offerElements.forEach((offerEl, index) => {
+    if (index < products.length) {
+      const product = products[index];
+      const parent = offerEl.parentElement;
+      const newOffer = renderOffer(photo, product);
+      parent.replaceChild(newOffer, offerEl);
+    }
+  });
+};
+
 export const renderOffer = (photo, product) => {
   const qty = getQty(photo.id, product.id, state.cart); // Quantité de CE produit (pour le message "déjà X dans le panier")
   const totalCartQty = getTotalCartQty(state.cart); // Quantité TOTALE du panier (pour le prix dégressif global)
@@ -271,9 +293,8 @@ el.innerHTML = `
       cmdBtn.innerHTML = originalHTML;
     }
 
-    const parent = el.parentElement;
-    const idx = Array.from(parent.children).indexOf(el);
-    parent.replaceChild(renderOffer(photo, product), parent.children[idx]);
+    // Rafraîchir TOUTES les offres pour mettre à jour les prix dégressifs
+    refreshAllOffers(photo);
   };
   
   const retirer = el.querySelector('.retirer');
@@ -322,9 +343,8 @@ el.innerHTML = `
         retirer.textContent = originalText;
       }
 
-      const parent = el.parentElement;
-      const idx = Array.from(parent.children).indexOf(el);
-      parent.replaceChild(renderOffer(photo, product), parent.children[idx]);
+      // Rafraîchir TOUTES les offres pour mettre à jour les prix dégressifs
+      refreshAllOffers(photo);
     };
   }
   
