@@ -28,7 +28,24 @@ const flags = {
   zh: '<img src="./assets/flags/zh.svg" alt="ZH" style="width:20px;height:auto;">'
 };
 
-['fr', 'en', 'es', 'it', 'de', 'zh'].forEach(l => {
+// Ordre dynamique : langue active en 1er, anglais en 2ème (sauf si actif), puis le reste
+const allLangs = ['fr', 'en', 'es', 'it', 'de', 'zh'];
+const currentLang = state.lang || 'fr';
+const orderedLangs = [currentLang];
+
+// Ajouter l'anglais en 2ème position si ce n'est pas la langue active
+if (currentLang !== 'en') {
+  orderedLangs.push('en');
+}
+
+// Ajouter les autres langues
+allLangs.forEach(l => {
+  if (!orderedLangs.includes(l)) {
+    orderedLangs.push(l);
+  }
+});
+
+orderedLangs.forEach(l => {
   const btn = document.createElement('button');
   btn.className = 'lang-btn' + (state.lang === l ? ' active' : '');
   btn.innerHTML = flags[l];  // ← innerHTML pour afficher le SVG
