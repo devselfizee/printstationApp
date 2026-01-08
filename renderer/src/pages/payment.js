@@ -326,8 +326,82 @@ async function initiatePaymentFlow(totalAmount, root) {
     if (window.photoAPI?.logger) {
       window.photoAPI.logger.hexapayFailure(totalAmount, state.localOrderId, error.message);
     }
-    toast(`Erreur: ${error.message}`);
-    state.page = 'cart';
-    window.render();
+
+    // Afficher la popup d'erreur bien visible
+    showPaymentErrorModal(error.message, () => {
+      state.page = 'cart';
+      window.render();
+    });
   }
+}
+
+/**
+ * Affiche une popup d'erreur de paiement bien visible
+ */
+function showPaymentErrorModal(errorMessage, onClose) {
+  // Supprimer une éventuelle popup existante
+  const existing = document.getElementById('payment-error-modal');
+  if (existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'payment-error-modal';
+  modal.className = 'payment-error-modal';
+
+  // Traduire le message d'erreur si possible
+  let displayMessage = errorMessage || t('paymentErrorGeneric');
+
+  // Messages d'erreur courants traduits
+  const errorTranslations = {
+    'cancelled': t('paymentErrorCancelled'),
+    'timeout': t('paymentErrorTimeout'),
+    'refused': t('paymentErrorRefused'),
+    'card_declined': t('paymentErrorRefused'),
+    'insufficient_funds': t('paymentErrorInsufficient'),
+    'network': t('paymentErrorNetwork'),
+  };
+
+  // Chercher une correspondance
+  const lowerError = errorMessage?.toLowerCase() || '';
+  for (const [key, translation] of Object.entries(errorTranslations)) {
+    if (lowerError.includes(key)) {
+      displayMessage = translation;
+      break;
+    }
+  }
+
+  modal.innerHTML = `
+    <div class="payment-error-overlay">
+      <div class="payment-error-box">
+        <div class="payment-error-icon">
+          <svg viewBox="0 0 52 52" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="26" cy="26" r="25" fill="#ef4444"/>
+            <path fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" d="M16 16 L36 36 M36 16 L16 36"/>
+          </svg>
+        </div>
+        <h1 class="payment-error-title">${t('paymentErrorTitle')}</h1>
+        <p class="payment-error-message">${displayMessage}</p>
+        <p class="payment-error-hint">${t('paymentErrorHint')}</p>
+        <button class="payment-error-btn" id="paymentErrorBtn">${t('paymentErrorBtn')}</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  // Bouton de fermeture
+  const btn = document.getElementById('paymentErrorBtn');
+  if (btn) {
+    btn.addEventListener('click', () => {
+      modal.remove();
+      if (onClose) onClose();
+    });
+  }
+
+  // Fermer aussi en cliquant sur l'overlay (optionnel)
+  modal.querySelector('.payment-error-overlay').addEventListener('click', (e) => {
+    if (e.target.classList.contains('payment-error-overlay')) {
+      modal.remove();
+      if (onClose) onClose();
+    }
+  });
 }
