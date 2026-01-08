@@ -118,11 +118,11 @@ async function initiatePaymentFlow(totalAmount, root) {
 
     // 1. Vérifier lecteur
     const ready = await window.hexapay.checkReady();
-    if (!ready.success) throw new Error('Lecteur indisponible');
+    if (!ready.success) throw new Error(t('readerUnavailable'));
 
     // 2. Vérifier licence
     const licensed = await window.hexapay.checkLicense();
-    if (!licensed.success) throw new Error('Licence inactive');
+    if (!licensed.success) throw new Error(t('licenseInactive'));
 
     // 3. Initier paiement
     const payment = await window.hexapay.initiatePayment(totalAmount);
