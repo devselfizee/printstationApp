@@ -151,14 +151,21 @@ const updateDetailFooter = () => {
   if (cartDetailCount) cartDetailCount.textContent = getArticleLabel();
 };
 
-// IDs des produits magnet (à afficher en dernier)
-const MAGNET_PRODUCT_IDS = [
-  'magnet',
-  'ab2f2de9-b571-477b-81f0-294dbf05b6b2',
-  '38f63712-300b-492e-9c17-a4e3d36e4f2f',
-  '4a7b5327-c396-4e8f-9d3a-b200208e3aa3',
-  '8c7f922c-258c-4d3d-84b1-14a5c2a91470'
-];
+/**
+ * Vérifie si un produit est de type "magnet" (basé sur le nom)
+ */
+const isProductMagnet = (product) => {
+  const name = (product.title || '').toLowerCase();
+  return name.includes('magnet');
+};
+
+/**
+ * Vérifie si un produit est de type "chevalet" (basé sur le nom)
+ */
+const isProductChevalet = (product) => {
+  const name = (product.title || '').toLowerCase();
+  return name.includes('chevalet');
+};
 
 /**
  * Rafraîchir toutes les offres pour mettre à jour les prix dégressifs
@@ -174,8 +181,15 @@ const refreshAllOffers = (photo) => {
     })
     .sort((a, b) => {
       // Chevalet en premier, magnet en dernier
-      const aIsMagnet = MAGNET_PRODUCT_IDS.includes(a.id);
-      const bIsMagnet = MAGNET_PRODUCT_IDS.includes(b.id);
+      const aIsChevalet = isProductChevalet(a);
+      const bIsChevalet = isProductChevalet(b);
+      const aIsMagnet = isProductMagnet(a);
+      const bIsMagnet = isProductMagnet(b);
+
+      // Chevalet toujours en premier
+      if (aIsChevalet && !bIsChevalet) return -1;
+      if (!aIsChevalet && bIsChevalet) return 1;
+      // Magnet toujours en dernier
       if (aIsMagnet && !bIsMagnet) return 1;
       if (!aIsMagnet && bIsMagnet) return -1;
       return 0;
@@ -435,8 +449,15 @@ export const renderDetail = (root) => {
     })
     .sort((a, b) => {
       // Chevalet en premier, magnet en dernier
-      const aIsMagnet = MAGNET_PRODUCT_IDS.includes(a.id);
-      const bIsMagnet = MAGNET_PRODUCT_IDS.includes(b.id);
+      const aIsChevalet = isProductChevalet(a);
+      const bIsChevalet = isProductChevalet(b);
+      const aIsMagnet = isProductMagnet(a);
+      const bIsMagnet = isProductMagnet(b);
+
+      // Chevalet toujours en premier
+      if (aIsChevalet && !bIsChevalet) return -1;
+      if (!aIsChevalet && bIsChevalet) return 1;
+      // Magnet toujours en dernier
       if (aIsMagnet && !bIsMagnet) return 1;
       if (!aIsMagnet && bIsMagnet) return -1;
       return 0;
