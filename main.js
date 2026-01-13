@@ -4648,6 +4648,17 @@ async function syncParticipantToRemote(participantId, universeId) {
         });
         return { status: 'exists', message: 'Participant existe déjà' };
       }
+      // Vérifier si c'est une erreur 500 avec duplicate key (bug Edge Function)
+      if (httpError.message && httpError.message.includes('duplicate key')) {
+        console.log('[Participant] ℹ️  Participant existe déjà (duplicate key) - Continuation sans erreur');
+        logger.logSupabaseSync('PARTICIPANT_ALREADY_EXISTS', {
+          participantId,
+          universeId,
+          qrcode,
+          note: 'Edge Function returned 500 instead of 409'
+        });
+        return { status: 'exists', message: 'Participant existe déjà' };
+      }
       // Sinon, propager l'erreur
       throw httpError;
     }
