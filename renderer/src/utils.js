@@ -100,7 +100,8 @@ export const removeOne = (photoId, productId, cart) => {
 
 export const formatPrice = (price) => {
   const rounded = Math.round(price * 100) / 100;
-  return rounded.toFixed(2);
+  // Entiers sans décimales (5€), sinon 2 décimales (9.90€)
+  return rounded % 1 === 0 ? rounded.toString() : rounded.toFixed(2);
 };
 
 
