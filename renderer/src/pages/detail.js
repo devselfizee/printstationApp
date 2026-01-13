@@ -151,6 +151,15 @@ const updateDetailFooter = () => {
   if (cartDetailCount) cartDetailCount.textContent = getArticleLabel();
 };
 
+// IDs des produits magnet (à afficher en dernier)
+const MAGNET_PRODUCT_IDS = [
+  'magnet',
+  'ab2f2de9-b571-477b-81f0-294dbf05b6b2',
+  '38f63712-300b-492e-9c17-a4e3d36e4f2f',
+  '4a7b5327-c396-4e8f-9d3a-b200208e3aa3',
+  '8c7f922c-258c-4d3d-84b1-14a5c2a91470'
+];
+
 /**
  * Rafraîchir toutes les offres pour mettre à jour les prix dégressifs
  */
@@ -158,10 +167,19 @@ const refreshAllOffers = (photo) => {
   const offerElements = document.querySelectorAll('.offer');
   const currentUniverseId = state.universe?.id || state.universeId;
 
-  // Récupérer les produits filtrés par univers (même logique que dans render)
-  const products = Object.values(window.PRODUCTS).filter(product => {
-    return !product.universe_id || product.universe_id === currentUniverseId;
-  });
+  // Récupérer les produits filtrés et triés par univers (même logique que dans render)
+  const products = Object.values(window.PRODUCTS)
+    .filter(product => {
+      return !product.universe_id || product.universe_id === currentUniverseId;
+    })
+    .sort((a, b) => {
+      // Chevalet en premier, magnet en dernier
+      const aIsMagnet = MAGNET_PRODUCT_IDS.includes(a.id);
+      const bIsMagnet = MAGNET_PRODUCT_IDS.includes(b.id);
+      if (aIsMagnet && !bIsMagnet) return 1;
+      if (!aIsMagnet && bIsMagnet) return -1;
+      return 0;
+    });
 
   offerElements.forEach((offerEl, index) => {
     if (index < products.length) {
@@ -414,6 +432,14 @@ export const renderDetail = (root) => {
       // - universe_id est null (produit global disponible pour tous les univers)
       // - universe_id correspond à l'univers actuel
       return !product.universe_id || product.universe_id === currentUniverseId;
+    })
+    .sort((a, b) => {
+      // Chevalet en premier, magnet en dernier
+      const aIsMagnet = MAGNET_PRODUCT_IDS.includes(a.id);
+      const bIsMagnet = MAGNET_PRODUCT_IDS.includes(b.id);
+      if (aIsMagnet && !bIsMagnet) return 1;
+      if (!aIsMagnet && bIsMagnet) return -1;
+      return 0;
     })
     .forEach(product => {
       section.appendChild(renderOffer(p, product));
