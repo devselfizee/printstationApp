@@ -1,7 +1,7 @@
 import { state } from '../state.js';
 import { t, tProduct } from '../i18n.js';
-import { $, getQty, getTotalCartQty, updateCartCount, toast, addOne, removeOne, cartSubtotal, cartNominal, handleOrderCancellation, showCancelOrderModal } from '../utils.js';
-import { createFooterBar, attachFooterListeners, updateFooterBar, formatPrice } from '../utils.js';
+import { $, getQty, getTotalCartQty, updateCartCount, toast, addOne, removeOne, cartSubtotal, cartNominal, handleOrderCancellation, showCancelOrderModal, formatPrice } from '../utils.js';
+import { createFooterBar, attachFooterListeners, updateFooterBar } from '../utils.js';
 import { getProductVisual } from '../data.js';
 
 // Spinner SVG pour les boutons
@@ -211,13 +211,13 @@ el.innerHTML = `
     <div class="visu" style="display:grid;place-items:center;">${visuHTML}</div>
     <div class="info">
       <h3 class="title">${productTitle}</h3>
-      <div class="sub">${t('first')} ${product.first}€ · ${t('next')} ${product.next}€</div>
+      <div class="sub">${t('first')} ${formatPrice(product.first)}€ · ${t('next')} ${formatPrice(product.next)}€</div>
       ${qty >= 1 ? `<div class="meta">${t('already')} ${qty} ${t('inCart')} <a href="#" class="retirer" style="color:var(--brand);text-decoration:underline;cursor:pointer;">${t('remove')}</a></div>` : ''}
     </div>
     <div class="cta">
       <div class="price">
-        ${showOld ? `<span class="old">${product.first}€</span>` : ''}
-        <span class="pill${showOld ? ' pulse' : ''}">${nextPrice}€</span>
+        ${showOld ? `<span class="old">${formatPrice(product.first)}€</span>` : ''}
+        <span class="pill${showOld ? ' pulse' : ''}">${formatPrice(nextPrice)}€</span>
       </div>
       <button class="cmd">${t('add')}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></button>
     </div>`;

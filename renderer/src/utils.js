@@ -100,7 +100,7 @@ export const removeOne = (photoId, productId, cart) => {
 
 export const formatPrice = (price) => {
   const rounded = Math.round(price * 100) / 100;
-  return rounded % 1 === 0 ? rounded.toFixed(0) : rounded.toFixed(2);
+  return rounded.toFixed(2);
 };
 
 
