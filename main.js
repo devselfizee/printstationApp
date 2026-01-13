@@ -2806,11 +2806,6 @@ function invalidateAuthToken() {
 /**
  * Récupérer la liste des produits actifs depuis l'API Supabase
  */
-// Liste des kiosk_id autorisés à voir les produits inactifs (pour tests magnet)
-const TEST_KIOSK_IDS = [
-  '21ffb3b9-a802-49f1-8002-016899d36e7f',
-  '3e57e731-b7b3-4692-acf6-d9b55053135f'
-];
 
 async function fetchProductsFromAPI() {
   if (!API_SYNC_CONFIG.enabled) {
@@ -2898,64 +2893,6 @@ async function fetchProductsFromAPI() {
     console.log('[Products] 🎯 PRODUITS ACTIFS FORMATÉS');
     console.log('[Products] ═══════════════════════════════════════════════');
     console.log('[Products] Nombre de produits actifs:', Object.keys(products).length);
-
-    // Vérifier si ce kiosk est autorisé à voir les produits inactifs (pour tests)
-    const currentKioskId = API_SYNC_CONFIG.kioskId;
-    if (TEST_KIOSK_IDS.includes(currentKioskId)) {
-      console.log('[Products] 🧪 Kiosk de test détecté:', currentKioskId);
-      console.log('[Products] 📦 Récupération des produits INACTIFS pour tests...');
-
-      try {
-        const inactiveProductsUrl = baseUrl + '/manage-products?status=inactive';
-        const inactiveResponse = await makeHttpsRequest(
-          inactiveProductsUrl,
-          null,
-          'GET',
-          { 'apikey': API_SYNC_CONFIG.supabaseAnonKey },
-          authToken
-        );
-
-        // Extraire le tableau de produits inactifs
-        let inactiveProductsArray = null;
-        if (Array.isArray(inactiveResponse)) {
-          inactiveProductsArray = inactiveResponse;
-        } else if (inactiveResponse && Array.isArray(inactiveResponse.products)) {
-          inactiveProductsArray = inactiveResponse.products;
-        }
-
-        if (inactiveProductsArray && inactiveProductsArray.length > 0) {
-          console.log('[Products] ✅ Produits inactifs trouvés:', inactiveProductsArray.length);
-
-          // Ajouter les produits inactifs à la liste
-          inactiveProductsArray.forEach(product => {
-            const firstPrice = product.unit_price || 0;
-            const nextPrice = product.bulk_price || firstPrice;
-
-            products[product.id] = {
-              id: product.id,
-              title: product.name || 'Produit sans nom',
-              first: firstPrice,
-              next: nextPrice,
-              description: product.description || '',
-              status: product.status || 'inactive',
-              thumbnail: product.thumbnail_url || null,
-              universe_id: product.universe_id || null
-            };
-
-            console.log('[Products] 🧪 Ajouté produit inactif:', product.id, '-', product.name);
-          });
-
-          console.log('[Products] 🎯 Total produits après merge:', Object.keys(products).length);
-        } else {
-          console.log('[Products] ℹ️ Aucun produit inactif trouvé');
-        }
-      } catch (inactiveError) {
-        console.error('[Products] ⚠️ Erreur récupération produits inactifs:', inactiveError.message);
-        // On continue avec les produits actifs uniquement
-      }
-    } else {
-      console.log('[Products] ℹ️ Kiosk standard - produits inactifs ignorés');
-    }
 
     console.log('[Products] ═══════════════════════════════════════════════');
     console.log('[Products] 🎯 PRODUITS FINAUX POUR L\'APPLICATION');
