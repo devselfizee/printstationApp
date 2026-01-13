@@ -127,14 +127,28 @@ async function checkRetrySchedule() {
 
     console.log(`[PhotoDownload] ⏰ ${photosToRetry.length} photos prêtes pour retry`);
 
+    // Log pour tracer dans les fichiers de logs
+    logger.info('PHOTO_DL', `${photosToRetry.length} photos prêtes pour retry automatique`, {
+      count: photosToRetry.length,
+      photoIds: photosToRetry.map(p => p.id).slice(0, 10), // Max 10 IDs pour éviter des logs trop longs
+      timestamp: new Date().toISOString()
+    });
+
     for (const photo of photosToRetry) {
       // Délai aléatoire pour éviter les pics
       const randomDelay = Math.floor(Math.random() * CONFIG.RANDOM_DELAY_MAX_MS);
 
       setTimeout(async () => {
+        const wasStuck = !photo.next_retry_at;
+
         // Si la photo n'avait pas de next_retry_at (photo bloquée), initialiser les infos de retry
-        if (!photo.next_retry_at) {
+        if (wasStuck) {
           console.log(`[PhotoDownload] 🔧 Initialisation retry pour photo bloquée: ${photo.id}`);
+          logger.warn('PHOTO_DL', `Photo bloquée récupérée: ${photo.id}`, {
+            photoId: photo.id,
+            previousStatus: photo.status,
+            previousError: photo.last_error_code
+          });
           await db.updatePhotoRetryInfo(photo.id, {
             retryCount: photo.retry_count || 0,
             retryPhase: 1,
@@ -149,16 +163,18 @@ async function checkRetrySchedule() {
 
         await enqueueDownload(photo.id);
 
-        logger.info('PHOTO_DL', 'Retry automatique déclenché', {
+        logger.info('PHOTO_DL', `Retry automatique déclenché: ${photo.id}`, {
           photoId: photo.id,
           phase: photo.retry_phase || 1,
           attemptCount: photo.retry_count || 0,
-          wasStuck: !photo.next_retry_at
+          wasStuck,
+          previousError: photo.last_error_code
         });
       }, randomDelay);
     }
   } catch (error) {
     console.error('[PhotoDownload] Erreur check retry schedule:', error.message);
+    logger.error('PHOTO_DL', 'Erreur vérification retry schedule', { error: error.message });
   }
 }
 
@@ -405,6 +421,7 @@ async function handleDownloadError(photoId, url, participantId, error, errorCode
 
   // Calculer la nouvelle phase et le prochain retry
   const { newPhase, newStatus, nextRetryAt } = calculateNextRetry(currentRetryCount, currentPhase);
+  const nextRetryInSeconds = nextRetryAt ? Math.round(nextRetryAt - Date.now() / 1000) : 0;
 
   // Log détaillé
   const errorDetails = {
@@ -415,16 +432,28 @@ async function handleDownloadError(photoId, url, participantId, error, errorCode
     phase: currentPhase,
     newPhase,
     newStatus,
-    nextRetryIn: nextRetryAt ? `${Math.round((nextRetryAt - Date.now() / 1000))}s` : 'N/A',
+    nextRetryIn: `${nextRetryInSeconds}s`,
+    nextRetryAt: nextRetryAt ? new Date(nextRetryAt * 1000).toISOString() : 'N/A',
     errorCode,
     errorMessage: error.message,
     timestamp: new Date().toISOString()
   };
 
   console.error(`[PhotoDownload] ❌ ${photoId} erreur: ${error.message}`);
-  console.error(`[PhotoDownload] 📋 Phase ${currentPhase}→${newPhase}, retry #${currentRetryCount}, prochain dans ${errorDetails.nextRetryIn}`);
+  console.error(`[PhotoDownload] 📋 Phase ${currentPhase}→${newPhase}, retry #${currentRetryCount}, prochain dans ${nextRetryInSeconds}s`);
 
+  // Log ERROR pour l'erreur de téléchargement
   logger.error('PHOTO_DL', `Échec téléchargement photo ${photoId}`, errorDetails);
+
+  // Log INFO pour la planification du retry (permet de tracer dans les logs)
+  logger.info('PHOTO_DL', `Retry planifié pour photo ${photoId}`, {
+    photoId,
+    retryCount: currentRetryCount,
+    phase: newPhase,
+    nextRetryIn: `${nextRetryInSeconds}s`,
+    nextRetryAt: nextRetryAt ? new Date(nextRetryAt * 1000).toISOString() : 'N/A',
+    errorCode
+  });
 
   // Mettre à jour la DB avec la nouvelle planification
   await db.updatePhotoRetryInfo(photoId, {
