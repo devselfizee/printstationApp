@@ -132,13 +132,28 @@ async function checkRetrySchedule() {
       const randomDelay = Math.floor(Math.random() * CONFIG.RANDOM_DELAY_MAX_MS);
 
       setTimeout(async () => {
-        await db.updatePhotoStatus(photo.id, 'pending');
+        // Si la photo n'avait pas de next_retry_at (photo bloquée), initialiser les infos de retry
+        if (!photo.next_retry_at) {
+          console.log(`[PhotoDownload] 🔧 Initialisation retry pour photo bloquée: ${photo.id}`);
+          await db.updatePhotoRetryInfo(photo.id, {
+            retryCount: photo.retry_count || 0,
+            retryPhase: 1,
+            nextRetryAt: Math.floor(Date.now() / 1000),
+            lastErrorCode: photo.last_error_code || 'RECOVERED',
+            lastErrorMessage: photo.last_error || 'Photo récupérée automatiquement',
+            status: 'pending'
+          });
+        } else {
+          await db.updatePhotoStatus(photo.id, 'pending');
+        }
+
         await enqueueDownload(photo.id);
 
         logger.info('PHOTO_DL', 'Retry automatique déclenché', {
           photoId: photo.id,
-          phase: photo.retry_phase,
-          attemptCount: photo.retry_count
+          phase: photo.retry_phase || 1,
+          attemptCount: photo.retry_count || 0,
+          wasStuck: !photo.next_retry_at
         });
       }, randomDelay);
     }

@@ -908,16 +908,20 @@ export async function updatePhotoRetryInfo(photoId, {
 }
 
 /**
- * Obtenir les photos prêtes pour retry (next_retry_at <= maintenant)
+ * Obtenir les photos prêtes pour retry:
+ * - next_retry_at <= maintenant (retry planifié)
+ * - OU next_retry_at IS NULL (photos bloquées sans planning)
+ * - OU status = 'error' (anciennes erreurs à re-tenter)
  */
 export async function getPhotosReadyForRetry(limit = 100) {
   const now = Math.floor(Date.now() / 1000);
   return allAsync(
     `SELECT * FROM photos
-     WHERE status IN ('failed_temp', 'failed_long_retry')
-       AND next_retry_at IS NOT NULL
-       AND next_retry_at <= ?
-     ORDER BY next_retry_at ASC
+     WHERE (
+       (status IN ('failed_temp', 'failed_long_retry') AND next_retry_at IS NOT NULL AND next_retry_at <= ?)
+       OR (status IN ('failed_temp', 'failed_long_retry', 'error') AND next_retry_at IS NULL)
+     )
+     ORDER BY COALESCE(next_retry_at, 0) ASC
      LIMIT ?`,
     [now, limit]
   );
