@@ -18,6 +18,35 @@ const APP_VERSION = packageJson.version;
 // Initialiser le logger avec la version de l'app
 logger.init(APP_VERSION);
 
+// ============================================
+// GESTION INSTANCE UNIQUE
+// ============================================
+// Si l'app est déjà lancée, restaurer la fenêtre existante
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+  // Une autre instance existe déjà, quitter cette nouvelle instance
+  console.log('[Main] Une instance est déjà en cours d\'exécution. Fermeture...');
+  app.quit();
+} else {
+  // Écouter quand une autre instance essaie de se lancer
+  app.on('second-instance', (event, commandLine, workingDirectory) => {
+    console.log('[Main] Tentative de lancement d\'une seconde instance détectée');
+    // Restaurer et focus la fenêtre existante
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) {
+        mainWindow.restore();
+      }
+      mainWindow.show();
+      mainWindow.focus();
+      // S'assurer qu'elle est en plein écran
+      if (!mainWindow.isFullScreen()) {
+        mainWindow.setFullScreen(true);
+      }
+    }
+  });
+}
+
 // Log immédiat au lancement de l'application
 console.log(`[${new Date().toISOString()}] 🚀 PrintStation démarrage - Version: ${app.getVersion()} - Env: ${app.isPackaged ? 'production' : 'development'}`);
 
