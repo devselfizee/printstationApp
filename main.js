@@ -2843,11 +2843,31 @@ async function fetchProductsFromAPI() {
   }
 
   try {
+    // Récupérer le sales_point_id depuis machine_config
+    let salesPointId = API_SYNC_CONFIG.salesPointId;
+
+    if (photoSystemReady && photoSystem?.db) {
+      try {
+        const machineConfig = await photoSystem.db.getMachineConfig();
+        if (machineConfig && machineConfig.sales_point_id) {
+          salesPointId = machineConfig.sales_point_id;
+          console.log('[Products] ✅ sales_point_id récupéré depuis machine_config:', salesPointId);
+        } else {
+          console.log('[Products] ⚠️ Pas de sales_point_id dans machine_config, utilisation de la config par défaut');
+        }
+      } catch (configError) {
+        console.log('[Products] ⚠️ Erreur récupération machine_config:', configError.message);
+      }
+    } else {
+      console.log('[Products] ⚠️ PhotoSystem non prêt, utilisation du sales_point_id par défaut');
+    }
+
     const baseUrl = process.env.BASE_URL || 'https://ygetxuvqrknbggplzmvy.supabase.co/functions/v1';
-    const productsUrl = baseUrl + '/manage-products?status=active';
+    const productsUrl = baseUrl + `/api-sales-point-products?sales_point_id=${salesPointId}&active_only=true&limit=100&offset=0`;
 
     console.log('[Products] 📦 Récupération des produits depuis l\'API...');
     console.log('[Products] URL:', productsUrl);
+    console.log('[Products] Sales Point ID:', salesPointId);
 
     // Récupérer un token d'authentification
     const authToken = await getAuthToken();
@@ -2873,12 +2893,15 @@ async function fetchProductsFromAPI() {
     console.log(JSON.stringify(response, null, 2));
     console.log('[Products] ═══════════════════════════════════════════════');
 
-    // Extraire le tableau de produits (peut être dans response.products ou directement response)
+    // Extraire le tableau de produits (peut être dans response.data, response.products ou directement response)
     let productsArray = null;
 
     if (Array.isArray(response)) {
       productsArray = response;
       console.log('[Products] ✅ Réponse directe est un tableau de', response.length, 'produit(s)');
+    } else if (response && Array.isArray(response.data)) {
+      productsArray = response.data;
+      console.log('[Products] ✅ Réponse contient une clé "data" avec', response.data.length, 'produit(s)');
     } else if (response && Array.isArray(response.products)) {
       productsArray = response.products;
       console.log('[Products] ✅ Réponse contient une clé "products" avec', response.products.length, 'produit(s)');
@@ -2891,14 +2914,19 @@ async function fetchProductsFromAPI() {
     const products = {};
     productsArray.forEach(product => {
       console.log('[Products] ─────────────────────────────────────────────');
-      console.log('[Products] 🔍 Traitement du produit:', product.id, '-', product.name);
+      // Récupérer l'ID du produit (peut être product.id ou product.product_id)
+      const productId = product.product_id || product.id;
+      // Récupérer le nom du produit (peut être product.name ou product.product_name)
+      const productName = product.product_name || product.name;
+
+      console.log('[Products] 🔍 Traitement du produit:', productId, '-', productName);
       console.log('[Products] Champs disponibles:', Object.keys(product));
       console.log('[Products] Données brutes:', JSON.stringify(product, null, 2));
 
       // Les prix sont déjà en euros dans l'API
-      // unit_price = prix initial (first)
-      // bulk_price = prix en lot (next)
-      const firstPrice = product.unit_price || 0;
+      // unit_price = prix initial (first) - prix unitaire
+      // bulk_price = prix en lot (next) - prix dégressif
+      const firstPrice = product.unit_price || product.price || 0;
       const nextPrice = product.bulk_price || firstPrice;
 
       console.log('[Products] Prix unitaire (unit_price):', product.unit_price, '€');
@@ -2906,9 +2934,9 @@ async function fetchProductsFromAPI() {
       console.log('[Products] Prix formatés - first:', firstPrice, '€, next:', nextPrice, '€');
       console.log('[Products] Thumbnail URL:', product.thumbnail_url);
 
-      products[product.id] = {
-        id: product.id,
-        title: product.name || 'Produit sans nom',
+      products[productId] = {
+        id: productId,
+        title: productName || 'Produit sans nom',
         first: firstPrice,
         next: nextPrice,
         description: product.description || '',
