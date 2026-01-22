@@ -362,6 +362,8 @@ async function createTables() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       participant_id TEXT NOT NULL,
       universe_id TEXT NOT NULL,
+      timezone TEXT,
+      timezone_offset TEXT,
       created_at DATETIME DEFAULT (datetime('now', 'localtime')),
       FOREIGN KEY(participant_id) REFERENCES participants(id),
       FOREIGN KEY(universe_id) REFERENCES universes(id)
@@ -550,6 +552,24 @@ async function migrateSyncColumns() {
   } catch (error) {
     console.error('[DB] Erreur migration supabase_item_id:', error);
   }
+
+  // Migration: Ajouter timezone et timezone_offset à la table scan_stories
+  try {
+    const scanStoriesInfo = await allAsync('PRAGMA table_info(scan_stories)');
+    const scanStoriesColumns = scanStoriesInfo.map(col => col.name);
+
+    if (!scanStoriesColumns.includes('timezone')) {
+      await execAsync('ALTER TABLE scan_stories ADD COLUMN timezone TEXT');
+      console.log('[DB] ✅ Colonne timezone ajoutée à scan_stories');
+    }
+
+    if (!scanStoriesColumns.includes('timezone_offset')) {
+      await execAsync('ALTER TABLE scan_stories ADD COLUMN timezone_offset TEXT');
+      console.log('[DB] ✅ Colonne timezone_offset ajoutée à scan_stories');
+    }
+  } catch (error) {
+    console.error('[DB] Erreur migration timezone/timezone_offset scan_stories:', error);
+  }
 }
 
 /**
@@ -666,16 +686,26 @@ export async function addScanStory(participantId, universeId) {
   const seconds = String(now.getSeconds()).padStart(2, '0');
   const createdAt = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 
+  // Récupérer le timezone de la borne
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  // Calculer le décalage horaire par rapport à GMT (ex: "+2", "-5")
+  const offsetMinutes = now.getTimezoneOffset();
+  const offsetHours = -offsetMinutes / 60; // Inverser car getTimezoneOffset retourne l'inverse
+  const timezoneOffset = offsetHours >= 0 ? `+${offsetHours}` : `${offsetHours}`;
+
   const result = await runAsync(
-    `INSERT INTO scan_stories (participant_id, universe_id, created_at)
-     VALUES (?, ?, ?)`,
-    [participantId, universeId, createdAt]
+    `INSERT INTO scan_stories (participant_id, universe_id, timezone, timezone_offset, created_at)
+     VALUES (?, ?, ?, ?, ?)`,
+    [participantId, universeId, timezone, timezoneOffset, createdAt]
   );
 
   return {
     id: result.lastID,
     participantId,
     universeId,
+    timezone,
+    timezoneOffset,
     createdAt
   };
 }
