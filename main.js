@@ -1729,8 +1729,11 @@ ipcMain.handle('photos:scan-qr', async (event, qrContent) => {
       const seconds = String(now.getSeconds()).padStart(2, '0');
       const createdAt = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 
+      // Récupérer le timezone de la borne
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
       // Sync scan story vers Supabase (non bloquant)
-      syncScanStoryToRemote(result.participantId, result.universeId, createdAt)
+      syncScanStoryToRemote(result.participantId, result.universeId, createdAt, timezone)
         .then(syncResult => {
           if (syncResult.status === 'success') {
             console.log('[IPC] Scan story synchronisé vers Supabase');
@@ -4504,8 +4507,9 @@ ipcMain.handle('order:cancel-remote', async (event, supabaseOrderId, lastStep = 
  * @param {string} participantId - ID du participant
  * @param {string} universeId - ID de l'univers
  * @param {string} createdAt - Date de création locale (format: YYYY-MM-DD HH:MM:SS)
+ * @param {string} timezone - Timezone de la borne (ex: Europe/Paris)
  */
-async function syncScanStoryToRemote(participantId, universeId, createdAt) {
+async function syncScanStoryToRemote(participantId, universeId, createdAt, timezone = null) {
   if (!API_SYNC_CONFIG.enabled) {
     console.log('[ScanStory] API désactivée');
     return { status: 'skipped', message: 'API désactivée' };
@@ -4518,6 +4522,7 @@ async function syncScanStoryToRemote(participantId, universeId, createdAt) {
     console.log('[ScanStory] participant_id:', participantId);
     console.log('[ScanStory] universe_id:', universeId);
     console.log('[ScanStory] created_at:', createdAt);
+    console.log('[ScanStory] timezone:', timezone);
 
     // Récupérer le kiosk_id depuis la config
     const kioskId = API_SYNC_CONFIG.kioskId;
@@ -4536,13 +4541,18 @@ async function syncScanStoryToRemote(participantId, universeId, createdAt) {
     }
     console.log('[ScanStory] date_scan:', dateScan);
 
+    // Utiliser le timezone passé en paramètre ou récupérer celui du système
+    const timezoneValue = timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    console.log('[ScanStory] timezone (final):', timezoneValue);
+
     // Construire le payload
     const payload = {
       participant_id: participantId,
       universe_id: universeId,
       qrcode: qrcode,
       kiosk_id: kioskId,
-      date_scan: dateScan
+      date_scan: dateScan,
+      timezone: timezoneValue
     };
 
     console.log('[ScanStory] Payload:', JSON.stringify(payload, null, 2));
@@ -4594,9 +4604,9 @@ async function syncScanStoryToRemote(participantId, universeId, createdAt) {
 }
 
 // Handler IPC pour synchroniser un scan story
-ipcMain.handle('scan-story:sync-remote', async (event, { participantId, universeId, createdAt }) => {
+ipcMain.handle('scan-story:sync-remote', async (event, { participantId, universeId, createdAt, timezone }) => {
   console.log('[IPC] scan-story:sync-remote appelé');
-  return await syncScanStoryToRemote(participantId, universeId, createdAt);
+  return await syncScanStoryToRemote(participantId, universeId, createdAt, timezone);
 });
 
 /**
