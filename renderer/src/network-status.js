@@ -231,8 +231,10 @@ function updateStatus() {
   }
 
   if (!isOnline) {
-    showBanner();
+    // Afficher l'écran bloquant plein écran (plus visible qu'un simple bandeau)
+    showBlockingScreen();
   } else {
+    hideBlockingScreen();
     hideBanner();
   }
 }
