@@ -35,20 +35,20 @@ function createBlockingScreen() {
           <line x1="12" y1="20" x2="12.01" y2="20"></line>
         </svg>
       </div>
-      <h1 class="network-blocking-title">Borne hors service</h1>
+      <h1 class="network-blocking-title">Connexion interrompue</h1>
       <p class="network-blocking-message">
-        La connexion internet n'est pas disponible.<br>
-        Veuillez vérifier le câble réseau ou contacter le support technique.
+        La connexion internet est momentanément indisponible.<br>
+        Merci de patienter ou de signaler ce problème au personnel.
       </p>
       <button class="network-blocking-retry-btn" id="network-retry-btn">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="23 4 23 10 17 10"></polyline>
           <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
         </svg>
-        <span>Vérifier la connexion</span>
+        <span>Réessayer</span>
       </button>
       <p class="network-blocking-footer">
-        Si le problème persiste, contactez l'assistance technique.
+        Le service reprendra dès que la connexion sera rétablie.
       </p>
     </div>
   `;
@@ -164,7 +164,7 @@ async function handleRetryClick() {
           <polyline points="23 4 23 10 17 10"></polyline>
           <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
         </svg>
-        <span>Vérifier la connexion</span>
+        <span>Réessayer</span>
       `;
       retryBtn.disabled = false;
     }
@@ -175,7 +175,7 @@ async function handleRetryClick() {
         <polyline points="23 4 23 10 17 10"></polyline>
         <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
       </svg>
-      <span>Vérifier la connexion</span>
+      <span>Réessayer</span>
     `;
     retryBtn.disabled = false;
   }
