@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url';
 import * as fs from 'fs';
 import * as dotenv from 'dotenv';
 import https from 'https';
+import dns from 'dns';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // ============================================
@@ -5095,6 +5096,93 @@ ipcMain.handle('machine:fetch-kiosk', async (event, kioskId) => {
     console.error('[IPC] Erreur fetch kiosk:', error);
     return { status: 'error', error: error.message };
   }
+});
+
+/**
+ * ===== VÉRIFICATION CONNEXION INTERNET =====
+ * Vérifie si la borne a accès à internet via DNS lookup + HTTP request
+ */
+
+/**
+ * Vérifier la connexion internet de manière robuste
+ * Utilise DNS lookup + HTTP request pour être sûr
+ */
+async function checkInternetConnection() {
+  console.log('[Network] Vérification de la connexion internet...');
+
+  // Méthode 1: DNS lookup sur google.com
+  const dnsCheck = () => {
+    return new Promise((resolve) => {
+      dns.lookup('google.com', (err) => {
+        if (err) {
+          console.log('[Network] DNS lookup échoué:', err.code);
+          resolve(false);
+        } else {
+          console.log('[Network] DNS lookup réussi');
+          resolve(true);
+        }
+      });
+    });
+  };
+
+  // Méthode 2: HTTP request sur un endpoint fiable
+  const httpCheck = () => {
+    return new Promise((resolve) => {
+      const req = https.request(
+        {
+          hostname: 'www.google.com',
+          port: 443,
+          path: '/favicon.ico',
+          method: 'HEAD',
+          timeout: 5000
+        },
+        (res) => {
+          console.log('[Network] HTTP check réussi, status:', res.statusCode);
+          resolve(true);
+        }
+      );
+
+      req.on('error', (err) => {
+        console.log('[Network] HTTP check échoué:', err.message);
+        resolve(false);
+      });
+
+      req.on('timeout', () => {
+        console.log('[Network] HTTP check timeout');
+        req.destroy();
+        resolve(false);
+      });
+
+      req.end();
+    });
+  };
+
+  // Essayer les deux méthodes
+  const dnsResult = await dnsCheck();
+  if (dnsResult) {
+    const httpResult = await httpCheck();
+    if (httpResult) {
+      console.log('[Network] ✅ Connexion internet OK');
+      return { connected: true, method: 'dns+http' };
+    }
+  }
+
+  // Si DNS échoue, essayer HTTP quand même (parfois DNS est bloqué mais HTTP fonctionne)
+  const httpResult = await httpCheck();
+  if (httpResult) {
+    console.log('[Network] ✅ Connexion internet OK (HTTP only)');
+    return { connected: true, method: 'http' };
+  }
+
+  console.log('[Network] ❌ Pas de connexion internet');
+  return { connected: false, method: 'none' };
+}
+
+// Handler IPC pour vérifier la connexion internet
+ipcMain.handle('network:check-connection', async () => {
+  console.log('[IPC] network:check-connection appelé');
+  const result = await checkInternetConnection();
+  return result;
 });
 
 /**

@@ -1,18 +1,63 @@
 /**
  * network-status.js - Détection et affichage du statut réseau
- * Affiche un bandeau d'avertissement quand il n'y a pas de connexion internet
+ * Affiche un écran bloquant quand il n'y a pas de connexion internet
  */
 
 import { t } from './i18n.js';
 
 let isOnline = navigator.onLine;
 let banner = null;
+let blockingScreen = null;
 let networkCheckInterval = null;
 let onlineHandler = null;
 let offlineHandler = null;
+let isChecking = false;
 
 /**
- * Créer le bandeau d'avertissement
+ * Créer l'écran bloquant plein écran
+ */
+function createBlockingScreen() {
+  if (blockingScreen) return blockingScreen;
+
+  blockingScreen = document.createElement('div');
+  blockingScreen.id = 'network-blocking-screen';
+  blockingScreen.className = 'network-blocking-screen';
+  blockingScreen.innerHTML = `
+    <div class="network-blocking-content">
+      <div class="network-blocking-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="1" y1="1" x2="23" y2="23"></line>
+          <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"></path>
+          <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"></path>
+          <path d="M10.71 5.05A16 16 0 0 1 22.58 9"></path>
+          <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"></path>
+          <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+          <line x1="12" y1="20" x2="12.01" y2="20"></line>
+        </svg>
+      </div>
+      <h1 class="network-blocking-title">Borne hors service</h1>
+      <p class="network-blocking-message">
+        La connexion internet n'est pas disponible.<br>
+        Veuillez vérifier le câble réseau ou contacter le support technique.
+      </p>
+      <button class="network-blocking-retry-btn" id="network-retry-btn">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+        </svg>
+        <span>Vérifier la connexion</span>
+      </button>
+      <p class="network-blocking-footer">
+        Si le problème persiste, contactez l'assistance technique.
+      </p>
+    </div>
+  `;
+
+  return blockingScreen;
+}
+
+/**
+ * Créer le bandeau d'avertissement (mode non-bloquant)
  */
 function createBanner() {
   if (banner) return banner;
@@ -39,7 +84,107 @@ function createBanner() {
 }
 
 /**
- * Afficher le bandeau
+ * Afficher l'écran bloquant plein écran
+ */
+function showBlockingScreen() {
+  const existingScreen = document.getElementById('network-blocking-screen');
+  if (existingScreen) return;
+
+  const screenEl = createBlockingScreen();
+  document.body.appendChild(screenEl);
+
+  // Ajouter l'événement sur le bouton retry
+  const retryBtn = document.getElementById('network-retry-btn');
+  if (retryBtn) {
+    retryBtn.addEventListener('click', handleRetryClick);
+  }
+
+  // Animation d'entrée
+  requestAnimationFrame(() => {
+    screenEl.classList.add('visible');
+  });
+
+  console.log('[Network] Écran bloquant affiché');
+}
+
+/**
+ * Masquer l'écran bloquant
+ */
+function hideBlockingScreen() {
+  const screenEl = document.getElementById('network-blocking-screen');
+  if (!screenEl) return;
+
+  screenEl.classList.remove('visible');
+
+  // Supprimer après l'animation
+  setTimeout(() => {
+    screenEl.remove();
+    blockingScreen = null;
+  }, 300);
+
+  console.log('[Network] Écran bloquant masqué');
+}
+
+/**
+ * Gérer le clic sur le bouton retry
+ */
+async function handleRetryClick() {
+  if (isChecking) return;
+
+  const retryBtn = document.getElementById('network-retry-btn');
+  if (!retryBtn) return;
+
+  isChecking = true;
+  retryBtn.disabled = true;
+  retryBtn.innerHTML = `
+    <svg class="spinning" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="23 4 23 10 17 10"></polyline>
+      <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+    </svg>
+    <span>Vérification en cours...</span>
+  `;
+
+  console.log('[Network] Vérification manuelle de la connexion...');
+
+  try {
+    // Utiliser l'API principale pour vérifier la connexion
+    const result = await window.photoAPI?.network?.checkConnection();
+
+    if (result && result.connected) {
+      console.log('[Network] ✅ Connexion rétablie !');
+      isOnline = true;
+      hideBlockingScreen();
+      hideBanner();
+      // Recharger la page pour réinitialiser l'app
+      window.location.reload();
+    } else {
+      console.log('[Network] ❌ Toujours pas de connexion');
+      retryBtn.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+        </svg>
+        <span>Vérifier la connexion</span>
+      `;
+      retryBtn.disabled = false;
+    }
+  } catch (error) {
+    console.error('[Network] Erreur vérification:', error);
+    retryBtn.innerHTML = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="23 4 23 10 17 10"></polyline>
+        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+      </svg>
+      <span>Vérifier la connexion</span>
+    `;
+    retryBtn.disabled = false;
+  }
+
+  isChecking = false;
+}
+
+/**
+ * Afficher le bandeau (mode non-bloquant)
  */
 function showBanner() {
   const existingBanner = document.getElementById('network-offline-banner');
@@ -126,6 +271,39 @@ async function checkRealConnectivity() {
 }
 
 /**
+ * Vérification initiale de la connexion au démarrage
+ * Bloque l'application si pas de connexion
+ * @returns {Promise<boolean>} true si connecté, false sinon
+ */
+export async function checkInitialConnection() {
+  console.log('[Network] ═══════════════════════════════════════════════');
+  console.log('[Network] 🔍 VÉRIFICATION INITIALE DE LA CONNEXION');
+  console.log('[Network] ═══════════════════════════════════════════════');
+
+  try {
+    // Utiliser l'API principale pour une vérification robuste
+    const result = await window.photoAPI?.network?.checkConnection();
+
+    if (result && result.connected) {
+      console.log('[Network] ✅ Connexion internet OK au démarrage');
+      isOnline = true;
+      return true;
+    } else {
+      console.log('[Network] ❌ Pas de connexion internet au démarrage');
+      isOnline = false;
+      showBlockingScreen();
+      return false;
+    }
+  } catch (error) {
+    console.error('[Network] Erreur vérification initiale:', error);
+    // En cas d'erreur, on bloque par précaution
+    isOnline = false;
+    showBlockingScreen();
+    return false;
+  }
+}
+
+/**
  * Initialiser la détection réseau
  */
 export function initNetworkStatus() {
@@ -145,6 +323,10 @@ export function initNetworkStatus() {
   onlineHandler = () => {
     console.log('[Network] Événement: online');
     updateStatus();
+    // Si on repasse en ligne, masquer l'écran bloquant
+    if (navigator.onLine) {
+      hideBlockingScreen();
+    }
   };
 
   offlineHandler = () => {
@@ -201,5 +383,6 @@ export function isNetworkOnline() {
 export default {
   init: initNetworkStatus,
   cleanup: cleanupNetworkStatus,
-  isOnline: isNetworkOnline
+  isOnline: isNetworkOnline,
+  checkInitial: checkInitialConnection
 };

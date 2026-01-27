@@ -160,7 +160,12 @@ const photoAPI = {
 
   // Scan Stories
   scanStory: {
-    syncRemote: (participantId, universeId, createdAt) => ipcRenderer.invoke('scan-story:sync-remote', { participantId, universeId, createdAt }),
+    syncRemote: (participantId, universeId, createdAt, timezone, timezoneOffset) => ipcRenderer.invoke('scan-story:sync-remote', { participantId, universeId, createdAt, timezone, timezoneOffset }),
+  },
+
+  // Network
+  network: {
+    checkConnection: () => ipcRenderer.invoke('network:check-connection'),
   },
 
   // Window controls
