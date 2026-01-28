@@ -2360,3 +2360,15 @@ body.page-payment { overflow: hidden; }
   opacity: 0.6;
 }
 
+/* Version globale affichée sur toutes les pages */
+.app-version {
+  position: fixed;
+  bottom: 10px;
+  left: 10px;
+  font-size: 12px;
+  color: #9ca3af;
+  opacity: 0.5;
+  z-index: 10;
+  pointer-events: none;
+}
+

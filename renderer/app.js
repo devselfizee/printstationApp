@@ -263,8 +263,19 @@ async function checkSetup() {
   }
 }
 
+// Afficher la version de l'application
+function displayAppVersion() {
+  const versionEl = document.getElementById('app-version');
+  if (versionEl && window.appConfig?.version) {
+    versionEl.textContent = `version ${window.appConfig.version}`;
+  }
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   console.log('🚀 PrintStation initializing...');
+
+  // Afficher la version dès que possible
+  displayAppVersion();
 
   // ============================================
   // VÉRIFICATION CONNEXION INTERNET (BLOQUANTE)
