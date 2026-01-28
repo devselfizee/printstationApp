@@ -266,9 +266,27 @@ async function checkSetup() {
 // Afficher la version de l'application
 function displayAppVersion() {
   const versionEl = document.getElementById('app-version');
-  if (versionEl && window.appConfig?.version) {
+  if (!versionEl) return;
+
+  // Si appConfig.version est déjà disponible, l'afficher immédiatement
+  if (window.appConfig?.version) {
     versionEl.textContent = `version ${window.appConfig.version}`;
+    return;
   }
+
+  // Sinon, attendre que appConfig soit chargé (max 5 secondes)
+  let attempts = 0;
+  const maxAttempts = 50;
+  const checkInterval = setInterval(() => {
+    attempts++;
+    if (window.appConfig?.version) {
+      versionEl.textContent = `version ${window.appConfig.version}`;
+      clearInterval(checkInterval);
+    } else if (attempts >= maxAttempts) {
+      clearInterval(checkInterval);
+      console.warn('[App] Version non disponible après timeout');
+    }
+  }, 100);
 }
 
 document.addEventListener('DOMContentLoaded', async () => {

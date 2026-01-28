@@ -2367,8 +2367,9 @@ body.page-payment { overflow: hidden; }
   left: 10px;
   font-size: 12px;
   color: #9ca3af;
-  opacity: 0.5;
-  z-index: 10;
+  opacity: 0.6;
+  z-index: 99999;
   pointer-events: none;
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
 }
 
