@@ -3111,16 +3111,7 @@ async function syncOrderToRemoteAPI(orderId, supabaseOrderId = null) {
       status: apiStatus,
       optin_email: orderWithItems.optin ? true : false,
       last_step: orderWithItems.last_step || null, // Étape la plus avancée atteinte
-      order_items: itemsWithPhotoUrls
-        // Filtrer les items avec quantity <= 0 (ils ne doivent pas être envoyés à Supabase)
-        .filter(item => {
-          if (item.quantity <= 0) {
-            console.log(`[Sync]   🗑️ Item filtré (qty=${item.quantity}): photo_id=${item.photo_id}, product_id=${item.product_id}`);
-            return false;
-          }
-          return true;
-        })
-        .map(item => {
+      order_items: itemsWithPhotoUrls.map(item => {
           const orderItem = {
             product_id: item.product_id,
             quantity: item.quantity,
@@ -3515,18 +3506,15 @@ async function createOrderRemote(orderData) {
       lang: orderData.lang || 'fr', // Langue choisie par le client
       status: 'pending', // Status en attente
       last_step: orderData.lastStep || 'cart', // Étape actuelle (cart pour les commandes en cours)
-      order_items: itemsWithPhotoUrls
-        // Filtrer les items avec quantity <= 0
-        .filter(item => item.qty > 0)
-        .map(item => ({
-          product_id: item.productId,
-          quantity: item.qty,
-          unit_price: Math.round((item.unitPrice || 0) * 100),
-          total_price: Math.round((item.totalPrice || 0) * 100),
-          photo_id: item.photoId || null,
-          photo_url: item.photo_url || null,
-          status: item.status || 'pending' // Statut de l'item (pending, completed, cancelled)
-        }))
+      order_items: itemsWithPhotoUrls.map(item => ({
+        product_id: item.productId,
+        quantity: item.qty,
+        unit_price: Math.round((item.unitPrice || 0) * 100),
+        total_price: Math.round((item.totalPrice || 0) * 100),
+        photo_id: item.photoId || null,
+        photo_url: item.photo_url || null,
+        status: item.status || 'pending' // Statut de l'item (pending, completed, cancelled)
+      }))
     };
 
     console.log('[CreateOrder] ═══════════════════════════════════════════════');
@@ -3712,19 +3700,16 @@ async function createCompletedOrderRemote(localOrderId) {
       lang: orderWithItems.lang || 'fr', // Langue choisie par le client
       status: 'completed', // ← STATUS COMPLETED
       last_step: orderWithItems.last_step || 'payment', // Étape finale (payment pour les commandes complétées)
-      order_items: itemsWithPhotoUrls
-        // Filtrer les items avec quantity <= 0
-        .filter(item => item.quantity > 0)
-        .map(item => ({
-          product_id: item.product_id,
-          quantity: item.quantity,
-          unit_price: Math.round((item.unit_price || 0) * 100),
-          total_price: Math.round((item.total_price || 0) * 100),
-          photo_id: item.photo_id || null,
-          photo_url: item.photo_url || null,
-          date_photo: item.date_photo || null,
-          status: item.status || 'pending' // Statut de l'item (pending, completed, cancelled)
-        }))
+      order_items: itemsWithPhotoUrls.map(item => ({
+        product_id: item.product_id,
+        quantity: item.quantity,
+        unit_price: Math.round((item.unit_price || 0) * 100),
+        total_price: Math.round((item.total_price || 0) * 100),
+        photo_id: item.photo_id || null,
+        photo_url: item.photo_url || null,
+        date_photo: item.date_photo || null,
+        status: item.status || 'pending' // Statut de l'item (pending, completed, cancelled)
+      }))
     };
 
     console.log('[CreateCompletedOrder] ═══════════════════════════════════════════════');
