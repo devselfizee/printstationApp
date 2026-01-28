@@ -264,29 +264,22 @@ async function checkSetup() {
 }
 
 // Afficher la version de l'application
-function displayAppVersion() {
+async function displayAppVersion() {
   const versionEl = document.getElementById('app-version');
   if (!versionEl) return;
 
-  // Si appConfig.version est déjà disponible, l'afficher immédiatement
-  if (window.appConfig?.version) {
-    versionEl.textContent = `version ${window.appConfig.version}`;
-    return;
-  }
-
-  // Sinon, attendre que appConfig soit chargé (max 5 secondes)
-  let attempts = 0;
-  const maxAttempts = 50;
-  const checkInterval = setInterval(() => {
-    attempts++;
-    if (window.appConfig?.version) {
-      versionEl.textContent = `version ${window.appConfig.version}`;
-      clearInterval(checkInterval);
-    } else if (attempts >= maxAttempts) {
-      clearInterval(checkInterval);
-      console.warn('[App] Version non disponible après timeout');
+  try {
+    // Utiliser la méthode async getConfig() pour récupérer la version
+    const config = await window.appConfig?.getConfig?.();
+    if (config?.version) {
+      versionEl.textContent = `version ${config.version}`;
+      console.log('[App] Version affichée:', config.version);
+    } else {
+      console.warn('[App] Version non disponible dans la config');
     }
-  }, 100);
+  } catch (err) {
+    console.warn('[App] Erreur lors de la récupération de la version:', err);
+  }
 }
 
 document.addEventListener('DOMContentLoaded', async () => {

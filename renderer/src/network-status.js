@@ -16,14 +16,21 @@ let isChecking = false;
 /**
  * Créer l'écran bloquant plein écran
  */
-function createBlockingScreen() {
+async function createBlockingScreen() {
   if (blockingScreen) return blockingScreen;
 
   blockingScreen = document.createElement('div');
   blockingScreen.id = 'network-blocking-screen';
   blockingScreen.className = 'network-blocking-screen';
-  // Récupérer la version depuis appConfig
-  const version = window.appConfig?.version || '';
+
+  // Récupérer la version depuis appConfig de manière async
+  let version = '';
+  try {
+    const config = await window.appConfig?.getConfig?.();
+    version = config?.version || '';
+  } catch (err) {
+    console.warn('[Network] Impossible de récupérer la version:', err);
+  }
 
   blockingScreen.innerHTML = `
     <div class="network-blocking-content">
@@ -90,11 +97,11 @@ function createBanner() {
 /**
  * Afficher l'écran bloquant plein écran
  */
-function showBlockingScreen() {
+async function showBlockingScreen() {
   const existingScreen = document.getElementById('network-blocking-screen');
   if (existingScreen) return;
 
-  const screenEl = createBlockingScreen();
+  const screenEl = await createBlockingScreen();
   document.body.appendChild(screenEl);
 
   // Ajouter l'événement sur le bouton retry
@@ -297,14 +304,14 @@ export async function checkInitialConnection() {
     } else {
       console.log('[Network] ❌ Pas de connexion internet au démarrage');
       isOnline = false;
-      showBlockingScreen();
+      await showBlockingScreen();
       return false;
     }
   } catch (error) {
     console.error('[Network] Erreur vérification initiale:', error);
     // En cas d'erreur, on bloque par précaution
     isOnline = false;
-    showBlockingScreen();
+    await showBlockingScreen();
     return false;
   }
 }
