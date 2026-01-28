@@ -1,6 +1,6 @@
 import { state } from '../state.js';
 import { t } from '../i18n.js';
-import { $, updateCartCount, addOne, toast, getQty, lineTotal } from '../utils.js';
+import { $, updateCartCount, addOne, toast, getQty, lineTotal, getTotalCartQty } from '../utils.js';
 import { renderOffer } from './detail.js';
 
 export const showUpsell = (photo, product) => {
@@ -29,8 +29,10 @@ export const showUpsell = (photo, product) => {
     // 🆕 Enregistrer dans la DB
     if (window.photoAPI?.cart && state.sessionId) {
       try {
+        // Prix dégressif GLOBAL: 1er article du panier = first, tous les autres = next
+        const totalCartQty = getTotalCartQty(state.cart); // Quantité totale après ajout
+        const unitPrice = totalCartQty === 1 ? product.first : product.next;
         const qty = getQty(photo.id, product.id, state.cart);
-        const unitPrice = qty === 1 ? product.first : product.next;
         const totalPrice = lineTotal(product, qty);
 
         const result = await window.photoAPI.cart.addItemImmediate({
