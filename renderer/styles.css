@@ -2351,3 +2351,12 @@ body.page-payment { overflow: hidden; }
   color: #64748b;
 }
 
+.network-blocking-version {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  font-size: 14px;
+  color: #475569;
+  opacity: 0.6;
+}
+

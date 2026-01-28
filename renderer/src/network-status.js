@@ -22,6 +22,9 @@ function createBlockingScreen() {
   blockingScreen = document.createElement('div');
   blockingScreen.id = 'network-blocking-screen';
   blockingScreen.className = 'network-blocking-screen';
+  // Récupérer la version depuis appConfig
+  const version = window.appConfig?.version || '';
+
   blockingScreen.innerHTML = `
     <div class="network-blocking-content">
       <div class="network-blocking-icon">
@@ -51,6 +54,7 @@ function createBlockingScreen() {
         Le service reprendra dès que la connexion sera rétablie.
       </p>
     </div>
+    ${version ? `<div class="network-blocking-version">version ${version}</div>` : ''}
   `;
 
   return blockingScreen;
