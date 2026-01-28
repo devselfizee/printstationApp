@@ -45,10 +45,10 @@ async function createBlockingScreen() {
           <line x1="12" y1="20" x2="12.01" y2="20"></line>
         </svg>
       </div>
-      <h1 class="network-blocking-title">Connexion interrompue</h1>
+      <h1 class="network-blocking-title">Réseau indisponible</h1>
       <p class="network-blocking-message">
-        La connexion internet est momentanément indisponible.<br>
-        Merci de patienter ou de signaler ce problème au personnel.
+        La borne Eclipso fonctionne correctement.<br>
+        L'accès internet est temporairement indisponible sur l'appareil.
       </p>
       <button class="network-blocking-retry-btn" id="network-retry-btn">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -58,7 +58,7 @@ async function createBlockingScreen() {
         <span>Réessayer</span>
       </button>
       <p class="network-blocking-footer">
-        Le service reprendra dès que la connexion sera rétablie.
+        Le service reprendra automatiquement quand la connexion sera revenue.
       </p>
     </div>
     ${version ? `<div class="network-blocking-version">version ${version}</div>` : ''}
