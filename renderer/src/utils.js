@@ -37,20 +37,33 @@ export const lineTotal = (product, qty) => {
 };
 
 // Sous-total panier avec prix dégressif GLOBAL
-// 1er article = prix plein (first), tous les autres = prix dégressif (next)
+// 1er article = prix plein (first) du produit, tous les autres = prix dégressif (next) de CHAQUE produit
 export const cartSubtotal = (cart, products) => {
   const totalQty = getTotalCartQty(cart);
   if (totalQty === 0) return 0;
 
-  // Utiliser le premier produit pour les prix (tous les produits ont les mêmes prix)
-  const firstProduct = cart.length > 0 ? products[cart[0].productId] : null;
-  if (!firstProduct) return 0;
+  let sum = 0;
+  let globalPosition = 0;
 
-  const firstPrice = firstProduct.first;
-  const nextPrice = firstProduct.next;
+  // Parcourir chaque ligne du panier
+  for (const line of cart) {
+    const product = products[line.productId];
+    if (!product) continue;
 
-  // 1er article = first price, tous les autres = next price
-  return firstPrice + (totalQty - 1) * nextPrice;
+    // Pour chaque unité de cette ligne
+    for (let i = 0; i < line.qty; i++) {
+      globalPosition++;
+      if (globalPosition === 1) {
+        // 1er article du panier = prix first de CE produit
+        sum += product.first;
+      } else {
+        // Tous les autres = prix next de CE produit
+        sum += product.next;
+      }
+    }
+  }
+
+  return sum;
 };
 
 // Prix nominal (sans réduction) = tous les articles au prix plein
