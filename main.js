@@ -2847,6 +2847,11 @@ function invalidateAuthToken() {
  */
 
 async function fetchProductsFromAPI() {
+  console.log('[Products] ════════════════════════════════════════════════════════');
+  console.log('[Products] 🚀 DÉBUT fetchProductsFromAPI()');
+  console.log('[Products] ════════════════════════════════════════════════════════');
+  const startTime = Date.now();
+
   if (!API_SYNC_CONFIG.enabled) {
     console.log('[Products] API désactivée - utilisation des produits par défaut');
     return { status: 'skipped', message: 'API désactivée' };
@@ -2855,6 +2860,7 @@ async function fetchProductsFromAPI() {
   try {
     // Récupérer le sales_point_id depuis machine_config
     let salesPointId = API_SYNC_CONFIG.salesPointId;
+    console.log('[Products] 📍 Step 1: Récupération sales_point_id...');
 
     if (photoSystemReady && photoSystem?.db) {
       try {
@@ -2871,18 +2877,28 @@ async function fetchProductsFromAPI() {
     } else {
       console.log('[Products] ⚠️ PhotoSystem non prêt, utilisation du sales_point_id par défaut');
     }
+    console.log('[Products] ⏱️ Step 1 terminé en', Date.now() - startTime, 'ms');
 
     const baseUrl = process.env.BASE_URL || 'https://ygetxuvqrknbggplzmvy.supabase.co/functions/v1';
     const productsUrl = baseUrl + `/api-sales-point-products?sales_point_id=${salesPointId}&active_only=true&limit=100&offset=0`;
 
-    console.log('[Products] 📦 Récupération des produits depuis l\'API...');
+    console.log('[Products] ════════════════════════════════════════════════════════');
+    console.log('[Products] 📦 REQUÊTE API PRODUITS');
+    console.log('[Products] ════════════════════════════════════════════════════════');
     console.log('[Products] URL:', productsUrl);
     console.log('[Products] Sales Point ID:', salesPointId);
+    console.log('[Products] Base URL:', baseUrl);
 
     // Récupérer un token d'authentification
+    console.log('[Products] 📍 Step 2: Récupération auth token...');
+    const tokenStartTime = Date.now();
     const authToken = await getAuthToken();
+    console.log('[Products] ⏱️ Step 2 (auth token) terminé en', Date.now() - tokenStartTime, 'ms');
+    console.log('[Products] Auth token obtenu:', authToken ? '✅ OUI' : '❌ NON');
 
     // Faire l'appel HTTP GET avec les headers nécessaires pour Supabase
+    console.log('[Products] 📍 Step 3: Appel HTTP GET...');
+    const httpStartTime = Date.now();
     const response = await makeHttpsRequest(
       productsUrl,
       null,
@@ -2892,6 +2908,7 @@ async function fetchProductsFromAPI() {
       },
       authToken
     );
+    console.log('[Products] ⏱️ Step 3 (HTTP GET) terminé en', Date.now() - httpStartTime, 'ms');
 
     console.log('[Products] ═══════════════════════════════════════════════');
     console.log('[Products] 📦 RÉPONSE BRUTE DE L\'API');
@@ -2973,7 +2990,13 @@ async function fetchProductsFromAPI() {
     return { status: 'success', products };
 
   } catch (error) {
-    console.error('[Products] ❌ Erreur récupération produits:', error);
+    console.log('[Products] ════════════════════════════════════════════════════════');
+    console.log('[Products] ❌ ERREUR RÉCUPÉRATION PRODUITS');
+    console.log('[Products] ════════════════════════════════════════════════════════');
+    console.error('[Products] Message:', error.message);
+    console.error('[Products] Stack:', error.stack);
+    console.error('[Products] Erreur complète:', error);
+    console.log('[Products] ════════════════════════════════════════════════════════');
     return { status: 'error', error: error.message };
   }
 }
