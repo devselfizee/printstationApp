@@ -184,14 +184,14 @@ export const renderCart = (root) => {
         btn.onclick = async () => {
           const act = btn.dataset.a;
 
-          // Afficher le loader sur le bouton et le désactiver
-          const originalHTML = btn.innerHTML;
-          btn.disabled = true;
-          btn.innerHTML = SPINNER_SVG;
+          // Désactiver TOUS les boutons du panier pendant la sync
+          const allCartBtns = document.querySelectorAll('.cart-row .key');
+          allCartBtns.forEach(b => { b.disabled = true; b.style.opacity = '0.5'; });
 
-          // Désactiver aussi les autres boutons de cette ligne pour éviter les clics multiples
-          const allBtns = row.querySelectorAll('.key');
-          allBtns.forEach(b => b.disabled = true);
+          // Afficher le loader sur le bouton cliqué
+          const originalHTML = btn.innerHTML;
+          btn.innerHTML = SPINNER_SVG;
+          btn.style.opacity = '1';
 
           try {
             // 🆕 Synchroniser avec la DB lors des modifications de quantité
@@ -243,10 +243,9 @@ export const renderCart = (root) => {
             // 🆕 Créer ou mettre à jour la commande + sync Supabase
             await syncOrderAfterChange();
           } finally {
-            // Restaurer les boutons (le render va les recréer de toute façon)
-            btn.disabled = false;
+            // Restaurer tous les boutons (le render va les recréer de toute façon)
+            allCartBtns.forEach(b => { b.disabled = false; b.style.opacity = ''; });
             btn.innerHTML = originalHTML;
-            allBtns.forEach(b => b.disabled = false);
           }
 
           window.render();
