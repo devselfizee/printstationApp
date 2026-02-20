@@ -407,7 +407,7 @@ async function showSimulatorPopup() {
       universeSelect.style.opacity = '0.6';
       universeSelect.style.cursor = 'not-allowed';
       universeAutoLabel.textContent = '(auto-sélectionné)';
-    } else if (customInput && ['A', 'B', 'C', 'D', 'E'].includes(customInput.charAt(0))) {
+    } else if (customInput && ['A', 'B', 'C', 'D', 'E', 'F'].includes(customInput.charAt(0))) {
       // 🆕 Nouveau participant avec préfixe valide → auto-sélectionner l'univers
       const universeId = customInput.charAt(0);
       universeSelect.value = universeId;
@@ -463,8 +463,8 @@ async function showSimulatorPopup() {
       const firstLetter = upperInput.charAt(0);
 
       // ⭐ Validation du QR Code
-      // Règles: première lettre doit être A, B, C, D ou E et longueur = 6
-      const isValidFirstChar = ['A', 'B', 'C', 'D', 'E'].includes(firstLetter);
+      // Règles: première lettre doit être A, B, C, D, E ou F et longueur = 6
+      const isValidFirstChar = ['A', 'B', 'C', 'D', 'E', 'F'].includes(firstLetter);
       const isValidLength = upperInput.length === 6;
 
       console.log('[DevSim] 🔍 Validation QR Code:');

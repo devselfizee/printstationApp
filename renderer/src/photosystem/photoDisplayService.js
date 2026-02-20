@@ -48,8 +48,8 @@ export function parseQRData(qrContent) {
     if (content.length >= 2) {
       const firstChar = content.charAt(0).toUpperCase();
 
-      // Vérifier que la première lettre est un univers valide (A-E)
-      if (['A', 'B', 'C', 'D', 'E'].includes(firstChar)) {
+      // Vérifier que la première lettre est un univers valide (A-F)
+      if (['A', 'B', 'C', 'D', 'E', 'F'].includes(firstChar)) {
         const participantId = content.substring(1);
         console.log('[PhotoDisplay] QR format simple détecté:', { universe: firstChar, participantId });
         return {
