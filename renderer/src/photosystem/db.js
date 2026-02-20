@@ -213,6 +213,7 @@ async function createTables() {
     `CREATE TABLE IF NOT EXISTS photos (
       id TEXT PRIMARY KEY,
       participant_id TEXT NOT NULL,
+      universe_id TEXT,
       file_name TEXT NOT NULL,
       remote_url TEXT,
       local_path TEXT,
@@ -488,6 +489,24 @@ async function migrateSyncColumns() {
     if (!photosColumnNames.includes('retry_phase')) {
       await execAsync('ALTER TABLE photos ADD COLUMN retry_phase INTEGER DEFAULT 1');
       console.log('[DB] ✅ Colonne retry_phase ajoutée à photos');
+    }
+
+    // Migration: Ajouter universe_id à la table photos
+    if (!photosColumnNames.includes('universe_id')) {
+      await execAsync('ALTER TABLE photos ADD COLUMN universe_id TEXT');
+      console.log('[DB] ✅ Colonne universe_id ajoutée à photos');
+
+      // Remplir universe_id depuis la table participants
+      await execAsync(`
+        UPDATE photos
+        SET universe_id = (
+          SELECT p.universe_id
+          FROM participants p
+          WHERE p.id = photos.participant_id
+        )
+        WHERE universe_id IS NULL
+      `);
+      console.log('[DB] ✅ universe_id mis à jour dans photos depuis participants');
     }
   } catch (error) {
     console.error('[DB] Erreur migration photos:', error);
@@ -807,10 +826,10 @@ export async function addPhoto(photo) {
 
   return runAsync(
     `INSERT OR REPLACE INTO photos (
-      id, participant_id, file_name, remote_url, checksum,
+      id, participant_id, universe_id, file_name, remote_url, checksum,
       size_bytes, incrustation_id, date_photo, borne_info, status, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP)`,
-    [id, participantId, fileName, url, checksum, size, incrustationId || null, datePhoto || null, borneInfo || null]
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP)`,
+    [id, participantId, universe || null, fileName, url, checksum, size, incrustationId || null, datePhoto || null, borneInfo || null]
   );
 }
 
