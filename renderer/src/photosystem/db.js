@@ -124,10 +124,12 @@ async function seedDefaultData() {
       await addUniverse('C', 'Remparts', '/assets/banniere-remparts.jpg');
       await addUniverse('D', 'Impressionnistes', '/assets/banniere-impressionnistes.jpg');
       await addUniverse('E', 'Batisseurs', '/assets/banniere-batisseurs.jpg');
+      await addUniverse('F', 'Titanic', '/assets/banniere-titanic.jpg');
       
       console.log("[DB] ✅ 2 univers créés (A: L'horizon de kheops, B: Mondes Disparus)");
     } else {
       // await addUniverse('E', 'Batisseurs', '/assets/banniere-batisseurs.jpg');
+      await addUniverse('F', 'Titanic', '/assets/banniere-titanic.jpg');
       console.log(`[DB] ✓ ${universes.length} univers déjà présents`);
     }
   } catch (error) {
