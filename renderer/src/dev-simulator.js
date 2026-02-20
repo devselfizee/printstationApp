@@ -420,7 +420,7 @@ async function showSimulatorPopup() {
       universeSelect.disabled = false;
       universeSelect.style.opacity = '1';
       universeSelect.style.cursor = 'pointer';
-      universeAutoLabel.textContent = customInput ? '(préfixe A-E requis)' : '';
+      universeAutoLabel.textContent = customInput ? '(préfixe A-F requis)' : '';
     }
   }
 
