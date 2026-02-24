@@ -483,6 +483,7 @@ export const renderDetail = (root) => {
   // section.appendChild(sep);
   
   // N'afficher "Autres photos" que si ce n'est pas une photo p19
+  console.log('incrustation_id:', p.incrustation_id);
   if (p.incrustation_id !== 'p19') {
     const wrap = document.createElement('div');
     wrap.className = 'other';
