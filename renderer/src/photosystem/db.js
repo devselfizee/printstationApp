@@ -504,6 +504,12 @@ async function migrateSyncColumns() {
       await execAsync("ALTER TABLE machine_config ADD COLUMN default_lang TEXT DEFAULT 'fr'");
       console.log('[DB] ✅ Colonne default_lang ajoutée à machine_config');
     }
+
+    // Migration: Ajouter home_screen_variant à la table machine_config
+    if (!machineConfigColumns.includes('home_screen_variant')) {
+      await execAsync("ALTER TABLE machine_config ADD COLUMN home_screen_variant TEXT DEFAULT 'default'");
+      console.log('[DB] ✅ Colonne home_screen_variant ajoutée à machine_config');
+    }
   } catch (error) {
     console.error('[DB] Erreur migration machine_config:', error);
   }
@@ -1767,6 +1773,19 @@ export async function updateDefaultLang(lang) {
          updated_at = datetime('now', 'localtime')
      WHERE id = 1`,
     [lang]
+  );
+}
+
+/**
+ * Mettre à jour la variante de l'écran d'accueil
+ */
+export async function updateHomeScreenVariant(variant) {
+  return runAsync(
+    `UPDATE machine_config
+     SET home_screen_variant = ?,
+         updated_at = datetime('now', 'localtime')
+     WHERE id = 1`,
+    [variant]
   );
 }
 

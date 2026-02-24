@@ -427,7 +427,7 @@ header.topbar{
   inset: 0;
   padding: 0;
   margin: 0;
-  background-image: url('./assets/background-home.jpg');
+  background-image: url('./assets/home.jpg');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -440,8 +440,81 @@ header.topbar{
   align-items: flex-end;
 }
 
+/* ============================================
+   HOME SCREEN - ANIMATED VISUAL OVERLAY
+   ============================================ */
+.home-visuals-overlay {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  z-index: 1;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 16px;
+  padding: 40px 0;
+}
+
+.home-visual-row {
+  display: flex;
+  gap: 20px;
+  width: max-content;
+  will-change: transform;
+}
+
+.home-visual-row.scroll-left {
+  animation: homeScrollLeft var(--scroll-duration, 45s) linear infinite;
+}
+
+.home-visual-row.scroll-right {
+  animation: homeScrollRight var(--scroll-duration, 45s) linear infinite;
+}
+
+@keyframes homeScrollLeft {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+@keyframes homeScrollRight {
+  0% { transform: translateX(-50%); }
+  100% { transform: translateX(0); }
+}
+
+.home-visual-card {
+  width: 240px;
+  height: 170px;
+  border-radius: 14px;
+  overflow: hidden;
+  flex-shrink: 0;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+  transform: rotate(var(--card-rotation, 0deg));
+  transition: box-shadow 0.3s ease;
+}
+
+.home-visual-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Variantes de taille pour donner de la profondeur */
+.home-visual-row:nth-child(odd) .home-visual-card {
+  width: 260px;
+  height: 180px;
+}
+
+.home-visual-row:nth-child(even) .home-visual-card {
+  width: 220px;
+  height: 155px;
+  opacity: 0.9;
+}
+
 .qr-spacer {
   flex: 1;
+  position: relative;
+  z-index: 2;
 }
 
 .qr-buttons-container {
@@ -1326,6 +1399,7 @@ body.page-payment { overflow: hidden; }
   position: absolute;
   top: 40px;
   left: 40px;
+  z-index: 5;
   display: flex;
   gap: 24px;
   background: rgba(0, 0, 0, 0.4);

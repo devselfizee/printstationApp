@@ -2007,6 +2007,58 @@ ipcMain.handle('admin:update-default-lang', async (event, lang) => {
   }
 });
 
+// Mettre à jour la variante de l'écran d'accueil
+ipcMain.handle('admin:update-home-variant', async (event, variant) => {
+  if (!photoSystemReady || !photoSystem?.db) {
+    return { status: 'error', error: 'PhotoSystem non disponible' };
+  }
+  try {
+    await photoSystem.db.updateHomeScreenVariant(variant);
+    console.log('[IPC] Variante écran d\'accueil mise à jour:', variant);
+    return { status: 'success', variant };
+  } catch (error) {
+    console.error('[IPC] Erreur update-home-variant:', error);
+    return { status: 'error', error: error.message };
+  }
+});
+
+// Lister les variantes disponibles (sous-dossiers de assets/visuals/)
+ipcMain.handle('admin:get-home-variants', async () => {
+  try {
+    const visualsDir = path.join(__dirname, 'renderer', 'assets', 'visuals');
+    if (!fs.existsSync(visualsDir)) {
+      return { status: 'success', variants: [] };
+    }
+    const entries = fs.readdirSync(visualsDir, { withFileTypes: true });
+    const variants = entries
+      .filter(e => e.isDirectory())
+      .map(e => e.name);
+    return { status: 'success', variants };
+  } catch (error) {
+    console.error('[IPC] Erreur get-home-variants:', error);
+    return { status: 'error', error: error.message };
+  }
+});
+
+// Lister les images d'une variante (fichiers dans assets/visuals/<variant>/)
+ipcMain.handle('admin:get-home-visuals', async (event, variant) => {
+  try {
+    const variantDir = path.join(__dirname, 'renderer', 'assets', 'visuals', variant || 'default');
+    if (!fs.existsSync(variantDir)) {
+      return { status: 'success', images: [] };
+    }
+    const entries = fs.readdirSync(variantDir);
+    const imageExtensions = ['.jpg', '.jpeg', '.png', '.webp'];
+    const images = entries
+      .filter(f => imageExtensions.includes(path.extname(f).toLowerCase()))
+      .map(f => `./assets/visuals/${variant || 'default'}/${f}`);
+    return { status: 'success', images };
+  } catch (error) {
+    console.error('[IPC] Erreur get-home-visuals:', error);
+    return { status: 'error', error: error.message };
+  }
+});
+
 // Récupérer tous les messages de remerciement
 ipcMain.handle('admin:get-thanks-messages', async () => {
   if (!photoSystemReady || !photoSystem?.db) {

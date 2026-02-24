@@ -541,6 +541,27 @@ async function showAdminDashboard() {
     console.error('[Admin] Erreur messages remerciement:', error);
   }
 
+  // Charger les variantes d'écran d'accueil disponibles
+  let homeVariants = [];
+  let currentHomeVariant = machineConfig?.home_screen_variant || 'default';
+  try {
+    if (window.photoAPI?.admin?.getHomeVariants) {
+      const result = await window.photoAPI.admin.getHomeVariants();
+      if (result.status === 'success' && result.variants) {
+        homeVariants = result.variants;
+        console.log('[Admin] Variantes écran d\'accueil:', homeVariants);
+      }
+    }
+  } catch (error) {
+    console.error('[Admin] Erreur variantes écran d\'accueil:', error);
+  }
+
+  // Labels lisibles pour les variantes
+  const variantLabels = {
+    'default': 'Kheops, Disparus, Remparts, Impressionnistes, Batisseurs',
+    'titanic-colisee': 'Titanic et Colisée'
+  };
+
   dashboard.innerHTML = `
     <div class="admin-dashboard-container">
       <div class="admin-header">
@@ -640,6 +661,14 @@ async function showAdminDashboard() {
               <option value="de" ${currentDefaultLang === 'de' ? 'selected' : ''}>Deutsch</option>
               <option value="it" ${currentDefaultLang === 'it' ? 'selected' : ''}>Italiano</option>
               <option value="zh" ${currentDefaultLang === 'zh' ? 'selected' : ''}>中文</option>
+            </select>
+          </div>
+          <div class="setting-row">
+            <label for="homeVariantSelect">Écran d'accueil</label>
+            <select id="homeVariantSelect" class="admin-select" style="min-width: 300px;">
+              ${homeVariants.map(v => `
+                <option value="${v}" ${currentHomeVariant === v ? 'selected' : ''}>${variantLabels[v] || v}</option>
+              `).join('')}
             </select>
           </div>
         </div>
@@ -826,6 +855,38 @@ async function showAdminDashboard() {
       } catch (error) {
         console.error('[Admin] Erreur changement langue:', error);
         defaultLangSelect.style.borderColor = '#ef4444';
+      }
+    });
+  }
+
+  // Sélecteur de variante écran d'accueil
+  const homeVariantSelect = $('#homeVariantSelect');
+  if (homeVariantSelect) {
+    homeVariantSelect.addEventListener('change', async (e) => {
+      const newVariant = e.target.value;
+      console.log('[Admin] Changement variante écran d\'accueil:', newVariant);
+
+      try {
+        const result = await window.photoAPI.admin.updateHomeVariant(newVariant);
+        if (result.status === 'success') {
+          console.log('[Admin] Variante mise à jour:', newVariant);
+
+          // Stocker dans le state pour prise en compte immédiate
+          if (window.state) {
+            window.state.homeScreenVariant = newVariant;
+          }
+
+          homeVariantSelect.style.borderColor = '#10b981';
+          setTimeout(() => {
+            homeVariantSelect.style.borderColor = '';
+          }, 2000);
+        } else {
+          console.error('[Admin] Erreur mise à jour variante:', result.error);
+          homeVariantSelect.style.borderColor = '#ef4444';
+        }
+      } catch (error) {
+        console.error('[Admin] Erreur changement variante:', error);
+        homeVariantSelect.style.borderColor = '#ef4444';
       }
     });
   }
