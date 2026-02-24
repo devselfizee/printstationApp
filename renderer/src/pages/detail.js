@@ -451,6 +451,9 @@ export const renderDetail = (root) => {
   // Afficher les produits filtrés par univers
   const currentUniverseId = state.universe?.id || state.universeId;
 
+  console.log('[Detail] Univers actuel:', currentUniverseId);
+  console.log('[Detail] Tous les produits:', Object.values(window.PRODUCTS).map(p => ({ id: p.id, title: p.title, universe_id: p.universe_id })));
+
   Object.values(window.PRODUCTS)
     .filter(product => {
       // Afficher le produit si:
