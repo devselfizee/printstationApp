@@ -485,7 +485,7 @@ header.topbar{
 }
 
 .home-visual-card {
-  width: 300px;
+  width: 350px;
   height: 260px;
   border-radius: 12px;
   overflow: hidden;
@@ -511,7 +511,7 @@ header.topbar{
 
 /* Tailles uniformes pour toutes les cartes */
 .home-visual-row .home-visual-card {
-  width: 300px;
+  width: 350px;
   height: 260px;
 }
 
