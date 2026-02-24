@@ -485,8 +485,8 @@ header.topbar{
 }
 
 .home-visual-card {
-  width: 280px;
-  height: 200px;
+  width: 300px;
+  height: 260px;
   border-radius: 12px;
   overflow: hidden;
   flex-shrink: 0;
@@ -509,17 +509,10 @@ header.topbar{
   -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 40%);
 }
 
-/* Dernière rangée : partiellement masquée en bas */
-.home-visual-row:last-child {
-  margin-bottom: -60px;
-  mask-image: linear-gradient(to top, transparent 0%, black 40%);
-  -webkit-mask-image: linear-gradient(to top, transparent 0%, black 40%);
-}
-
 /* Tailles uniformes pour toutes les cartes */
 .home-visual-row .home-visual-card {
-  width: 280px;
-  height: 200px;
+  width: 300px;
+  height: 260px;
 }
 
 .qr-spacer {
