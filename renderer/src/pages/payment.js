@@ -124,8 +124,30 @@ async function initiatePaymentFlow(totalAmount, root) {
     const licensed = await window.hexapay.checkLicense();
     if (!licensed.success) throw new Error(t('licenseInactive'));
 
-    // 3. Initier paiement
-    const payment = await window.hexapay.initiatePayment(totalAmount);
+    // 3. Initier paiement (avec retry si "Terminal not registered")
+    let payment = null;
+    let paymentRetries = 0;
+    const maxPaymentRetries = 3;
+
+    while (!payment?.success && paymentRetries <= maxPaymentRetries) {
+      payment = await window.hexapay.initiatePayment(totalAmount);
+
+      // Si erreur "Terminal not registered", relancer l'identification et réessayer
+      if (!payment.success && payment.error === 'Terminal not registered' && paymentRetries < maxPaymentRetries) {
+        paymentRetries++;
+        console.log(`[Payment] ⚠️ Terminal non enregistré, re-identification tentative ${paymentRetries}/${maxPaymentRetries}...`);
+
+        // Relancer l'identification (CBInfos)
+        await window.hexapay.checkLicense();
+        await new Promise(r => setTimeout(r, 2000)); // Attendre 2s
+
+        continue; // Réessayer le paiement
+      }
+
+      // Autre erreur ou succès, sortir de la boucle
+      break;
+    }
+
     if (!payment.success) throw new Error(payment.error);
 
     // 4. Impression (2s simulation)

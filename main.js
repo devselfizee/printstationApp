@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url';
 import * as fs from 'fs';
 import * as dotenv from 'dotenv';
 import https from 'https';
+import dns from 'dns';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // ============================================
@@ -1688,6 +1689,7 @@ ipcMain.handle('app:get-config', () => {
   return {
     inactivityTimeout: parseInt(process.env.INACTIVITY_TIMEOUT_MS) || 60000,
     adminInactivityTimeout: parseInt(process.env.ADMIN_INACTIVITY_TIMEOUT_MS) || 20000,
+    version: app.getVersion(),
   };
 });
 
@@ -1729,8 +1731,16 @@ ipcMain.handle('photos:scan-qr', async (event, qrContent) => {
       const seconds = String(now.getSeconds()).padStart(2, '0');
       const createdAt = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 
+      // Récupérer le timezone de la borne
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+      // Calculer le décalage horaire par rapport à GMT (ex: "+2", "-5")
+      const offsetMinutes = now.getTimezoneOffset();
+      const offsetHours = -offsetMinutes / 60;
+      const timezoneOffset = offsetHours >= 0 ? `+${offsetHours}` : `${offsetHours}`;
+
       // Sync scan story vers Supabase (non bloquant)
-      syncScanStoryToRemote(result.participantId, result.universeId, createdAt)
+      syncScanStoryToRemote(result.participantId, result.universeId, createdAt, timezone, timezoneOffset)
         .then(syncResult => {
           if (syncResult.status === 'success') {
             console.log('[IPC] Scan story synchronisé vers Supabase');
@@ -2919,22 +2929,58 @@ function invalidateAuthToken() {
  */
 
 async function fetchProductsFromAPI() {
+  console.log('[Products] ════════════════════════════════════════════════════════');
+  console.log('[Products] 🚀 DÉBUT fetchProductsFromAPI()');
+  console.log('[Products] ════════════════════════════════════════════════════════');
+  const startTime = Date.now();
+
   if (!API_SYNC_CONFIG.enabled) {
     console.log('[Products] API désactivée - utilisation des produits par défaut');
     return { status: 'skipped', message: 'API désactivée' };
   }
 
   try {
-    const baseUrl = process.env.BASE_URL || 'https://ygetxuvqrknbggplzmvy.supabase.co/functions/v1';
-    const productsUrl = baseUrl + '/manage-products?status=active';
+    // Récupérer le sales_point_id depuis machine_config
+    let salesPointId = API_SYNC_CONFIG.salesPointId;
+    console.log('[Products] 📍 Step 1: Récupération sales_point_id...');
 
-    console.log('[Products] 📦 Récupération des produits depuis l\'API...');
+    if (photoSystemReady && photoSystem?.db) {
+      try {
+        const machineConfig = await photoSystem.db.getMachineConfig();
+        if (machineConfig && machineConfig.sales_point_id) {
+          salesPointId = machineConfig.sales_point_id;
+          console.log('[Products] ✅ sales_point_id récupéré depuis machine_config:', salesPointId);
+        } else {
+          console.log('[Products] ⚠️ Pas de sales_point_id dans machine_config, utilisation de la config par défaut');
+        }
+      } catch (configError) {
+        console.log('[Products] ⚠️ Erreur récupération machine_config:', configError.message);
+      }
+    } else {
+      console.log('[Products] ⚠️ PhotoSystem non prêt, utilisation du sales_point_id par défaut');
+    }
+    console.log('[Products] ⏱️ Step 1 terminé en', Date.now() - startTime, 'ms');
+
+    const baseUrl = process.env.BASE_URL || 'https://ygetxuvqrknbggplzmvy.supabase.co/functions/v1';
+    const productsUrl = baseUrl + `/api-sales-point-products?sales_point_id=${salesPointId}&active_only=true&limit=100&offset=0`;
+
+    console.log('[Products] ════════════════════════════════════════════════════════');
+    console.log('[Products] 📦 REQUÊTE API PRODUITS');
+    console.log('[Products] ════════════════════════════════════════════════════════');
     console.log('[Products] URL:', productsUrl);
+    console.log('[Products] Sales Point ID:', salesPointId);
+    console.log('[Products] Base URL:', baseUrl);
 
     // Récupérer un token d'authentification
+    console.log('[Products] 📍 Step 2: Récupération auth token...');
+    const tokenStartTime = Date.now();
     const authToken = await getAuthToken();
+    console.log('[Products] ⏱️ Step 2 (auth token) terminé en', Date.now() - tokenStartTime, 'ms');
+    console.log('[Products] Auth token obtenu:', authToken ? '✅ OUI' : '❌ NON');
 
     // Faire l'appel HTTP GET avec les headers nécessaires pour Supabase
+    console.log('[Products] 📍 Step 3: Appel HTTP GET...');
+    const httpStartTime = Date.now();
     const response = await makeHttpsRequest(
       productsUrl,
       null,
@@ -2944,6 +2990,7 @@ async function fetchProductsFromAPI() {
       },
       authToken
     );
+    console.log('[Products] ⏱️ Step 3 (HTTP GET) terminé en', Date.now() - httpStartTime, 'ms');
 
     console.log('[Products] ═══════════════════════════════════════════════');
     console.log('[Products] 📦 RÉPONSE BRUTE DE L\'API');
@@ -2955,12 +3002,15 @@ async function fetchProductsFromAPI() {
     console.log(JSON.stringify(response, null, 2));
     console.log('[Products] ═══════════════════════════════════════════════');
 
-    // Extraire le tableau de produits (peut être dans response.products ou directement response)
+    // Extraire le tableau de produits (peut être dans response.data, response.products ou directement response)
     let productsArray = null;
 
     if (Array.isArray(response)) {
       productsArray = response;
       console.log('[Products] ✅ Réponse directe est un tableau de', response.length, 'produit(s)');
+    } else if (response && Array.isArray(response.data)) {
+      productsArray = response.data;
+      console.log('[Products] ✅ Réponse contient une clé "data" avec', response.data.length, 'produit(s)');
     } else if (response && Array.isArray(response.products)) {
       productsArray = response.products;
       console.log('[Products] ✅ Réponse contient une clé "products" avec', response.products.length, 'produit(s)');
@@ -2973,14 +3023,19 @@ async function fetchProductsFromAPI() {
     const products = {};
     productsArray.forEach(product => {
       console.log('[Products] ─────────────────────────────────────────────');
-      console.log('[Products] 🔍 Traitement du produit:', product.id, '-', product.name);
+      // Récupérer l'ID du produit (peut être product.id ou product.product_id)
+      const productId = product.product_id || product.id;
+      // Récupérer le nom du produit (peut être product.name ou product.product_name)
+      const productName = product.product_name || product.name;
+
+      console.log('[Products] 🔍 Traitement du produit:', productId, '-', productName);
       console.log('[Products] Champs disponibles:', Object.keys(product));
       console.log('[Products] Données brutes:', JSON.stringify(product, null, 2));
 
       // Les prix sont déjà en euros dans l'API
-      // unit_price = prix initial (first)
-      // bulk_price = prix en lot (next)
-      const firstPrice = product.unit_price || 0;
+      // unit_price = prix initial (first) - prix unitaire
+      // bulk_price = prix en lot (next) - prix dégressif
+      const firstPrice = product.unit_price || product.price || 0;
       const nextPrice = product.bulk_price || firstPrice;
 
       console.log('[Products] Prix unitaire (unit_price):', product.unit_price, '€');
@@ -2988,9 +3043,9 @@ async function fetchProductsFromAPI() {
       console.log('[Products] Prix formatés - first:', firstPrice, '€, next:', nextPrice, '€');
       console.log('[Products] Thumbnail URL:', product.thumbnail_url);
 
-      products[product.id] = {
-        id: product.id,
-        title: product.name || 'Produit sans nom',
+      products[productId] = {
+        id: productId,
+        title: productName || 'Produit sans nom',
         first: firstPrice,
         next: nextPrice,
         description: product.description || '',
@@ -3017,7 +3072,13 @@ async function fetchProductsFromAPI() {
     return { status: 'success', products };
 
   } catch (error) {
-    console.error('[Products] ❌ Erreur récupération produits:', error);
+    console.log('[Products] ════════════════════════════════════════════════════════');
+    console.log('[Products] ❌ ERREUR RÉCUPÉRATION PRODUITS');
+    console.log('[Products] ════════════════════════════════════════════════════════');
+    console.error('[Products] Message:', error.message);
+    console.error('[Products] Stack:', error.stack);
+    console.error('[Products] Erreur complète:', error);
+    console.log('[Products] ════════════════════════════════════════════════════════');
     return { status: 'error', error: error.message };
   }
 }
@@ -4558,8 +4619,10 @@ ipcMain.handle('order:cancel-remote', async (event, supabaseOrderId, lastStep = 
  * @param {string} participantId - ID du participant
  * @param {string} universeId - ID de l'univers
  * @param {string} createdAt - Date de création locale (format: YYYY-MM-DD HH:MM:SS)
+ * @param {string} timezone - Timezone de la borne (ex: Europe/Paris)
+ * @param {string} timezoneOffset - Décalage horaire par rapport à GMT (ex: "+2", "-5")
  */
-async function syncScanStoryToRemote(participantId, universeId, createdAt) {
+async function syncScanStoryToRemote(participantId, universeId, createdAt, timezone = null, timezoneOffset = null) {
   if (!API_SYNC_CONFIG.enabled) {
     console.log('[ScanStory] API désactivée');
     return { status: 'skipped', message: 'API désactivée' };
@@ -4572,6 +4635,8 @@ async function syncScanStoryToRemote(participantId, universeId, createdAt) {
     console.log('[ScanStory] participant_id:', participantId);
     console.log('[ScanStory] universe_id:', universeId);
     console.log('[ScanStory] created_at:', createdAt);
+    console.log('[ScanStory] timezone:', timezone);
+    console.log('[ScanStory] timezone_offset:', timezoneOffset);
 
     // Récupérer le kiosk_id depuis la config
     const kioskId = API_SYNC_CONFIG.kioskId;
@@ -4590,13 +4655,28 @@ async function syncScanStoryToRemote(participantId, universeId, createdAt) {
     }
     console.log('[ScanStory] date_scan:', dateScan);
 
+    // Utiliser le timezone passé en paramètre ou récupérer celui du système
+    const timezoneValue = timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    console.log('[ScanStory] timezone (final):', timezoneValue);
+
+    // Calculer le timezone_offset si non fourni
+    let timezoneOffsetValue = timezoneOffset;
+    if (!timezoneOffsetValue) {
+      const offsetMinutes = new Date().getTimezoneOffset();
+      const offsetHours = -offsetMinutes / 60;
+      timezoneOffsetValue = offsetHours >= 0 ? `+${offsetHours}` : `${offsetHours}`;
+    }
+    console.log('[ScanStory] timezone_offset (final):', timezoneOffsetValue);
+
     // Construire le payload
     const payload = {
       participant_id: participantId,
       universe_id: universeId,
       qrcode: qrcode,
       kiosk_id: kioskId,
-      date_scan: dateScan
+      date_scan: dateScan,
+      timezone: timezoneValue,
+      timezone_offset: timezoneOffsetValue
     };
 
     console.log('[ScanStory] Payload:', JSON.stringify(payload, null, 2));
@@ -4648,9 +4728,9 @@ async function syncScanStoryToRemote(participantId, universeId, createdAt) {
 }
 
 // Handler IPC pour synchroniser un scan story
-ipcMain.handle('scan-story:sync-remote', async (event, { participantId, universeId, createdAt }) => {
+ipcMain.handle('scan-story:sync-remote', async (event, { participantId, universeId, createdAt, timezone, timezoneOffset }) => {
   console.log('[IPC] scan-story:sync-remote appelé');
-  return await syncScanStoryToRemote(participantId, universeId, createdAt);
+  return await syncScanStoryToRemote(participantId, universeId, createdAt, timezone, timezoneOffset);
 });
 
 /**
@@ -5122,6 +5202,93 @@ ipcMain.handle('machine:fetch-kiosk', async (event, kioskId) => {
     console.error('[IPC] Erreur fetch kiosk:', error);
     return { status: 'error', error: error.message };
   }
+});
+
+/**
+ * ===== VÉRIFICATION CONNEXION INTERNET =====
+ * Vérifie si la borne a accès à internet via DNS lookup + HTTP request
+ */
+
+/**
+ * Vérifier la connexion internet de manière robuste
+ * Utilise DNS lookup + HTTP request pour être sûr
+ */
+async function checkInternetConnection() {
+  console.log('[Network] Vérification de la connexion internet...');
+
+  // Méthode 1: DNS lookup sur google.com
+  const dnsCheck = () => {
+    return new Promise((resolve) => {
+      dns.lookup('google.com', (err) => {
+        if (err) {
+          console.log('[Network] DNS lookup échoué:', err.code);
+          resolve(false);
+        } else {
+          console.log('[Network] DNS lookup réussi');
+          resolve(true);
+        }
+      });
+    });
+  };
+
+  // Méthode 2: HTTP request sur un endpoint fiable
+  const httpCheck = () => {
+    return new Promise((resolve) => {
+      const req = https.request(
+        {
+          hostname: 'www.google.com',
+          port: 443,
+          path: '/favicon.ico',
+          method: 'HEAD',
+          timeout: 5000
+        },
+        (res) => {
+          console.log('[Network] HTTP check réussi, status:', res.statusCode);
+          resolve(true);
+        }
+      );
+
+      req.on('error', (err) => {
+        console.log('[Network] HTTP check échoué:', err.message);
+        resolve(false);
+      });
+
+      req.on('timeout', () => {
+        console.log('[Network] HTTP check timeout');
+        req.destroy();
+        resolve(false);
+      });
+
+      req.end();
+    });
+  };
+
+  // Essayer les deux méthodes
+  const dnsResult = await dnsCheck();
+  if (dnsResult) {
+    const httpResult = await httpCheck();
+    if (httpResult) {
+      console.log('[Network] ✅ Connexion internet OK');
+      return { connected: true, method: 'dns+http' };
+    }
+  }
+
+  // Si DNS échoue, essayer HTTP quand même (parfois DNS est bloqué mais HTTP fonctionne)
+  const httpResult = await httpCheck();
+  if (httpResult) {
+    console.log('[Network] ✅ Connexion internet OK (HTTP only)');
+    return { connected: true, method: 'http' };
+  }
+
+  console.log('[Network] ❌ Pas de connexion internet');
+  return { connected: false, method: 'none' };
+}
+
+// Handler IPC pour vérifier la connexion internet
+ipcMain.handle('network:check-connection', async () => {
+  console.log('[IPC] network:check-connection appelé');
+  const result = await checkInternetConnection();
+  return result;
 });
 
 /**

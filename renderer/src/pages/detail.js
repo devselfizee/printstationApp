@@ -257,10 +257,15 @@ el.innerHTML = `
   el.querySelector('.cmd').onclick = async (e) => {
     e.stopPropagation();
 
-    // Récupérer le bouton et afficher le loader
+    // Désactiver TOUS les boutons d'action pendant la sync
+    const allCmdBtns = document.querySelectorAll('.offer .cmd');
+    const allRetirerLinks = document.querySelectorAll('.offer .retirer');
+    allCmdBtns.forEach(btn => { btn.disabled = true; });
+    allRetirerLinks.forEach(link => { link.style.pointerEvents = 'none'; link.style.opacity = '0.5'; });
+
+    // Afficher le spinner sur le bouton cliqué
     const cmdBtn = el.querySelector('.cmd');
     const originalHTML = cmdBtn.innerHTML;
-    cmdBtn.disabled = true;
     cmdBtn.innerHTML = SPINNER_SVG;
 
     try {
@@ -320,23 +325,28 @@ el.innerHTML = `
       // TOAST au click "Ajouter"
       toast(t('added'));
     } finally {
-      // Restaurer le bouton
+      // Restaurer le bouton cliqué
       cmdBtn.disabled = false;
       cmdBtn.innerHTML = originalHTML;
     }
 
-    // Rafraîchir TOUTES les offres pour mettre à jour les prix dégressifs
+    // Rafraîchir TOUTES les offres (réactive naturellement tous les boutons)
     refreshAllOffers(photo);
   };
-  
+
   const retirer = el.querySelector('.retirer');
   if (retirer) {
     retirer.onclick = async (e) => {
       e.preventDefault();
 
-      // Afficher le loader sur le lien "Retirer"
+      // Désactiver TOUS les boutons d'action pendant la sync
+      const allCmdBtns = document.querySelectorAll('.offer .cmd');
+      const allRetirerLinks = document.querySelectorAll('.offer .retirer');
+      allCmdBtns.forEach(btn => { btn.disabled = true; });
+      allRetirerLinks.forEach(link => { link.style.pointerEvents = 'none'; link.style.opacity = '0.5'; });
+
+      // Afficher le spinner sur le lien cliqué
       const originalText = retirer.textContent;
-      retirer.style.pointerEvents = 'none';
       retirer.innerHTML = SPINNER_SVG;
 
       try {
@@ -372,10 +382,11 @@ el.innerHTML = `
       } finally {
         // Restaurer le lien (même si ça va être re-rendu)
         retirer.style.pointerEvents = '';
+        retirer.style.opacity = '';
         retirer.textContent = originalText;
       }
 
-      // Rafraîchir TOUTES les offres pour mettre à jour les prix dégressifs
+      // Rafraîchir TOUTES les offres (réactive naturellement tous les boutons)
       refreshAllOffers(photo);
     };
   }

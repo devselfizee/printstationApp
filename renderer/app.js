@@ -16,7 +16,7 @@ import { initAdminButton } from './src/admin-system.js';
 import { initDevSimulator } from './src/dev-simulator.js';
 import { showSetupModal } from './src/pages/setup.js';
 import { initInactivityTimer, startInactivityTimer, stopInactivityTimer } from './src/inactivity-timer.js';
-import { initNetworkStatus } from './src/network-status.js';
+import { initNetworkStatus, checkInitialConnection } from './src/network-status.js';
 
 // Note: stopAllPolls est exposé via window par photoDisplayService (chargé dans le main process)
 
@@ -270,10 +270,53 @@ async function checkSetup() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
-  console.log('🚀 PrintStation initialized');
+// Afficher la version de l'application
+async function displayAppVersion() {
+  const versionEl = document.getElementById('app-version');
+  if (!versionEl) return;
 
-  // Initialiser la détection réseau
+  try {
+    // Utiliser la méthode async getConfig() pour récupérer la version
+    const config = await window.appConfig?.getConfig?.();
+    if (config?.version) {
+      versionEl.textContent = `version ${config.version}`;
+      console.log('[App] Version affichée:', config.version);
+    } else {
+      console.warn('[App] Version non disponible dans la config');
+    }
+  } catch (err) {
+    console.warn('[App] Erreur lors de la récupération de la version:', err);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  console.log('🚀 PrintStation initializing...');
+
+  // Afficher la version dès que possible
+  displayAppVersion();
+
+  // ============================================
+  // VÉRIFICATION CONNEXION INTERNET (BLOQUANTE)
+  // ============================================
+  // Cette vérification DOIT passer avant tout le reste
+  // Si pas de connexion, l'écran bloquant sera affiché
+  console.log('[App] 🌐 Vérification de la connexion internet...');
+  const isConnected = await checkInitialConnection();
+
+  if (!isConnected) {
+    console.log('[App] ❌ Pas de connexion internet - Application bloquée');
+    // L'écran bloquant est déjà affiché par checkInitialConnection
+    // On ne continue pas l'initialisation
+    return;
+  }
+
+  console.log('[App] ✅ Connexion internet OK - Poursuite de l\'initialisation');
+
+  // ============================================
+  // INITIALISATION NORMALE
+  // ============================================
+
+  // Initialiser la détection réseau continue
   initNetworkStatus();
 
   render();
@@ -286,6 +329,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Vérifier la configuration après l'initialisation
   checkSetup();
+
+  console.log('🚀 PrintStation initialized');
 });
 
 // ============================================

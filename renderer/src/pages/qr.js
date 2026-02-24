@@ -363,7 +363,7 @@ async function processPhysicalScan(rawData) {
     if (!isJSON) {
       const upperData = processedData.toUpperCase();
       const firstChar = upperData.charAt(0);
-      const isValidFirstChar = ['A', 'B', 'C', 'D', 'E'].includes(firstChar);
+      const isValidFirstChar = ['A', 'B', 'C', 'D', 'E', 'F'].includes(firstChar);
       const isValidLength = upperData.length === 6;
 
       console.log('[QR] 🔍 Validation QR Code:');
@@ -395,8 +395,8 @@ async function processPhysicalScan(rawData) {
       const upperData = processedData.toUpperCase();
       const firstChar = upperData.charAt(0);
 
-      // Vérifier si le premier caractère est une lettre d'univers (A-E)
-      if (['A', 'B', 'C', 'D', 'E'].includes(firstChar) && upperData.length > 1) {
+      // Vérifier si le premier caractère est une lettre d'univers (A-F)
+      if (['A', 'B', 'C', 'D', 'E', 'F'].includes(firstChar) && upperData.length > 1) {
         qrData = {
           universe: firstChar,
           participantId: upperData.substring(1)
