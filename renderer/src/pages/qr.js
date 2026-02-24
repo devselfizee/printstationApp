@@ -474,11 +474,11 @@ async function processPhysicalScan(rawData) {
 // ============================================
 
 export const renderQR = (root) => {
-  // Initialiser l'écouteur du scanner physique
+  // Initialiser l’écouteur du scanner physique
   initPhysicalScanner();
 
-  const qrHome = document.createElement('div');
-  qrHome.className = 'qr-home';
+  const qrHome = document.createElement(‘div’);
+  qrHome.className = ‘qr-home’;
 
   // ===== RÉCUPÉRER LES STATS =====
   // Par défaut masqué, toggle avec F5
@@ -500,23 +500,26 @@ export const renderQR = (root) => {
   `;
 
   qrHome.innerHTML = `
+    <div class="home-visuals-overlay" id="homeVisualsOverlay"></div>
     ${statsHtml}
     <div class="qr-spacer"></div>
   `;
 
   root.appendChild(qrHome);
 
+  // ===== CHARGER LES VISUELS ANIMÉS =====
+  loadHomeVisuals();
+
   // ===== CHARGER LES STATS =====
   loadStats();
 
   // ===== POLLING STATS TOUTES LES 5 SECONDES =====
-  // Nettoyer l'ancien interval avant d'en créer un nouveau (évite les fuites)
   if (statsPollInterval) {
     clearInterval(statsPollInterval);
   }
   statsPollInterval = setInterval(loadStats, 5000);
 
-  // Exposer le cleanup globalement pour que le routeur puisse l'appeler
+  // Exposer le cleanup globalement pour que le routeur puisse l’appeler
   window.cleanupQRPage = () => {
     if (statsPollInterval) {
       clearInterval(statsPollInterval);
@@ -526,66 +529,95 @@ export const renderQR = (root) => {
   };
 
   /**
-   * CORRIGER CAR LA VALEUR DE REOTUR EST ENCORE UNE PROMESSE PAS ARRAY
-   *
-  function loadStats() {
-    // ⭐ Appeler l'API IPC pour récupérer les stats
-    if (window.photoAPI && window.photoAPI.getDashboardStats) {
-      window.photoAPI.getDashboardStats()
-        .then(stats => {
-          console.log('[QR] Stats:', stats);
-          
-          if (stats && stats.photos) {
-            const downloaded = stats.photos.downloaded || 0;
-            const pending = stats.photos.pending || 0;
-            const errors = stats.photos.errors || 0;
-
-            const downloadedEl = $('#statsDownloaded');
-            const pendingEl = $('#statsPending');
-            const errorsEl = $('#statsErrors');
-
-            if (downloadedEl) downloadedEl.textContent = downloaded;
-            if (pendingEl) pendingEl.textContent = pending;
-            if (errorsEl) errorsEl.textContent = errors;
-
-            console.log(`[QR] ✅ ${downloaded} téléchargées, ${pending} en cours, ${errors} erreurs`);
-          }
-        })
-        .catch(error => {
-          console.error('[QR] Erreur stats:', error.message);
-        });
-    }
-  }
-    */
-  async function loadStats() {
+   * Charger et afficher les visuels animés de l’écran d’accueil
+   */
+  async function loadHomeVisuals() {
     try {
-      // ✅ Vérifie que l’API admin existe
-      if (!window.photoAPI?.admin?.getDashboard) {
-        console.warn('[QR] API admin.getDashboard non disponible');
+      if (!window.photoAPI?.admin?.getHomeVisuals) {
+        console.log(‘[QR] API getHomeVisuals non disponible’);
         return;
       }
 
-      // ✅ Appel asynchrone vers le main process
+      // Récupérer la variante actuelle
+      const variant = window.state?.homeScreenVariant || ‘default’;
+      console.log(‘[QR] Chargement visuels variante:’, variant);
+
+      const result = await window.photoAPI.admin.getHomeVisuals(variant);
+      if (result.status !== ‘success’ || !result.images || result.images.length === 0) {
+        console.log(‘[QR] Aucun visuel trouvé pour la variante:’, variant);
+        return;
+      }
+
+      const images = result.images;
+      console.log(‘[QR] Visuels chargés:’, images.length, ‘images’);
+
+      const overlay = document.getElementById(‘homeVisualsOverlay’);
+      if (!overlay) return;
+
+      // Créer les rangées animées
+      // Nombre de rangées selon le nombre d’images
+      const NUM_ROWS = Math.min(5, Math.max(3, Math.ceil(images.length / 2)));
+      // Vitesses différentes par rangée pour effet de profondeur
+      const speeds = [50, 40, 55, 35, 45];
+
+      for (let row = 0; row < NUM_ROWS; row++) {
+        const rowEl = document.createElement(‘div’);
+        rowEl.className = `home-visual-row ${row % 2 === 0 ? ‘scroll-left’ : ‘scroll-right’}`;
+        // Vitesse variable par rangée
+        rowEl.style.setProperty(‘--scroll-duration’, `${speeds[row % speeds.length]}s`);
+
+        // Répartir les images dans les rangées avec un décalage
+        // Chaque rangée commence à un index différent pour varier l’ordre
+        const offset = row * Math.floor(images.length / NUM_ROWS);
+        const rowImages = [];
+        for (let i = 0; i < images.length; i++) {
+          rowImages.push(images[(i + offset) % images.length]);
+        }
+
+        // Créer les cartes (set original)
+        const cardsHtml = rowImages.map((src, idx) => {
+          // Rotation subtile aléatoire mais déterministe
+          const rotation = ((idx * 7 + row * 3) % 7) - 3; // Entre -3 et +3 degrés
+          return `<div class="home-visual-card" style="--card-rotation: ${rotation}deg">
+            <img src="${src}" alt="" loading="lazy">
+          </div>`;
+        }).join(‘’);
+
+        // Dupliquer le contenu pour boucle infinie sans sursaut
+        rowEl.innerHTML = cardsHtml + cardsHtml;
+
+        overlay.appendChild(rowEl);
+      }
+
+      console.log(‘[QR] Animation visuels initialisée avec’, NUM_ROWS, ‘rangées’);
+    } catch (error) {
+      console.error(‘[QR] Erreur chargement visuels:’, error);
+    }
+  }
+
+  async function loadStats() {
+    try {
+      if (!window.photoAPI?.admin?.getDashboard) {
+        return;
+      }
+
       const stats = await window.photoAPI.admin.getDashboard();
-      console.log('[QR] Stats:', stats);
 
       if (stats && stats.photos) {
         const downloaded = stats.photos.downloaded || 0;
         const pending = stats.photos.pending || 0;
         const errors = stats.photos.errors || 0;
 
-        const downloadedEl = document.getElementById('statsDownloaded');
-        const pendingEl = document.getElementById('statsPending');
-        const errorsEl = document.getElementById('statsErrors');
+        const downloadedEl = document.getElementById(‘statsDownloaded’);
+        const pendingEl = document.getElementById(‘statsPending’);
+        const errorsEl = document.getElementById(‘statsErrors’);
 
         if (downloadedEl) downloadedEl.textContent = downloaded;
         if (pendingEl) pendingEl.textContent = pending;
         if (errorsEl) errorsEl.textContent = errors;
-
-        console.log(`[QR] ✅ ${downloaded} téléchargées, ${pending} en cours, ${errors} erreurs`);
       }
     } catch (error) {
-      console.error('[QR] Erreur stats:', error);
+      console.error(‘[QR] Erreur stats:’, error);
     }
   }
 

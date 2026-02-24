@@ -218,10 +218,17 @@ async function loadDefaultLang(shouldRender = true) {
 
     if (window.photoAPI?.admin?.getMachineConfig) {
       const result = await window.photoAPI.admin.getMachineConfig();
-      if (result.status === 'success' && result.config?.default_lang) {
-        state.lang = result.config.default_lang;
-        console.log('[App] 🌍 Langue par défaut chargée:', state.lang);
-        // Re-render pour appliquer la langue (optionnel)
+      if (result.status === 'success' && result.config) {
+        if (result.config.default_lang) {
+          state.lang = result.config.default_lang;
+          console.log('[App] 🌍 Langue par défaut chargée:', state.lang);
+        }
+        // Charger la variante d'écran d'accueil
+        if (result.config.home_screen_variant) {
+          state.homeScreenVariant = result.config.home_screen_variant;
+          console.log('[App] 🏠 Variante écran d\'accueil chargée:', state.homeScreenVariant);
+        }
+        // Re-render pour appliquer les changements
         if (shouldRender) {
           render();
         }
