@@ -554,31 +554,27 @@ export const renderQR = (root) => {
       const overlay = document.getElementById('homeVisualsOverlay');
       if (!overlay) return;
 
-      // Créer les rangées animées
-      // Nombre de rangées selon le nombre d'images
-      const NUM_ROWS = Math.min(5, Math.max(3, Math.ceil(images.length / 2)));
-      // Vitesses différentes par rangée pour effet de profondeur
-      const speeds = [50, 40, 55, 35, 45];
+      // 3 rangées comme sur l'image de référence
+      const NUM_ROWS = 3;
+      // Vitesses lentes et légèrement différentes par rangée (80-100s)
+      const speeds = [90, 80, 95];
 
       for (let row = 0; row < NUM_ROWS; row++) {
         const rowEl = document.createElement('div');
+        // Alternance gauche/droite pour effet visuel
         rowEl.className = `home-visual-row ${row % 2 === 0 ? 'scroll-left' : 'scroll-right'}`;
-        // Vitesse variable par rangée
-        rowEl.style.setProperty('--scroll-duration', `${speeds[row % speeds.length]}s`);
+        rowEl.style.setProperty('--scroll-duration', `${speeds[row]}s`);
 
         // Répartir les images dans les rangées avec un décalage
-        // Chaque rangée commence à un index différent pour varier l'ordre
         const offset = row * Math.floor(images.length / NUM_ROWS);
         const rowImages = [];
         for (let i = 0; i < images.length; i++) {
           rowImages.push(images[(i + offset) % images.length]);
         }
 
-        // Créer les cartes (set original)
-        const cardsHtml = rowImages.map((src, idx) => {
-          // Rotation subtile aléatoire mais déterministe
-          const rotation = ((idx * 7 + row * 3) % 7) - 3; // Entre -3 et +3 degrés
-          return `<div class="home-visual-card" style="--card-rotation: ${rotation}deg">
+        // Créer les cartes (sans rotation pour un look plus propre comme l'original)
+        const cardsHtml = rowImages.map((src) => {
+          return `<div class="home-visual-card">
             <img src="${src}" alt="" loading="lazy">
           </div>`;
         }).join('');

@@ -452,23 +452,26 @@ header.topbar{
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 16px;
-  padding: 40px 0;
+  gap: 24px;
+  /* Zone sombre en haut et en bas comme sur l'image de référence */
+  padding-top: 140px;
+  padding-bottom: 220px;
 }
 
 .home-visual-row {
   display: flex;
-  gap: 20px;
+  gap: 24px;
   width: max-content;
   will-change: transform;
 }
 
+/* Animation plus lente - 80s au lieu de 45s */
 .home-visual-row.scroll-left {
-  animation: homeScrollLeft var(--scroll-duration, 45s) linear infinite;
+  animation: homeScrollLeft var(--scroll-duration, 80s) linear infinite;
 }
 
 .home-visual-row.scroll-right {
-  animation: homeScrollRight var(--scroll-duration, 45s) linear infinite;
+  animation: homeScrollRight var(--scroll-duration, 80s) linear infinite;
 }
 
 @keyframes homeScrollLeft {
@@ -482,14 +485,14 @@ header.topbar{
 }
 
 .home-visual-card {
-  width: 240px;
-  height: 170px;
-  border-radius: 14px;
+  width: 280px;
+  height: 200px;
+  border-radius: 12px;
   overflow: hidden;
   flex-shrink: 0;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
   transform: rotate(var(--card-rotation, 0deg));
-  transition: box-shadow 0.3s ease;
+  border: 4px solid rgba(255, 255, 255, 0.15);
 }
 
 .home-visual-card img {
@@ -499,16 +502,24 @@ header.topbar{
   display: block;
 }
 
-/* Variantes de taille pour donner de la profondeur */
-.home-visual-row:nth-child(odd) .home-visual-card {
-  width: 260px;
-  height: 180px;
+/* Première rangée : partiellement masquée en haut avec dégradé noir */
+.home-visual-row:first-child {
+  margin-top: -60px;
+  mask-image: linear-gradient(to bottom, transparent 0%, black 40%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 40%);
 }
 
-.home-visual-row:nth-child(even) .home-visual-card {
-  width: 220px;
-  height: 155px;
-  opacity: 0.9;
+/* Dernière rangée : partiellement masquée en bas */
+.home-visual-row:last-child {
+  margin-bottom: -60px;
+  mask-image: linear-gradient(to top, transparent 0%, black 40%);
+  -webkit-mask-image: linear-gradient(to top, transparent 0%, black 40%);
+}
+
+/* Tailles uniformes pour toutes les cartes */
+.home-visual-row .home-visual-card {
+  width: 280px;
+  height: 200px;
 }
 
 .qr-spacer {
