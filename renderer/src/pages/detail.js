@@ -483,8 +483,7 @@ export const renderDetail = (root) => {
   // section.appendChild(sep);
   
   // N'afficher "Autres photos" que si ce n'est pas une photo p19
-  console.log('photo object:', p);
-  if (p.incrustation_id !== 'p19') {
+  if (p.incrustationId !== 'p19') {
     const wrap = document.createElement('div');
     wrap.className = 'other';
     wrap.innerHTML = `<div class="section"><h2>${t('other')}</h2></div><div class="grid" id="other"></div>`;
