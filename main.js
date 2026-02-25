@@ -2050,49 +2050,73 @@ ipcMain.handle('admin:get-home-variants', async () => {
   }
 });
 
-// Lister les images d'une variante (fichiers dans assets/visuals/ ou assets/visuals/<variant>/)
-ipcMain.handle('admin:get-home-visuals', async (event, variant) => {
+// Récupérer les univers de l'écran d'accueil
+ipcMain.handle('admin:get-home-universes', async () => {
+  if (!photoSystemReady || !photoSystem?.db) {
+    return { status: 'error', error: 'PhotoSystem non disponible' };
+  }
+  try {
+    const universes = await photoSystem.db.getHomeScreenUniverses();
+    return { status: 'success', universes };
+  } catch (error) {
+    console.error('[IPC] Erreur get-home-universes:', error);
+    return { status: 'error', error: error.message };
+  }
+});
+
+// Mettre à jour l'état d'un univers
+ipcMain.handle('admin:update-home-universe', async (event, { universeKey, enabled }) => {
+  if (!photoSystemReady || !photoSystem?.db) {
+    return { status: 'error', error: 'PhotoSystem non disponible' };
+  }
+  try {
+    await photoSystem.db.updateHomeScreenUniverse(universeKey, enabled);
+    console.log('[IPC] Univers mis à jour:', universeKey, enabled);
+    return { status: 'success', universeKey, enabled };
+  } catch (error) {
+    console.error('[IPC] Erreur update-home-universe:', error);
+    return { status: 'error', error: error.message };
+  }
+});
+
+// Lister les images des univers activés (parcourt assets/visuals/{key}/)
+ipcMain.handle('admin:get-home-visuals', async () => {
   try {
     const visualsDir = path.join(__dirname, 'renderer', 'assets', 'visuals');
     const imageExtensions = ['.jpg', '.jpeg', '.png', '.webp'];
 
-    // Si variant est 'default' ou vide, chercher d'abord les images à la racine de visuals/
-    if (!variant || variant === 'default') {
-      // Vérifier s'il y a des images directement dans visuals/
-      if (fs.existsSync(visualsDir)) {
-        const rootEntries = fs.readdirSync(visualsDir, { withFileTypes: true });
-        const rootImages = rootEntries
-          .filter(e => e.isFile() && imageExtensions.includes(path.extname(e.name).toLowerCase()))
-          .map(e => `./assets/visuals/${e.name}`);
+    // Récupérer les univers activés depuis la DB
+    let enabledUniverses = [];
+    if (photoSystemReady && photoSystem?.db) {
+      enabledUniverses = await photoSystem.db.getEnabledHomeUniverses();
+    }
 
-        if (rootImages.length > 0) {
-          return { status: 'success', images: rootImages };
-        }
-      }
+    // Si aucun univers activé, fallback sur tous les sous-dossiers A-F
+    if (enabledUniverses.length === 0) {
+      enabledUniverses = [
+        { universe_key: 'A' },
+        { universe_key: 'B' },
+        { universe_key: 'C' },
+        { universe_key: 'D' },
+        { universe_key: 'E' }
+      ];
+    }
 
-      // Sinon, chercher dans le sous-dossier 'default'
-      const defaultDir = path.join(visualsDir, 'default');
-      if (fs.existsSync(defaultDir)) {
-        const entries = fs.readdirSync(defaultDir);
+    const allImages = [];
+
+    // Parcourir chaque univers activé
+    for (const universe of enabledUniverses) {
+      const universeDir = path.join(visualsDir, universe.universe_key);
+      if (fs.existsSync(universeDir)) {
+        const entries = fs.readdirSync(universeDir);
         const images = entries
           .filter(f => imageExtensions.includes(path.extname(f).toLowerCase()))
-          .map(f => `./assets/visuals/default/${f}`);
-        return { status: 'success', images };
+          .map(f => `./assets/visuals/${universe.universe_key}/${f}`);
+        allImages.push(...images);
       }
-
-      return { status: 'success', images: [] };
     }
 
-    // Pour les autres variantes, chercher dans le sous-dossier correspondant
-    const variantDir = path.join(visualsDir, variant);
-    if (!fs.existsSync(variantDir)) {
-      return { status: 'success', images: [] };
-    }
-    const entries = fs.readdirSync(variantDir);
-    const images = entries
-      .filter(f => imageExtensions.includes(path.extname(f).toLowerCase()))
-      .map(f => `./assets/visuals/${variant}/${f}`);
-    return { status: 'success', images };
+    return { status: 'success', images: allImages };
   } catch (error) {
     console.error('[IPC] Erreur get-home-visuals:', error);
     return { status: 'error', error: error.message };

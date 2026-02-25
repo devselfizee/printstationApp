@@ -77,10 +77,13 @@ const photoAPI = {
     // Configuration machine
     getMachineConfig: () => ipcRenderer.invoke('admin:get-machine-config'),
     updateDefaultLang: (lang) => ipcRenderer.invoke('admin:update-default-lang', lang),
-    // Variante écran d'accueil
+    // Variante écran d'accueil (legacy)
     updateHomeVariant: (variant) => ipcRenderer.invoke('admin:update-home-variant', variant),
     getHomeVariants: () => ipcRenderer.invoke('admin:get-home-variants'),
-    getHomeVisuals: (variant) => ipcRenderer.invoke('admin:get-home-visuals', variant),
+    getHomeVisuals: () => ipcRenderer.invoke('admin:get-home-visuals'),
+    // Univers écran d'accueil
+    getHomeUniverses: () => ipcRenderer.invoke('admin:get-home-universes'),
+    updateHomeUniverse: (universeKey, enabled) => ipcRenderer.invoke('admin:update-home-universe', { universeKey, enabled }),
     // Messages de remerciement
     getThanksMessages: () => ipcRenderer.invoke('admin:get-thanks-messages'),
     getThanksMessage: (lang) => ipcRenderer.invoke('admin:get-thanks-message', lang),

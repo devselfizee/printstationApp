@@ -1856,6 +1856,60 @@ body.page-payment { overflow: hidden; }
   color: rgba(255, 255, 255, 0.8);
 }
 
+/* Setting row pour les univers */
+.setting-row-universes {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.setting-row-universes > label {
+  font-weight: 500;
+}
+
+.universe-checkboxes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+}
+
+.universe-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.universe-checkbox:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.universe-checkbox input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #5eb7ff;
+  cursor: pointer;
+}
+
+.universe-checkbox .checkbox-label {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.85);
+  white-space: nowrap;
+}
+
+.universe-checkbox.saved {
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.15);
+}
+
 .admin-select {
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);

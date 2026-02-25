@@ -538,13 +538,11 @@ export const renderQR = (root) => {
         return;
       }
 
-      // Récupérer la variante actuelle
-      const variant = window.state?.homeScreenVariant || 'default';
-      console.log('[QR] Chargement visuels variante:', variant);
+      console.log('[QR] Chargement visuels des univers activés');
 
-      const result = await window.photoAPI.admin.getHomeVisuals(variant);
+      const result = await window.photoAPI.admin.getHomeVisuals();
       if (result.status !== 'success' || !result.images || result.images.length === 0) {
-        console.log('[QR] Aucun visuel trouvé pour la variante:', variant);
+        console.log('[QR] Aucun visuel trouvé pour les univers activés');
         return;
       }
 
