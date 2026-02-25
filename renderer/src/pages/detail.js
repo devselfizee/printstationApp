@@ -485,27 +485,24 @@ export const renderDetail = (root) => {
   // sep.style.height = '40px';
   // section.appendChild(sep);
   
-  // N'afficher "Autres photos" que si ce n'est pas une photo p19
-  if (p.incrustationId !== 'p19') {
-    const wrap = document.createElement('div');
-    wrap.className = 'other';
-    wrap.innerHTML = `<div class="section"><h2>${t('other')}</h2></div><div class="grid" id="other"></div>`;
-    const grid = wrap.querySelector('#other');
-    state.photos.filter(ph => ph.id !== p.id).slice(0, 2).forEach((ph, i) => {
-      const card = document.createElement('div');
-      card.className = 'card';
-      card.style.animation = `riseIn .40s ease ${i * 140}ms both`;
-      card.innerHTML = `<div class="landscape"><img src="${ph.source}" alt=""></div>`;
-      card.onclick = () => {
-        state.currentPhoto = ph;
-        state.page = 'detail';
-        state.photoIndex = 0;
-        window.render();
-      };
-      grid.appendChild(card);
-    });
-    section.appendChild(wrap);
-  }
+  const wrap = document.createElement('div');
+  wrap.className = 'other';
+  wrap.innerHTML = `<div class="section"><h2>${t('other')}</h2></div><div class="grid" id="other"></div>`;
+  const grid = wrap.querySelector('#other');
+  state.photos.filter(ph => ph.id !== p.id).slice(0, 2).forEach((ph, i) => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.style.animation = `riseIn .40s ease ${i * 140}ms both`;
+    card.innerHTML = `<div class="landscape"><img src="${ph.source}" alt=""></div>`;
+    card.onclick = () => {
+      state.currentPhoto = ph;
+      state.page = 'detail';
+      state.photoIndex = 0;
+      window.render();
+    };
+    grid.appendChild(card);
+  });
+  section.appendChild(wrap);
 
   // === FOOTER ===
 
