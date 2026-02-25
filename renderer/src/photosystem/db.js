@@ -384,6 +384,23 @@ async function createTables() {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );`,
+
+    `CREATE TABLE IF NOT EXISTS home_screen_universes (
+      universe_key TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      enabled BOOLEAN DEFAULT 1,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );`,
+  ];
+
+  // Insérer les univers par défaut s'ils n'existent pas
+  const defaultUniverses = [
+    { key: 'A', name: 'Horizon de Kheops', enabled: 1 },
+    { key: 'B', name: 'Mondes Disparus', enabled: 1 },
+    { key: 'C', name: 'Remparts', enabled: 1 },
+    { key: 'D', name: 'Impressionnistes', enabled: 1 },
+    { key: 'E', name: 'Batisseurs', enabled: 1 },
+    { key: 'F', name: 'Titanic', enabled: 0 }
   ];
 
   for (const stmt of statements) {
@@ -391,6 +408,18 @@ async function createTables() {
       await execAsync(stmt);
     } catch (error) {
       console.error('[DB] Erreur création table:', error);
+    }
+  }
+
+  // Insérer les univers par défaut s'ils n'existent pas
+  for (const u of defaultUniverses) {
+    try {
+      await runAsync(
+        `INSERT OR IGNORE INTO home_screen_universes (universe_key, name, enabled) VALUES (?, ?, ?)`,
+        [u.key, u.name, u.enabled]
+      );
+    } catch (error) {
+      console.error('[DB] Erreur insertion univers:', error);
     }
   }
 
@@ -1837,6 +1866,37 @@ export async function updateHomeScreenVariant(variant) {
          updated_at = datetime('now', 'localtime')
      WHERE id = 1`,
     [variant]
+  );
+}
+
+/**
+ * ===== HOME SCREEN UNIVERSES =====
+ */
+
+/**
+ * Récupérer tous les univers de l'écran d'accueil
+ */
+export async function getHomeScreenUniverses() {
+  return allAsync('SELECT * FROM home_screen_universes ORDER BY universe_key');
+}
+
+/**
+ * Récupérer uniquement les univers activés
+ */
+export async function getEnabledHomeUniverses() {
+  return allAsync('SELECT * FROM home_screen_universes WHERE enabled = 1 ORDER BY universe_key');
+}
+
+/**
+ * Mettre à jour l'état enabled d'un univers
+ */
+export async function updateHomeScreenUniverse(universeKey, enabled) {
+  return runAsync(
+    `UPDATE home_screen_universes
+     SET enabled = ?,
+         updated_at = datetime('now', 'localtime')
+     WHERE universe_key = ?`,
+    [enabled ? 1 : 0, universeKey]
   );
 }
 

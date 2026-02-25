@@ -541,26 +541,19 @@ async function showAdminDashboard() {
     console.error('[Admin] Erreur messages remerciement:', error);
   }
 
-  // Charger les variantes d'écran d'accueil disponibles
-  let homeVariants = [];
-  let currentHomeVariant = machineConfig?.home_screen_variant || 'default';
+  // Charger les univers de l'écran d'accueil
+  let homeUniverses = [];
   try {
-    if (window.photoAPI?.admin?.getHomeVariants) {
-      const result = await window.photoAPI.admin.getHomeVariants();
-      if (result.status === 'success' && result.variants) {
-        homeVariants = result.variants;
-        console.log('[Admin] Variantes écran d\'accueil:', homeVariants);
+    if (window.photoAPI?.admin?.getHomeUniverses) {
+      const result = await window.photoAPI.admin.getHomeUniverses();
+      if (result.status === 'success' && result.universes) {
+        homeUniverses = result.universes;
+        console.log('[Admin] Univers écran d\'accueil:', homeUniverses);
       }
     }
   } catch (error) {
-    console.error('[Admin] Erreur variantes écran d\'accueil:', error);
+    console.error('[Admin] Erreur univers écran d\'accueil:', error);
   }
-
-  // Labels lisibles pour les variantes
-  const variantLabels = {
-    'default': 'Kheops, Disparus, Remparts, Impressionnistes, Batisseurs',
-    'titanic-colisee': 'Titanic et Colisée'
-  };
 
   dashboard.innerHTML = `
     <div class="admin-dashboard-container">
@@ -663,13 +656,16 @@ async function showAdminDashboard() {
               <option value="zh" ${currentDefaultLang === 'zh' ? 'selected' : ''}>中文</option>
             </select>
           </div>
-          <div class="setting-row">
-            <label for="homeVariantSelect">Écran d'accueil</label>
-            <select id="homeVariantSelect" class="admin-select" style="min-width: 300px;">
-              ${homeVariants.map(v => `
-                <option value="${v}" ${currentHomeVariant === v ? 'selected' : ''}>${variantLabels[v] || v}</option>
+          <div class="setting-row setting-row-universes">
+            <label>Univers écran d'accueil</label>
+            <div class="universe-checkboxes" id="universeCheckboxes">
+              ${homeUniverses.map(u => `
+                <label class="universe-checkbox">
+                  <input type="checkbox" name="homeUniverse" value="${u.universe_key}" ${u.enabled ? 'checked' : ''}>
+                  <span class="checkbox-label">${u.universe_key}. ${u.name}</span>
+                </label>
               `).join('')}
-            </select>
+            </div>
           </div>
         </div>
       </section>
@@ -859,37 +855,33 @@ async function showAdminDashboard() {
     });
   }
 
-  // Sélecteur de variante écran d'accueil
-  const homeVariantSelect = $('#homeVariantSelect');
-  if (homeVariantSelect) {
-    homeVariantSelect.addEventListener('change', async (e) => {
-      const newVariant = e.target.value;
-      console.log('[Admin] Changement variante écran d\'accueil:', newVariant);
+  // Checkboxes des univers de l'écran d'accueil
+  const universeCheckboxes = document.querySelectorAll('#universeCheckboxes input[type="checkbox"]');
+  universeCheckboxes.forEach(checkbox => {
+    checkbox.addEventListener('change', async (e) => {
+      const universeKey = e.target.value;
+      const enabled = e.target.checked;
+      console.log('[Admin] Changement univers écran d\'accueil:', universeKey, enabled);
 
       try {
-        const result = await window.photoAPI.admin.updateHomeVariant(newVariant);
+        const result = await window.photoAPI.admin.updateHomeUniverse(universeKey, enabled);
         if (result.status === 'success') {
-          console.log('[Admin] Variante mise à jour:', newVariant);
-
-          // Stocker dans le state pour prise en compte immédiate
-          if (window.state) {
-            window.state.homeScreenVariant = newVariant;
-          }
-
-          homeVariantSelect.style.borderColor = '#10b981';
+          console.log('[Admin] Univers mis à jour:', universeKey, enabled);
+          // Feedback visuel
+          e.target.parentElement.classList.add('saved');
           setTimeout(() => {
-            homeVariantSelect.style.borderColor = '';
+            e.target.parentElement.classList.remove('saved');
           }, 2000);
         } else {
-          console.error('[Admin] Erreur mise à jour variante:', result.error);
-          homeVariantSelect.style.borderColor = '#ef4444';
+          console.error('[Admin] Erreur mise à jour univers:', result.error);
+          e.target.checked = !enabled; // Revert
         }
       } catch (error) {
-        console.error('[Admin] Erreur changement variante:', error);
-        homeVariantSelect.style.borderColor = '#ef4444';
+        console.error('[Admin] Erreur changement univers:', error);
+        e.target.checked = !enabled; // Revert
       }
     });
-  }
+  });
 
   // Gestion des messages de remerciement
   const thanksLangSelect = $('#thanksLangSelect');
