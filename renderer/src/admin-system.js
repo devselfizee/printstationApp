@@ -752,6 +752,58 @@ async function showAdminDashboard() {
     document.removeEventListener('click', activityHandler);
     document.removeEventListener('mousemove', activityHandler);
     dashboard.remove();
+
+    // Rafraîchir les visuels de l'accueil si des univers ont été modifiés
+    if (universesModified) {
+      console.log('[Admin] Univers modifiés - rafraîchissement des visuels d\'accueil');
+      refreshHomeVisuals();
+    }
+  }
+
+  async function refreshHomeVisuals() {
+    try {
+      const overlay = document.getElementById('homeVisualsOverlay');
+      if (!overlay) return;
+
+      // Vider le carrousel actuel
+      overlay.innerHTML = '';
+
+      // Recharger les images depuis les univers activés
+      const result = await window.photoAPI.admin.getHomeVisuals();
+      if (result.status !== 'success' || !result.images || result.images.length === 0) {
+        console.log('[Admin] Aucun visuel après rafraîchissement');
+        return;
+      }
+
+      const images = result.images;
+      console.log('[Admin] Visuels rafraîchis:', images.length, 'images');
+
+      const NUM_ROWS = 3;
+      const speeds = [90, 80, 95];
+
+      for (let row = 0; row < NUM_ROWS; row++) {
+        const rowEl = document.createElement('div');
+        rowEl.className = `home-visual-row ${row % 2 === 0 ? 'scroll-left' : 'scroll-right'}`;
+        rowEl.style.setProperty('--scroll-duration', `${speeds[row]}s`);
+
+        const offset = row * Math.floor(images.length / NUM_ROWS);
+        const rowImages = [];
+        for (let i = 0; i < images.length; i++) {
+          rowImages.push(images[(i + offset) % images.length]);
+        }
+
+        const cardsHtml = rowImages.map((src) => {
+          return `<div class="home-visual-card">
+            <img src="${src}" alt="" loading="lazy">
+          </div>`;
+        }).join('');
+
+        rowEl.innerHTML = cardsHtml + cardsHtml;
+        overlay.appendChild(rowEl);
+      }
+    } catch (error) {
+      console.error('[Admin] Erreur rafraîchissement visuels:', error);
+    }
   }
 
   function closeDashboardAndGoHome() {
@@ -856,6 +908,7 @@ async function showAdminDashboard() {
   }
 
   // Checkboxes des univers de l'écran d'accueil
+  let universesModified = false;
   const universeCheckboxes = document.querySelectorAll('#universeCheckboxes input[type="checkbox"]');
   universeCheckboxes.forEach(checkbox => {
     checkbox.addEventListener('change', async (e) => {
@@ -867,6 +920,7 @@ async function showAdminDashboard() {
         const result = await window.photoAPI.admin.updateHomeUniverse(universeKey, enabled);
         if (result.status === 'success') {
           console.log('[Admin] Univers mis à jour:', universeKey, enabled);
+          universesModified = true;
           // Feedback visuel
           e.target.parentElement.classList.add('saved');
           setTimeout(() => {
