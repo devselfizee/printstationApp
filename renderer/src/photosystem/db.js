@@ -400,7 +400,8 @@ async function createTables() {
     { key: 'C', name: 'Remparts', enabled: 1 },
     { key: 'D', name: 'Impressionnistes', enabled: 1 },
     { key: 'E', name: 'Batisseurs', enabled: 1 },
-    { key: 'F', name: 'Titanic', enabled: 0 }
+    { key: 'F', name: 'Titanic', enabled: 0 },
+    { key: 'G', name: 'Colisée', enabled: 0 }
   ];
 
   for (const stmt of statements) {
