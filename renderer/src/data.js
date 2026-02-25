@@ -121,6 +121,24 @@ export const UNIVERSES = {
         image: './assets/porte-cle-disparu.png'
       }
     }
+  },
+  G: {
+    id: 'G',
+    name: 'Colisée',
+    banner: './assets/banniere-colisee.jpg',
+    photos: [
+      { id: 'p13', title: '', src: './assets/disparu-photo1.jpg' },
+      { id: 'p14', title: '', src: './assets/disparu-photo2.jpg' },
+      { id: 'p15', title: '', src: './assets/disparu-photo3.jpg' }
+    ],
+    productVisuals: {
+      print: {
+        image: './assets/chevalet-disparu.png'
+      },
+      magnet: {
+        image: './assets/porte-cle-disparu.png'
+      }
+    }
   }
 };
 
