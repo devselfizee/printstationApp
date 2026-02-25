@@ -786,10 +786,11 @@ async function showAdminDashboard() {
         rowEl.className = `home-visual-row ${row % 2 === 0 ? 'scroll-left' : 'scroll-right'}`;
         rowEl.style.setProperty('--scroll-duration', `${speeds[row]}s`);
 
-        const offset = row * Math.floor(images.length / NUM_ROWS);
-        const rowImages = [];
-        for (let i = 0; i < images.length; i++) {
-          rowImages.push(images[(i + offset) % images.length]);
+        // Mélange aléatoire des images pour chaque rangée (Fisher-Yates)
+        const rowImages = [...images];
+        for (let i = rowImages.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [rowImages[i], rowImages[j]] = [rowImages[j], rowImages[i]];
         }
 
         const cardsHtml = rowImages.map((src) => {
