@@ -233,6 +233,41 @@ const LOCAL_UNIVERSES = {
       background: '/assets/E/bg.jpg',
     },
   },
+  G: {
+    id: 'G',
+    name: 'Colisée',
+    description: 'Thème hivernal avec couleurs froides',
+
+    theme: {
+      primaryColor: '#0ea5e9',
+      secondaryColor: '#38bdf8',
+      backgroundColor: '#f0f9ff',
+      fontFamily: 'Helvetica, sans-serif',
+      accentColor: '#7dd3fc',
+    },
+
+    pricing: {
+      basePrice: 2.50,
+      currency: 'EUR',
+      tiers: [
+        { quantity: 1, multiplier: 1.0 },
+        { quantity: 5, multiplier: 0.95 },
+        { quantity: 10, multiplier: 0.90 },
+        { quantity: 20, multiplier: 0.85 },
+      ],
+    },
+
+    templates: {
+      layout1: '4x6',
+      layout2: '5x7',
+      layout3: '8x10',
+    },
+
+    assets: {
+      logo: '/assets/E/logo.png',
+      background: '/assets/E/bg.jpg',
+    },
+  }
 };
 
 /**
