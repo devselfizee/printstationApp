@@ -46,6 +46,18 @@ const KEYBOARD_LAYOUTS = {
   ]
 };
 
+// Variantes accentuées par langue (pour appui long)
+const ACCENT_VARIANTS = {
+  es: {
+    'A': ['A', 'Á'],
+    'E': ['E', 'É'],
+    'I': ['I', 'Í'],
+    'O': ['O', 'Ó'],
+    'U': ['U', 'Ú', 'Ü'],
+    'N': ['N', 'Ñ']
+  }
+};
+
 export const renderForm = (root) => {
   const main = document.createElement('div');
   main.className = 'main';
@@ -321,6 +333,31 @@ attachFooterListeners({
   const layout = KEYBOARD_LAYOUTS[state.lang] || KEYBOARD_LAYOUTS.fr;
   
   const kb = $('#kb');
+
+  // Créer le popup pour les variantes accentuées
+  const accentPopup = document.createElement('div');
+  accentPopup.className = 'accent-popup';
+  accentPopup.style.display = 'none';
+  document.body.appendChild(accentPopup);
+
+  // Variables pour gérer l'appui long
+  let longPressTimer = null;
+  let isLongPress = false;
+  const LONG_PRESS_DELAY = 400; // ms
+
+  // Fonction pour fermer le popup
+  const closeAccentPopup = () => {
+    accentPopup.style.display = 'none';
+    accentPopup.innerHTML = '';
+  };
+
+  // Fermer le popup si on clique ailleurs
+  document.addEventListener('click', (e) => {
+    if (!accentPopup.contains(e.target)) {
+      closeAccentPopup();
+    }
+  });
+
   layout.forEach((r, rowIdx) => {
     const row = document.createElement('div');
     row.className = 'kb-row';
@@ -328,11 +365,73 @@ attachFooterListeners({
       const b = document.createElement('button');
       b.className = 'key' + (k === 'EFFACER' ? ' delete-key' : '');
       b.textContent = k;
-      b.onclick = () => {
-        const inp = $('#email');
-        if (k === 'EFFACER') inp.value = inp.value.slice(0, -1);
-        else inp.value += k.toLowerCase();
-      };
+
+      // Vérifier si cette touche a des variantes accentuées
+      const variants = ACCENT_VARIANTS[state.lang]?.[k];
+
+      if (variants && variants.length > 1) {
+        // Touche avec variantes - gérer appui long
+        const startLongPress = (e) => {
+          e.preventDefault();
+          isLongPress = false;
+
+          longPressTimer = setTimeout(() => {
+            isLongPress = true;
+
+            // Afficher le popup
+            const rect = b.getBoundingClientRect();
+            accentPopup.innerHTML = variants.map(v =>
+              `<button class="accent-option">${v}</button>`
+            ).join('');
+            accentPopup.style.display = 'flex';
+            accentPopup.style.left = `${rect.left + rect.width / 2}px`;
+            accentPopup.style.top = `${rect.top - 50}px`;
+
+            // Gérer le clic sur les options
+            accentPopup.querySelectorAll('.accent-option').forEach(opt => {
+              opt.onclick = (ev) => {
+                ev.stopPropagation();
+                const inp = $('#email');
+                inp.value += opt.textContent.toLowerCase();
+                closeAccentPopup();
+              };
+            });
+          }, LONG_PRESS_DELAY);
+        };
+
+        const endLongPress = (e) => {
+          clearTimeout(longPressTimer);
+          if (!isLongPress) {
+            // Appui court - insérer le caractère normal
+            const inp = $('#email');
+            inp.value += k.toLowerCase();
+          }
+        };
+
+        const cancelLongPress = () => {
+          clearTimeout(longPressTimer);
+        };
+
+        // Support tactile et souris
+        b.addEventListener('touchstart', startLongPress, { passive: false });
+        b.addEventListener('touchend', endLongPress);
+        b.addEventListener('touchcancel', cancelLongPress);
+        b.addEventListener('mousedown', startLongPress);
+        b.addEventListener('mouseup', endLongPress);
+        b.addEventListener('mouseleave', cancelLongPress);
+
+        // Empêcher le onclick par défaut
+        b.onclick = (e) => e.preventDefault();
+
+      } else {
+        // Touche normale sans variantes
+        b.onclick = () => {
+          const inp = $('#email');
+          if (k === 'EFFACER') inp.value = inp.value.slice(0, -1);
+          else inp.value += k.toLowerCase();
+        };
+      }
+
       row.appendChild(b);
     });
     kb.appendChild(row);
