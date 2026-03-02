@@ -343,6 +343,7 @@ attachFooterListeners({
   // Variables pour gérer l'appui long
   let longPressTimer = null;
   let isLongPress = false;
+  let popupOpenTime = 0; // Timestamp pour éviter fermeture immédiate
   const LONG_PRESS_DELAY = 400; // ms
 
   // Fonction pour fermer le popup
@@ -351,8 +352,10 @@ attachFooterListeners({
     accentPopup.innerHTML = '';
   };
 
-  // Fermer le popup si on clique ailleurs
+  // Fermer le popup si on clique ailleurs (avec délai de protection)
   document.addEventListener('click', (e) => {
+    // Ignorer le clic si le popup vient d'ouvrir (< 100ms)
+    if (Date.now() - popupOpenTime < 100) return;
     if (!accentPopup.contains(e.target)) {
       closeAccentPopup();
     }
@@ -378,6 +381,7 @@ attachFooterListeners({
 
           longPressTimer = setTimeout(() => {
             isLongPress = true;
+            popupOpenTime = Date.now(); // Marquer le moment d'ouverture
 
             // Afficher le popup
             const rect = b.getBoundingClientRect();
@@ -406,6 +410,9 @@ attachFooterListeners({
             // Appui court - insérer le caractère normal
             const inp = $('#email');
             inp.value += k.toLowerCase();
+          } else {
+            // Appui long - empêcher le clic de fermer le popup
+            e.stopPropagation();
           }
         };
 
