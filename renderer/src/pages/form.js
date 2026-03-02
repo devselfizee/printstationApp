@@ -428,8 +428,13 @@ attachFooterListeners({
         b.addEventListener('mouseup', endLongPress);
         b.addEventListener('mouseleave', cancelLongPress);
 
-        // Empêcher le onclick par défaut
-        b.onclick = (e) => e.preventDefault();
+        // Empêcher le onclick par défaut et bloquer propagation si appui long
+        b.onclick = (e) => {
+          e.preventDefault();
+          if (isLongPress) {
+            e.stopPropagation();
+          }
+        };
 
       } else {
         // Touche normale sans variantes
