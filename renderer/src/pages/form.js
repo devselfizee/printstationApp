@@ -373,6 +373,7 @@ attachFooterListeners({
         // Touche avec variantes - gérer appui long
         const startLongPress = (e) => {
           e.preventDefault();
+          closeAccentPopup(); // Fermer tout popup ouvert
           isLongPress = false;
 
           longPressTimer = setTimeout(() => {
@@ -426,6 +427,7 @@ attachFooterListeners({
       } else {
         // Touche normale sans variantes
         b.onclick = () => {
+          closeAccentPopup(); // Fermer tout popup ouvert
           const inp = $('#email');
           if (k === 'EFFACER') inp.value = inp.value.slice(0, -1);
           else inp.value += k.toLowerCase();
