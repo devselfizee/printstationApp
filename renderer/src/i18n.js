@@ -545,8 +545,98 @@ export const productNames = {
 
 export const t = (key) => i18n[state.lang]?.[key] || key;
 
+// Traductions des noms de produits par titre (français comme clé de référence)
+// Permet de traduire automatiquement tous les produits ayant le même nom
+const productTitleTranslations = {
+  // Photo Papier / Paper Photo
+  'Photo Papier (chevalet)': {
+    en: 'Paper Photo (display stand)',
+    es: 'Foto en papel (caballete)',
+    zh: '纸质照片（展示架）',
+    it: 'Foto su carta (cavalletto)',
+    de: 'Papierfoto (Aufsteller)'
+  },
+  'Photo papier (chevalet)': {
+    en: 'Paper photo (display stand)',
+    es: 'Foto en papel (caballete)',
+    zh: '纸质照片（展示架）',
+    it: 'Foto su carta (cavalletto)',
+    de: 'Papierfoto (Aufsteller)'
+  },
+  // Pack porte-clé + magnet
+  'Pack porte-clé + magnet': {
+    en: 'Keychain + Magnet Pack',
+    es: 'Pack llavero + imán',
+    zh: '钥匙扣+磁铁套装',
+    it: 'Pack portachiavi + magnete',
+    de: 'Schlüsselanhänger + Magnet Pack'
+  },
+  // Porte-clé magnétique
+  'Porte-clé magnétique': {
+    en: 'Magnetic keychain',
+    es: 'Llavero magnético',
+    zh: '磁性钥匙扣',
+    it: 'Portachiavi magnetico',
+    de: 'Magnetischer Schlüsselanhänger'
+  },
+  // Magnet
+  'Magnet': {
+    en: 'Magnet',
+    es: 'Imán',
+    zh: '磁铁',
+    it: 'Magnete',
+    de: 'Magnet'
+  },
+  // Porte-clés
+  'Porte-clés': {
+    en: 'Keychain',
+    es: 'Llavero',
+    zh: '钥匙扣',
+    it: 'Portachiavi',
+    de: 'Schlüsselanhänger'
+  },
+  // Mug
+  'Mug': {
+    en: 'Mug',
+    es: 'Taza',
+    zh: '马克杯',
+    it: 'Tazza',
+    de: 'Tasse'
+  },
+  // Poster
+  'Poster': {
+    en: 'Poster',
+    es: 'Póster',
+    zh: '海报',
+    it: 'Poster',
+    de: 'Poster'
+  },
+  // Carte postale
+  'Carte postale': {
+    en: 'Postcard',
+    es: 'Postal',
+    zh: '明信片',
+    it: 'Cartolina',
+    de: 'Postkarte'
+  }
+};
+
 // Fonction pour traduire le nom d'un produit
-// Utilise l'ID du produit pour chercher la traduction, sinon retourne le titre de l'API
+// 1. Cherche d'abord par ID (UUID) pour compatibilité
+// 2. Sinon cherche par titre du produit (nom français comme référence)
+// 3. Sinon retourne le titre original
 export const tProduct = (productId, fallbackTitle) => {
-  return productNames[state.lang]?.[productId] || fallbackTitle || productId;
+  // Essayer par UUID d'abord (compatibilité)
+  const byId = productNames[state.lang]?.[productId];
+  if (byId) return byId;
+
+  // Si langue française, retourner le titre tel quel
+  if (state.lang === 'fr') return fallbackTitle || productId;
+
+  // Essayer par titre (nom français comme clé)
+  const byTitle = productTitleTranslations[fallbackTitle]?.[state.lang];
+  if (byTitle) return byTitle;
+
+  // Fallback: retourner le titre original
+  return fallbackTitle || productId;
 };
