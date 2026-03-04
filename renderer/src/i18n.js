@@ -563,8 +563,16 @@ const productTitleTranslations = {
     it: 'Foto su carta (cavalletto)',
     de: 'Papierfoto (Aufsteller)'
   },
-  // Pack porte-clé + magnet
+  // Pack porte-clé + magnet (avec tiret)
   'Pack porte-clé + magnet': {
+    en: 'Keychain + Magnet Pack',
+    es: 'Pack llavero + imán',
+    zh: '钥匙扣+磁铁套装',
+    it: 'Pack portachiavi + magnete',
+    de: 'Schlüsselanhänger + Magnet Pack'
+  },
+  // Pack porte clé + magnet (sans tiret)
+  'Pack porte clé + magnet': {
     en: 'Keychain + Magnet Pack',
     es: 'Pack llavero + imán',
     zh: '钥匙扣+磁铁套装',
