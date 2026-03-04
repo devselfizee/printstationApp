@@ -637,13 +637,15 @@ const productTitleTranslations = {
   }
 };
 
-// Normalise une chaîne pour comparaison (supprime accents, minuscules)
+// Normalise une chaîne pour comparaison (supprime accents, minuscules, espaces multiples)
 const normalizeForComparison = (str) => {
   if (!str) return '';
   return str
     .toLowerCase()
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, ''); // Supprime les accents
+    .replace(/[\u0300-\u036f]/g, '') // Supprime les accents
+    .replace(/\s+/g, ' ')            // Remplace espaces multiples par un seul
+    .trim();                         // Supprime espaces début/fin
 };
 
 // Fonction pour traduire le nom d'un produit
