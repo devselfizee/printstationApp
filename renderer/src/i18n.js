@@ -579,6 +579,14 @@ const productTitleTranslations = {
     it: 'Pack portachiavi + magnete',
     de: 'Schlüsselanhänger + Magnet Pack'
   },
+  // Pack porte cle + magnet (sans accent)
+  'Pack porte cle + magnet': {
+    en: 'Keychain + Magnet Pack',
+    es: 'Pack llavero + imán',
+    zh: '钥匙扣+磁铁套装',
+    it: 'Pack portachiavi + magnete',
+    de: 'Schlüsselanhänger + Magnet Pack'
+  },
   // Porte-clé magnétique
   'Porte-clé magnétique': {
     en: 'Magnetic keychain',
@@ -629,6 +637,15 @@ const productTitleTranslations = {
   }
 };
 
+// Normalise une chaîne pour comparaison (supprime accents, minuscules)
+const normalizeForComparison = (str) => {
+  if (!str) return '';
+  return str
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, ''); // Supprime les accents
+};
+
 // Fonction pour traduire le nom d'un produit
 // 1. Cherche d'abord par ID (UUID) pour compatibilité
 // 2. Sinon cherche par titre du produit (nom français comme référence)
@@ -641,9 +658,17 @@ export const tProduct = (productId, fallbackTitle) => {
   // Si langue française, retourner le titre tel quel
   if (state.lang === 'fr') return fallbackTitle || productId;
 
-  // Essayer par titre (nom français comme clé)
+  // Essayer par titre exact (nom français comme clé)
   const byTitle = productTitleTranslations[fallbackTitle]?.[state.lang];
   if (byTitle) return byTitle;
+
+  // Essayer par titre normalisé (sans accents, minuscules)
+  const normalizedFallback = normalizeForComparison(fallbackTitle);
+  for (const [key, translations] of Object.entries(productTitleTranslations)) {
+    if (normalizeForComparison(key) === normalizedFallback) {
+      return translations[state.lang] || fallbackTitle;
+    }
+  }
 
   // Fallback: retourner le titre original
   return fallbackTitle || productId;
