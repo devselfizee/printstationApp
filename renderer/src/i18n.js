@@ -651,25 +651,39 @@ const normalizeForComparison = (str) => {
 // 2. Sinon cherche par titre du produit (nom français comme référence)
 // 3. Sinon retourne le titre original
 export const tProduct = (productId, fallbackTitle) => {
+  // DEBUG: Afficher les paramètres
+  console.log('🔍 tProduct appelé:', { productId, fallbackTitle, lang: state.lang });
+
   // Essayer par UUID d'abord (compatibilité)
   const byId = productNames[state.lang]?.[productId];
-  if (byId) return byId;
+  if (byId) {
+    console.log('✅ Trouvé par UUID:', byId);
+    return byId;
+  }
 
   // Si langue française, retourner le titre tel quel
   if (state.lang === 'fr') return fallbackTitle || productId;
 
   // Essayer par titre exact (nom français comme clé)
   const byTitle = productTitleTranslations[fallbackTitle]?.[state.lang];
-  if (byTitle) return byTitle;
+  if (byTitle) {
+    console.log('✅ Trouvé par titre exact:', byTitle);
+    return byTitle;
+  }
 
   // Essayer par titre normalisé (sans accents, minuscules)
   const normalizedFallback = normalizeForComparison(fallbackTitle);
+  console.log('🔍 Titre normalisé:', normalizedFallback);
+
   for (const [key, translations] of Object.entries(productTitleTranslations)) {
-    if (normalizeForComparison(key) === normalizedFallback) {
+    const normalizedKey = normalizeForComparison(key);
+    if (normalizedKey === normalizedFallback) {
+      console.log('✅ Trouvé par normalisation:', key, '->', translations[state.lang]);
       return translations[state.lang] || fallbackTitle;
     }
   }
 
   // Fallback: retourner le titre original
+  console.log('❌ Aucune traduction trouvée pour:', fallbackTitle);
   return fallbackTitle || productId;
 };
