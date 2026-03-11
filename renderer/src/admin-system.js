@@ -192,6 +192,7 @@ function showAdminLogin() {
         <div class="admin-login-box" id="adminLoginBox">
           <h2>🔐 Admin</h2>
           <div class="admin-password-display" id="adminPasswordDisplay">
+            <input type="text" id="adminPasswordInput" inputmode="none" readonly autocomplete="off" style="position:absolute;opacity:0;pointer-events:none;"/>
             <span class="password-dots" id="passwordDots"></span>
           </div>
           <div class="admin-error-msg" id="adminErrorMsg"></div>
@@ -340,10 +341,16 @@ function showAdminLogin() {
 
   let password = '';
   const passwordDots = $('#passwordDots');
+  const passwordInput = $('#adminPasswordInput');
+  const passwordDisplay = $('#adminPasswordDisplay');
   const cancelBtn = $('#adminCancelBtn');
   const okBtn = $('#adminOkBtn');
   const errorMsg = $('#adminErrorMsg');
   const kb = $('#adminKb');
+
+  // Focus l'input caché pour empêcher le clavier Windows d'apparaître
+  passwordDisplay.onclick = () => passwordInput.focus();
+  passwordInput.focus();
 
   // Timer d'inactivité
   function resetInactivityTimer() {
