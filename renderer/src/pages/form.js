@@ -77,7 +77,7 @@ export const renderForm = (root) => {
         ${photosUnique.length > 1 ? `<div class="caption">${state.photoIndex + 1}/${photosUnique.length}</div>` : ''}
       </div>
       <div class="form-email">
-        <div class="input" id="inputWrap"><input id="email" type="email" placeholder="${t('email')}" value="${state.email || ''}"/></div>
+        <div class="input" id="inputWrap"><input id="email" type="email" inputmode="none" placeholder="${t('email')}" value="${state.email || ''}" readonly/></div>
         <div class="chips">${(EMAIL_SUGGESTIONS[state.lang] || EMAIL_SUGGESTIONS.fr).map(d => `<button class="chip" data-d="${d}">${d}</button>`).join('')}</div>
 
         <div class="optin-card" id="optinCard">
