@@ -7,6 +7,7 @@
 
 import { state } from '../state.js';
 import { $ } from '../utils.js';
+import { t } from '../i18n.js';
 
 // ============================================
 // MODAL "PHOTOS NON DISPONIBLES"
@@ -122,6 +123,124 @@ function showNoPhotosModal() {
 
   // Fermer le modal au clic sur le bouton ou l'overlay
   document.getElementById('close-no-photos-modal').addEventListener('click', () => {
+    modal.remove();
+  });
+
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      modal.remove();
+    }
+  });
+}
+
+// ============================================
+// MODAL "PHOTOS PURGÉES"
+// ============================================
+function showPhotosPurgedModal() {
+  const existingModal = document.getElementById('photos-purged-modal');
+  if (existingModal) {
+    existingModal.remove();
+  }
+
+  const modal = document.createElement('div');
+  modal.id = 'photos-purged-modal';
+  modal.className = 'photos-purged-modal-overlay';
+  modal.innerHTML = `
+    <div class="photos-purged-modal">
+      <div class="photos-purged-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="3 6 5 6 21 6"></polyline>
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          <line x1="10" y1="11" x2="10" y2="17"></line>
+          <line x1="14" y1="11" x2="14" y2="17"></line>
+        </svg>
+      </div>
+      <h2 class="photos-purged-title">${t('purgedTitle')}</h2>
+      <p class="photos-purged-message">${t('purgedMessage')}</p>
+      <p class="photos-purged-hint">${t('purgedHint')}</p>
+      <button class="photos-purged-btn" id="close-photos-purged-modal">OK</button>
+    </div>
+  `;
+
+  if (!document.getElementById('photos-purged-modal-styles')) {
+    const styles = document.createElement('style');
+    styles.id = 'photos-purged-modal-styles';
+    styles.textContent = `
+      .photos-purged-modal-overlay {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        animation: fadeInPurged 0.3s ease;
+      }
+      @keyframes fadeInPurged {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      .photos-purged-modal {
+        background: white;
+        border-radius: 20px;
+        padding: 40px 50px;
+        text-align: center;
+        max-width: 400px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        animation: slideUpPurged 0.3s ease;
+      }
+      @keyframes slideUpPurged {
+        from { transform: translateY(20px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+      }
+      .photos-purged-icon {
+        color: #ef4444;
+        margin-bottom: 20px;
+      }
+      .photos-purged-icon svg {
+        filter: drop-shadow(0 4px 6px rgba(239, 68, 68, 0.3));
+      }
+      .photos-purged-title {
+        font-size: 24px;
+        font-weight: 700;
+        color: #1f2937;
+        margin: 0 0 15px 0;
+      }
+      .photos-purged-message {
+        font-size: 18px;
+        color: #4b5563;
+        margin: 0 0 10px 0;
+      }
+      .photos-purged-hint {
+        font-size: 14px;
+        color: #9ca3af;
+        margin: 0 0 25px 0;
+      }
+      .photos-purged-btn {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        color: white;
+        border: none;
+        padding: 14px 50px;
+        font-size: 18px;
+        font-weight: 600;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+      .photos-purged-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+      }
+      .photos-purged-btn:active {
+        transform: translateY(0);
+      }
+    `;
+    document.head.appendChild(styles);
+  }
+
+  document.body.appendChild(modal);
+
+  document.getElementById('close-photos-purged-modal').addEventListener('click', () => {
     modal.remove();
   });
 
@@ -257,6 +376,11 @@ function showInvalidQRModal() {
     }
   });
 }
+
+// Exposer les modals pour dev-simulator
+window.showNoPhotosModal = showNoPhotosModal;
+window.showInvalidQRModal = showInvalidQRModal;
+window.showPhotosPurgedModal = showPhotosPurgedModal;
 
 // ============================================
 // SCANNER QR PHYSIQUE - Écouteur clavier
@@ -435,7 +559,14 @@ async function processPhysicalScan(rawData) {
         }
 
         // Vérifier si le participant a des photos
+        console.log('[QR] DEBUG purgedCount=', result.purgedCount, 'photos=', result.photos?.length);
         if (!result.photos || result.photos.length === 0) {
+          // Toutes les photos ont été purgées
+          if (result.purgedCount && result.purgedCount > 0) {
+            console.log('[QR] 🗑️ Toutes les photos ont été purgées pour ce participant');
+            showPhotosPurgedModal();
+            return;
+          }
           console.log('[QR] ⚠️ Aucune photo disponible pour ce participant');
           showNoPhotosModal();
           return;

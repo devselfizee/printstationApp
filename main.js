@@ -11,6 +11,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // SYSTÈME DE LOGGING CENTRALISÉ
 // ============================================
 import logger from './services/LoggerService.js';
+import { checkForUpdates } from './services/updater.js';
 
 // Récupérer la version depuis package.json
 const packageJson = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
@@ -1383,12 +1384,12 @@ app.whenReady().then(async () => {
       // Extraire le chemin depuis l'URL
       // Format: printstation://local/home/user/Documents/PrintStationApp/Medias/participant_123/photo_001.jpg
       const url = request.url.replace('printstation://local', '');
-      
+
       // Décoder l'URL (au cas où il y a des espaces ou caractères spéciaux)
       const filePath = decodeURIComponent(url);
-      
+
       console.log('[Protocol] Demande fichier:', filePath);
-      
+
       // Vérifier que le fichier existe
       if (fs.existsSync(filePath)) {
         callback({ path: filePath });
@@ -1431,7 +1432,7 @@ app.whenReady().then(async () => {
     // Créer la fenêtre
     // createWindow();
 
-    
+
   } catch (err) {
     log('error', '❌ Failed to initialize application', { error: err.message });
     app.quit();
@@ -1445,8 +1446,6 @@ app.whenReady().then(async () => {
  */
 
 app.on('ready', async () => {
-  // console.log('[Main] Démarrage PrintStation...');
-
   // Initialiser le système de photos SI disponible
   if (photoSystem && photoSystem.initialize) {
     try {
@@ -1501,6 +1500,11 @@ app.on('ready', async () => {
     console.log('[Main] ⚠️  PhotoSystem non disponible - Mode local uniquement');
     photoSystemReady = false;
   }
+
+  // ── Vérification mise à jour automatique ──
+  const isInstalling = await checkForUpdates();
+  if (isInstalling) return; // Mise à jour en cours, ne pas ouvrir l'app
+  // ─────────────────────────────────────────
 
   createWindow();
   createMenu();
@@ -1766,6 +1770,7 @@ ipcMain.handle('photos:scan-qr', async (event, qrContent) => {
         });
     }
 
+    console.log(`[IPC] scan-qr retourne: photos=${result.photos?.length}, purgedCount=${result.purgedCount}`);
     return result;
   } catch (error) {
     console.error('[IPC] Erreur scan QR:', error);
@@ -1958,6 +1963,24 @@ ipcMain.handle('admin:purchase-report', () => {
     return [];
   }
   return photoSystem.admin.getPurchaseReport();
+});
+
+/**
+ * ===== IPC HANDLERS - PURGE PHOTOS =====
+ */
+
+ipcMain.handle('admin:count-photos-to-purge', async (event, { startDate, endDate }) => {
+  if (!photoSystemReady || !photoSystem?.admin) {
+    return { status: 'error', error: 'PhotoSystem non disponible', count: 0 };
+  }
+  return photoSystem.admin.countPhotosToPurge(startDate, endDate);
+});
+
+ipcMain.handle('admin:purge-photos', async (event, { startDate, endDate }) => {
+  if (!photoSystemReady || !photoSystem?.admin) {
+    return { status: 'error', error: 'PhotoSystem non disponible' };
+  }
+  return photoSystem.admin.purgePhotos(startDate, endDate);
 });
 
 /**

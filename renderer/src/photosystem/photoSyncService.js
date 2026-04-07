@@ -12,6 +12,7 @@
 import * as db from './db.js';
 import * as downloadService from './photoDownloadService.js';
 import { triggerParticipantSync } from './photosystem.js';
+import logger from '../../../services/LoggerService.js';
 import path from 'path';
 import os from 'os';
 import * as fs from 'fs/promises';
@@ -49,6 +50,7 @@ console.log('[PhotoSync] Dossier médias:', MEDIAS_DIR);
 
 let syncInterval = null;
 let lastGlobalSync = null;
+let lastGlobalId = 0;
 let isSyncing = false;
 let syncStats = {
   totalRuns: 0,
@@ -63,20 +65,37 @@ let syncStats = {
  */
 export async function startSyncService() {
   console.log('[PhotoSync] Service démarrage...');
-  
+  logger.info('PHOTO_SYNC', 'Service de synchronisation démarré');
+
   try {
     // ⭐ Vérifier/réparer la DB au démarrage
     await verifyDatabase();
   } catch (error) {
     console.error('[PhotoSync] Erreur vérification DB:', error.message);
   }
-  
+
+  // ⭐ Restaurer le curseur de pagination depuis la DB
+  try {
+    const syncState = await db.getSyncState();
+    if (syncState) {
+      lastGlobalSync = syncState.last_sync;
+      lastGlobalId = syncState.last_id || 0;
+      console.log(`[PhotoSync] 🔄 Curseur restauré: lastSync=${lastGlobalSync}, lastId=${lastGlobalId}`);
+      logger.info('PHOTO_SYNC', 'Curseur de pagination restauré', {
+        lastSync: lastGlobalSync,
+        lastId: lastGlobalId
+      });
+    }
+  } catch (error) {
+    console.error('[PhotoSync] Erreur restauration curseur:', error.message);
+  }
+
   try {
     await resumePendingDownloads();
   } catch (error) {
     console.error('[PhotoSync] Erreur resume pending:', error.message);
   }
-  
+
   await performSync();
   
   syncInterval = setInterval(performSync, CONFIG.SYNC_INTERVAL_MS);
@@ -172,13 +191,18 @@ async function performSync() {
     const timeoutPromise = new Promise((_, reject) =>
       setTimeout(() => reject(new Error('Sync timeout')), 30000)
     );
-    
+
     const syncPromise = performSyncInternal();
-    
+
     await Promise.race([syncPromise, timeoutPromise]);
-    
+
   } catch (error) {
     console.error('[PhotoSync] ❌ Erreur sync:', error.message);
+    logger.error('PHOTO_SYNC', `Erreur cycle sync #${syncStats.totalRuns}`, {
+      error: error.message,
+      lastSync: lastGlobalSync,
+      cycle: syncStats.totalRuns
+    });
     syncStats.failedRuns++;
   } finally {
     isSyncing = false;
@@ -186,44 +210,88 @@ async function performSync() {
 }
 
 async function performSyncInternal() {
+  const previousSync = lastGlobalSync;
   console.log('[PhotoSync] 📡 Appel API...');
-  const response = await fetchAllPhotosFromAPI(lastGlobalSync);
-  
+  const response = await fetchAllPhotosFromAPI(lastGlobalSync, lastGlobalId);
+
   if (!response || !response.photos) {
     console.warn('[PhotoSync] ⚠️  Réponse API invalide');
+    logger.warn('PHOTO_SYNC', 'Réponse API invalide ou vide', {
+      lastSync: lastGlobalSync,
+      responseKeys: response ? Object.keys(response) : 'null'
+    });
     syncStats.failedRuns++;
     return;
   }
 
   console.log(`[PhotoSync] 📥 Reçu: ${response.photos.length} photos`);
 
+  // Logger les détails de chaque photo reçue
+  if (response.photos.length > 0) {
+    logger.info('PHOTO_SYNC', `API retourne ${response.photos.length} photos`, {
+      lastSyncEnvoyé: previousSync,
+      lastIdEnvoyé: lastGlobalId,
+      lastSyncReçu: response.lastSync,
+      lastIdReçu: response.lastId,
+      photoIds: response.photos.map(p => p.id),
+      participants: [...new Set(response.photos.map(p => p.participantId))],
+    });
+  } else {
+    logger.debug('PHOTO_SYNC', 'API retourne 0 photos', {
+      lastSync: lastGlobalSync,
+      lastId: lastGlobalId,
+      cycle: syncStats.totalRuns
+    });
+  }
+
   if (response.lastSync) {
     lastGlobalSync = response.lastSync;
+  }
+  if (response.lastId) {
+    lastGlobalId = response.lastId;
+  }
+
+  // ⭐ Persister le curseur en DB pour survivre aux redémarrages
+  if (response.lastSync || response.lastId) {
+    try {
+      await db.saveSyncState(lastGlobalSync, lastGlobalId);
+    } catch (error) {
+      console.error('[PhotoSync] Erreur sauvegarde curseur:', error.message);
+    }
   }
 
   let totalAdded = 0;
   let totalUpdated = 0;
   let totalSkipped = 0;
-  
+  let totalErrors = 0;
+
   for (const remotePhoto of response.photos) {
     const result = await processRemotePhoto(remotePhoto);
     if (result.added) totalAdded++;
     if (result.updated) totalUpdated++;
     if (result.skipped) totalSkipped++;
+    if (result.error) totalErrors++;
   }
 
   syncStats.photosDiscovered += totalAdded;
   syncStats.photosUpdated += totalUpdated;
   syncStats.successfulRuns++;
-  
+
   if (totalAdded > 0 || totalUpdated > 0) {
     console.log(`[PhotoSync] ✅ ${totalAdded} ajoutées, ${totalUpdated} mises à jour, ${totalSkipped} skip`);
+    logger.info('PHOTO_SYNC', `Sync terminé: ${totalAdded} ajoutées, ${totalUpdated} MAJ, ${totalSkipped} skip, ${totalErrors} erreurs`, {
+      added: totalAdded,
+      updated: totalUpdated,
+      skipped: totalSkipped,
+      errors: totalErrors,
+      lastSync: lastGlobalSync
+    });
   } else {
     console.log(`[PhotoSync] ✅ Aucune nouvelle`);
   }
 }
 
-async function fetchAllPhotosFromAPI(lastSync) {
+async function fetchAllPhotosFromAPI(lastSync, lastId = 0) {
   let apiUrl = API_BASE_URL;
   if (!apiUrl.includes('.php')) {
     // apiUrl = `${apiUrl}/checkPhotos.php`;
@@ -233,6 +301,9 @@ async function fetchAllPhotosFromAPI(lastSync) {
   const url = new URL(apiUrl);
   if (lastSync) {
     url.searchParams.append('lastSync', lastSync);
+  }
+  if (lastId > 0) {
+    url.searchParams.append('lastId', lastId);
   }
 
   // Ajouter le pos_id (sales_point_id) depuis la config machine
@@ -264,13 +335,28 @@ async function fetchAllPhotosFromAPI(lastSync) {
     });
 
     if (!response.ok) {
+      logger.error('PHOTO_SYNC', `API HTTP ${response.status}`, { url: url.toString(), status: response.status });
       throw new Error(`HTTP ${response.status}`);
     }
 
-    return await response.json();
+    const jsonResponse = await response.json();
+
+    logger.debug('PHOTO_SYNC', `API réponse reçue`, {
+      url: url.toString(),
+      photosCount: jsonResponse?.photos?.length || 0,
+      lastSync: jsonResponse?.lastSync,
+      success: jsonResponse?.success
+    });
+
+    return jsonResponse;
 
   } catch (error) {
     console.error('[PhotoSync] ✗ Erreur API:', error.message);
+    logger.error('PHOTO_SYNC', `Erreur appel API`, {
+      url: url.toString(),
+      error: error.message,
+      lastSync
+    });
     throw error;
   } finally {
     clearTimeout(timeout);
@@ -347,15 +433,25 @@ async function processRemotePhoto(remotePhoto) {
     };
 
     console.log(`[PhotoSync] ➕ ${remotePhoto.id}`);
-    
+    logger.info('PHOTO_SYNC', `Nouvelle photo découverte: ${remotePhoto.id}`, {
+      photoId: remotePhoto.id,
+      participantId,
+      universeId,
+      url: remotePhoto.url
+    });
+
     try {
       await db.addPhoto(photo);
     } catch (error) {
       console.error(`[PhotoSync] ❌ Erreur DB: ${error.message}`);
+      logger.error('PHOTO_SYNC', `Erreur insertion DB photo ${remotePhoto.id}`, {
+        photoId: remotePhoto.id,
+        error: error.message
+      });
       result.error = true;
       return result;
     }
-    
+
     result.added = true;
 
     await ensureParticipantDirectory(remotePhoto.participantId);
@@ -365,6 +461,10 @@ async function processRemotePhoto(remotePhoto) {
       await downloadService.enqueueDownload(remotePhoto.id);
     } catch (error) {
       console.error(`[PhotoSync] ⚠️  Erreur enqueue: ${error.message}`);
+      logger.error('PHOTO_SYNC', `Erreur enqueue photo ${remotePhoto.id}`, {
+        photoId: remotePhoto.id,
+        error: error.message
+      });
     }
 
   } catch (error) {
@@ -388,6 +488,7 @@ export function getServiceStats() {
   return {
     ...syncStats,
     lastGlobalSync,
+    lastGlobalId,
     uptime: process.uptime(),
   };
 }

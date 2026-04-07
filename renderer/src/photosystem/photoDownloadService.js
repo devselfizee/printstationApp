@@ -556,6 +556,13 @@ async function downloadFileWithRetry(url, destinationPath, photoId) {
   const timeout = setTimeout(() => controller.abort(), CONFIG.DOWNLOAD_TIMEOUT_MS);
 
   try {
+    // Nettoyer un éventuel fichier .partial résiduel avant de commencer
+    try {
+      await fs.unlink(destinationPath);
+    } catch (e) {
+      // Fichier n'existe pas, c'est normal
+    }
+
     const response = await fetch(url, {
       signal: controller.signal,
       headers: { 'User-Agent': 'PrintStation/1.0' },
@@ -591,11 +598,22 @@ async function downloadFileWithRetry(url, destinationPath, photoId) {
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
-      writeStream.write(value);
+      // Gérer le backpressure : attendre que le buffer interne se vide
+      const canContinue = writeStream.write(value);
+      if (!canContinue) {
+        await new Promise(resolve => writeStream.once('drain', resolve));
+      }
       receivedBytes += value.length;
     }
 
-    writeStream.end();
+    // Attendre que le stream soit complètement fermé avant de continuer
+    // C'est critique sur Windows pour éviter EPERM lors du rename/read qui suit
+    await new Promise((resolve, reject) => {
+      writeStream.end();
+      writeStream.on('finish', resolve);
+      writeStream.on('error', reject);
+    });
+
     console.log(`[PhotoDownload] 📦 Reçu: ${formatBytes(receivedBytes)}`);
 
   } catch (error) {

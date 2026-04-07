@@ -393,6 +393,13 @@ async function createTables() {
       enabled BOOLEAN DEFAULT 1,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );`,
+
+    `CREATE TABLE IF NOT EXISTS sync_state (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      last_sync INTEGER,
+      last_id INTEGER DEFAULT 0,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );`,
   ];
 
   // Insérer les univers par défaut s'ils n'existent pas
@@ -539,6 +546,16 @@ async function migrateSyncColumns() {
         WHERE universe_id IS NULL
       `);
       console.log('[DB] ✅ universe_id mis à jour dans photos depuis participants');
+    }
+    // Ajouter purged si manquant (purge de photos par plage de dates)
+    if (!photosColumnNames.includes('purged')) {
+      await execAsync('ALTER TABLE photos ADD COLUMN purged BOOLEAN DEFAULT 0');
+      console.log('[DB] ✅ Colonne purged ajoutée à photos');
+    }
+
+    if (!photosColumnNames.includes('purged_at')) {
+      await execAsync('ALTER TABLE photos ADD COLUMN purged_at DATETIME');
+      console.log('[DB] ✅ Colonne purged_at ajoutée à photos');
     }
   } catch (error) {
     console.error('[DB] Erreur migration photos:', error);
@@ -955,15 +972,16 @@ export async function getPhotoStats(participantId) {
   const stats = await getAsync(
     `SELECT
       COUNT(*) as total,
-      SUM(CASE WHEN status = 'complete' THEN 1 ELSE 0 END) as downloaded,
+      SUM(CASE WHEN status IN ('complete', 'purged', 'downloading') THEN 1 ELSE 0 END) as downloaded,
       SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
-      SUM(CASE WHEN status = 'error' THEN 1 ELSE 0 END) as errors
+      SUM(CASE WHEN status = 'error' THEN 1 ELSE 0 END) as errors,
+      SUM(CASE WHEN status = 'purged' OR purged = 1 THEN 1 ELSE 0 END) as purged
      FROM photos
      WHERE participant_id = ?`,
     [participantId]
   );
 
-  return stats || { total: 0, downloaded: 0, pending: 0, errors: 0 };
+  return stats || { total: 0, downloaded: 0, pending: 0, errors: 0, purged: 0 };
 }
 
 /**
@@ -1789,6 +1807,22 @@ export async function updateCartItemQuantity(itemId, newQuantity, newTotalPrice)
 }
 
 /**
+ * ===== SYNC STATE (curseur de pagination) =====
+ */
+
+export async function getSyncState() {
+  return getAsync('SELECT * FROM sync_state WHERE id = 1');
+}
+
+export async function saveSyncState(lastSync, lastId) {
+  return execAsync(
+    `INSERT OR REPLACE INTO sync_state (id, last_sync, last_id, updated_at)
+     VALUES (1, ?, ?, CURRENT_TIMESTAMP)`,
+    [lastSync, lastId]
+  );
+}
+
+/**
  * ===== CONFIGURATION MACHINE =====
  */
 
@@ -2213,6 +2247,49 @@ export async function updateThanksMessage(lang, title, subtitle) {
  */
 export async function deleteThanksMessage(lang) {
   return runAsync('DELETE FROM thanks_messages WHERE lang = ?', [lang]);
+}
+
+/**
+ * ===== PURGE PHOTOS =====
+ */
+
+/**
+ * Récupérer les photos à purger dans une plage de dates
+ * (photos non encore purgées, avec un fichier local)
+ */
+export async function getPhotosToPurge(startDate, endDate) {
+  return allAsync(`
+    SELECT id, participant_id, local_path, file_name, date_photo, created_at
+    FROM photos
+    WHERE (purged = 0 OR purged IS NULL)
+      AND local_path IS NOT NULL
+      AND created_at BETWEEN ? AND ?
+  `, [startDate, endDate]);
+}
+
+/**
+ * Compter les photos à purger dans une plage de dates
+ */
+export async function countPhotosToPurge(startDate, endDate) {
+  const result = await getAsync(`
+    SELECT COUNT(*) as count
+    FROM photos
+    WHERE (purged = 0 OR purged IS NULL)
+      AND local_path IS NOT NULL
+      AND created_at BETWEEN ? AND ?
+  `, [startDate, endDate]);
+  return result?.count || 0;
+}
+
+/**
+ * Marquer une photo comme purgée
+ */
+export async function markPhotoPurged(photoId) {
+  return runAsync(`
+    UPDATE photos
+    SET purged = 1, purged_at = datetime('now'), status = 'purged'
+    WHERE id = ?
+  `, [photoId]);
 }
 
 /**

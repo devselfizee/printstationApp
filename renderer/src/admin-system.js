@@ -565,154 +565,211 @@ async function showAdminDashboard() {
   dashboard.innerHTML = `
     <div class="admin-dashboard-container">
       <div class="admin-header">
-        <h1>📊 Admin Dashboard</h1>
+        <h1>Admin Dashboard</h1>
         <button id="adminCloseBtn" class="admin-btn-close">✕</button>
       </div>
 
-      <section class="admin-section">
-        <h2>📈 Stats Globales</h2>
-        <div class="admin-stats-grid">
-          <div class="stat-card">
-            <div class="stat-label">Photos totales</div>
-            <div class="stat-value">${photos.total || 0}</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Téléchargées</div>
-            <div class="stat-value">${photos.downloaded || 0}</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">En attente</div>
-            <div class="stat-value">${photos.pending || 0}</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Erreurs</div>
-            <div class="stat-value error">${photos.errors || 0}</div>
-            ${(photos.errors || 0) > 0 ? `
-              <button id="forceRetryBtn" class="force-retry-btn">
-                Relancer
-              </button>
-            ` : ''}
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Participants</div>
-            <div class="stat-value">${participants.total || 0}</div>
-          </div>
-        </div>
-      </section>
+      <nav class="admin-tabs">
+        <button class="admin-tab active" data-tab="stats">Statistiques</button>
+        <button class="admin-tab" data-tab="settings">Paramètres</button>
+        <button class="admin-tab" data-tab="maintenance">Maintenance</button>
+      </nav>
 
-      <section class="admin-section">
-        <h2>💰 Stats par Période</h2>
-        <div class="period-stats">
-          <div class="period-card">
-            <div class="period-label">Aujourd'hui</div>
-            <div class="period-value">${formatEuro(todayStats?.total_revenue || 0)} €</div>
-            <div class="period-detail">${todayStats?.total_orders || 0} commande(s)</div>
-          </div>
-          <div class="period-card">
-            <div class="period-label">Cette semaine</div>
-            <div class="period-value">${formatEuro(weekStats?.total_revenue || 0)} €</div>
-            <div class="period-detail">${weekStats?.total_orders || 0} commande(s)</div>
-          </div>
-          <div class="period-card">
-            <div class="period-label">Ce mois</div>
-            <div class="period-value">${formatEuro(monthStats?.total_revenue || 0)} €</div>
-            <div class="period-detail">${monthStats?.total_orders || 0} commande(s)</div>
-          </div>
-        </div>
-      </section>
-
-      <section class="admin-section">
-        <h2>🛍️ Top Produits</h2>
-        <table class="admin-table">
-          <tr>
-            <th>Produit</th>
-            <th>Quantité</th>
-            <th>Montant</th>
-          </tr>
-          ${topProducts.length > 0
-            ? topProducts.map(p => `
-              <tr>
-                <td>${p.product_name || p.product_id}</td>
-                <td>${p.total_quantity || 0}</td>
-                <td>${formatEuro(p.total_revenue || 0)} €</td>
-              </tr>
-            `).join('')
-            : '<tr><td colspan="3" style="text-align:center;color:#999;">Aucune vente</td></tr>'
-          }
-        </table>
-      </section>
-
-      <section class="admin-section">
-        <div class="admin-total">
-          <div>TOTAL (ce mois)</div>
-          <div class="total-value">${formatEuro(totalRevenue)} €</div>
-        </div>
-      </section>
-
-      <section class="admin-section">
-        <h2>⚙️ Paramètres</h2>
-        <div class="admin-settings">
-          <div class="setting-row">
-            <label for="defaultLangSelect">Langue par défaut</label>
-            <select id="defaultLangSelect" class="admin-select">
-              <option value="fr" ${currentDefaultLang === 'fr' ? 'selected' : ''}>Français</option>
-              <option value="en" ${currentDefaultLang === 'en' ? 'selected' : ''}>English</option>
-              <option value="es" ${currentDefaultLang === 'es' ? 'selected' : ''}>Español</option>
-              <option value="de" ${currentDefaultLang === 'de' ? 'selected' : ''}>Deutsch</option>
-              <option value="it" ${currentDefaultLang === 'it' ? 'selected' : ''}>Italiano</option>
-              <option value="zh" ${currentDefaultLang === 'zh' ? 'selected' : ''}>中文</option>
-            </select>
-          </div>
-          <div class="setting-row setting-row-universes">
-            <label>Univers écran d'accueil</label>
-            <div class="universe-checkboxes" id="universeCheckboxes">
-              ${homeUniverses.map(u => `
-                <label class="universe-checkbox">
-                  <input type="checkbox" name="homeUniverse" value="${u.universe_key}" ${u.enabled ? 'checked' : ''}>
-                  <span class="checkbox-label">${u.universe_key}. ${u.name}</span>
-                </label>
-              `).join('')}
+      <!-- TAB: Statistiques -->
+      <div class="admin-tab-content active" id="tab-stats">
+        <section class="admin-section">
+          <h2>Stats Globales</h2>
+          <div class="admin-stats-grid">
+            <div class="stat-card">
+              <div class="stat-label">Photos totales</div>
+              <div class="stat-value">${photos.total || 0}</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Téléchargées</div>
+              <div class="stat-value">${photos.downloaded || 0}</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">En attente</div>
+              <div class="stat-value">${photos.pending || 0}</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Erreurs</div>
+              <div class="stat-value error">${photos.errors || 0}</div>
+              ${(photos.errors || 0) > 0 ? `
+                <button id="forceRetryBtn" class="force-retry-btn">
+                  Relancer
+                </button>
+              ` : ''}
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Participants</div>
+              <div class="stat-value">${participants.total || 0}</div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <section class="admin-section">
-        <h2>📝 Messages de remerciement</h2>
-        <div class="admin-settings">
-          <div class="setting-row">
-            <label for="thanksLangSelect">Langue à configurer</label>
-            <select id="thanksLangSelect" class="admin-select">
-              <option value="fr">Français</option>
-              <option value="en">English</option>
-              <option value="es">Español</option>
-              <option value="de">Deutsch</option>
-              <option value="it">Italiano</option>
-              <option value="zh">中文</option>
-            </select>
+        <section class="admin-section">
+          <h2>Revenus par Période</h2>
+          <div class="period-stats">
+            <div class="period-card">
+              <div class="period-label">Aujourd'hui</div>
+              <div class="period-value">${formatEuro(todayStats?.total_revenue || 0)} €</div>
+              <div class="period-detail">${todayStats?.total_orders || 0} commande(s)</div>
+            </div>
+            <div class="period-card">
+              <div class="period-label">Cette semaine</div>
+              <div class="period-value">${formatEuro(weekStats?.total_revenue || 0)} €</div>
+              <div class="period-detail">${weekStats?.total_orders || 0} commande(s)</div>
+            </div>
+            <div class="period-card">
+              <div class="period-label">Ce mois</div>
+              <div class="period-value">${formatEuro(monthStats?.total_revenue || 0)} €</div>
+              <div class="period-detail">${monthStats?.total_orders || 0} commande(s)</div>
+            </div>
           </div>
-          <div class="setting-row" style="flex-direction: column; align-items: stretch; gap: 10px;">
-            <label for="thanksTitleInput">Ligne 1 (titre principal)</label>
-            <input type="text" id="thanksTitleInput" class="admin-input" placeholder="Ex: Dirigez-vous vers le comptoir de la boutique">
-          </div>
-          <div class="setting-row" style="flex-direction: column; align-items: stretch; gap: 10px;">
-            <label for="thanksSubtitleInput">Ligne 2 (sous-titre)</label>
-            <input type="text" id="thanksSubtitleInput" class="admin-input" placeholder="Ex: pour récupérer votre commande.">
-          </div>
-          <div class="setting-row" style="justify-content: flex-end; gap: 10px;">
-            <button id="thanksResetBtn" class="admin-btn-reset">Réinitialiser</button>
-            <button id="thanksSaveBtn" class="admin-btn-save">Enregistrer</button>
-          </div>
-        </div>
-      </section>
+        </section>
 
-      <section class="admin-section admin-actions">
-        <button id="adminQuitBtn" class="admin-btn-quit">🚪 Quitter l'application</button>
-      </section>
+        <section class="admin-section">
+          <h2>Top Produits</h2>
+          <table class="admin-table">
+            <tr>
+              <th>Produit</th>
+              <th>Quantité</th>
+              <th>Montant</th>
+            </tr>
+            ${topProducts.length > 0
+              ? topProducts.map(p => `
+                <tr>
+                  <td>${p.product_name || p.product_id}</td>
+                  <td>${p.total_quantity || 0}</td>
+                  <td>${formatEuro(p.total_revenue || 0)} €</td>
+                </tr>
+              `).join('')
+              : '<tr><td colspan="3" style="text-align:center;color:#999;">Aucune vente</td></tr>'
+            }
+          </table>
+        </section>
+
+        <section class="admin-section">
+          <div class="admin-total">
+            <div>TOTAL (ce mois)</div>
+            <div class="total-value">${formatEuro(totalRevenue)} €</div>
+          </div>
+        </section>
+      </div>
+
+      <!-- TAB: Paramètres -->
+      <div class="admin-tab-content" id="tab-settings">
+        <section class="admin-section">
+          <h2>Langue par défaut</h2>
+          <div class="admin-settings">
+            <div class="setting-row">
+              <label for="defaultLangSelect">Langue de l'interface</label>
+              <select id="defaultLangSelect" class="admin-select">
+                <option value="fr" ${currentDefaultLang === 'fr' ? 'selected' : ''}>Français</option>
+                <option value="en" ${currentDefaultLang === 'en' ? 'selected' : ''}>English</option>
+                <option value="es" ${currentDefaultLang === 'es' ? 'selected' : ''}>Español</option>
+                <option value="de" ${currentDefaultLang === 'de' ? 'selected' : ''}>Deutsch</option>
+                <option value="it" ${currentDefaultLang === 'it' ? 'selected' : ''}>Italiano</option>
+                <option value="zh" ${currentDefaultLang === 'zh' ? 'selected' : ''}>中文</option>
+              </select>
+            </div>
+          </div>
+        </section>
+
+        <section class="admin-section">
+          <h2>Univers écran d'accueil</h2>
+          <div class="admin-settings">
+            <div class="setting-row setting-row-universes">
+              <label>Activer / Désactiver les univers</label>
+              <div class="universe-checkboxes" id="universeCheckboxes">
+                ${homeUniverses.map(u => `
+                  <label class="universe-checkbox">
+                    <input type="checkbox" name="homeUniverse" value="${u.universe_key}" ${u.enabled ? 'checked' : ''}>
+                    <span class="checkbox-label">${u.universe_key}. ${u.name}</span>
+                  </label>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="admin-section">
+          <h2>Messages de remerciement</h2>
+          <div class="admin-settings">
+            <div class="setting-row">
+              <label for="thanksLangSelect">Langue à configurer</label>
+              <select id="thanksLangSelect" class="admin-select">
+                <option value="fr">Français</option>
+                <option value="en">English</option>
+                <option value="es">Español</option>
+                <option value="de">Deutsch</option>
+                <option value="it">Italiano</option>
+                <option value="zh">中文</option>
+              </select>
+            </div>
+            <div class="setting-row" style="flex-direction: column; align-items: stretch; gap: 10px;">
+              <label for="thanksTitleInput">Ligne 1 (titre principal)</label>
+              <input type="text" id="thanksTitleInput" class="admin-input" placeholder="Ex: Dirigez-vous vers le comptoir de la boutique">
+            </div>
+            <div class="setting-row" style="flex-direction: column; align-items: stretch; gap: 10px;">
+              <label for="thanksSubtitleInput">Ligne 2 (sous-titre)</label>
+              <input type="text" id="thanksSubtitleInput" class="admin-input" placeholder="Ex: pour récupérer votre commande.">
+            </div>
+            <div class="setting-row" style="justify-content: flex-end; gap: 10px;">
+              <button id="thanksResetBtn" class="admin-btn-reset">Réinitialiser</button>
+              <button id="thanksSaveBtn" class="admin-btn-save">Enregistrer</button>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- TAB: Maintenance -->
+      <div class="admin-tab-content" id="tab-maintenance">
+        <section class="admin-section">
+          <h2>Purge des photos</h2>
+          <p class="admin-section-desc">Supprimez les fichiers physiques des photos sur une période donnée. Les enregistrements sont conservés en base avec un marqueur de purge.</p>
+          <div class="admin-settings">
+            <div class="setting-row">
+              <label for="purgeStartDate">Date de début</label>
+              <input type="date" id="purgeStartDate" class="admin-input admin-date-input">
+            </div>
+            <div class="setting-row">
+              <label for="purgeEndDate">Date de fin</label>
+              <input type="date" id="purgeEndDate" class="admin-input admin-date-input">
+            </div>
+            <div class="setting-row" style="justify-content: center;">
+              <button id="purgePhotosBtn" class="admin-btn-purge">Purger les photos</button>
+            </div>
+            <div id="purgeResultMsg" class="purge-result-msg" style="display:none;"></div>
+          </div>
+        </section>
+
+        <section class="admin-section admin-actions">
+          <button id="adminQuitBtn" class="admin-btn-quit">Quitter l'application</button>
+        </section>
+      </div>
     </div>
   `;
 
   document.body.appendChild(dashboard);
+
+  // Tab switching
+  const tabs = dashboard.querySelectorAll('.admin-tab');
+  const tabContents = dashboard.querySelectorAll('.admin-tab-content');
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const targetTab = tab.dataset.tab;
+
+      tabs.forEach(t => t.classList.remove('active'));
+      tabContents.forEach(tc => tc.classList.remove('active'));
+
+      tab.classList.add('active');
+      const targetContent = dashboard.querySelector(`#tab-${targetTab}`);
+      if (targetContent) targetContent.classList.add('active');
+    });
+  });
 
   // Timer d'inactivité pour le dashboard
   let dashboardTimer = null;
@@ -1058,12 +1115,228 @@ async function showAdminDashboard() {
     }
   }
 
+  // Purge des photos
+  const purgePhotosBtn = $('#purgePhotosBtn');
+  const purgeStartDate = $('#purgeStartDate');
+  const purgeEndDate = $('#purgeEndDate');
+  const purgeResultMsg = $('#purgeResultMsg');
+
+  if (purgePhotosBtn && purgeStartDate && purgeEndDate) {
+    // Pré-remplir les dates (début du mois -> aujourd'hui)
+    const today = new Date();
+    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    purgeEndDate.value = today.toISOString().split('T')[0];
+    purgeStartDate.value = firstDayOfMonth.toISOString().split('T')[0];
+
+    purgePhotosBtn.addEventListener('click', async () => {
+      const startVal = purgeStartDate.value;
+      const endVal = purgeEndDate.value;
+
+      if (!startVal || !endVal) {
+        showPurgeResult('Veuillez sélectionner les deux dates.', 'error');
+        return;
+      }
+
+      if (new Date(startVal) > new Date(endVal)) {
+        showPurgeResult('La date de début doit être avant la date de fin.', 'error');
+        return;
+      }
+
+      const startISO = new Date(startVal + 'T00:00:00').toISOString();
+      const endISO = new Date(endVal + 'T23:59:59').toISOString();
+
+      // Compter les photos d'abord
+      try {
+        const countResult = await window.photoAPI.admin.countPhotosToPurge(startISO, endISO);
+        const count = countResult?.count || 0;
+
+        if (count === 0) {
+          showPurgeResult('Aucune photo à purger dans cette période.', 'info');
+          return;
+        }
+
+        // Afficher le popup de confirmation
+        showPurgeConfirmModal(count, startVal, endVal, startISO, endISO);
+      } catch (error) {
+        console.error('[Admin] Erreur comptage purge:', error);
+        showPurgeResult('Erreur lors du comptage des photos.', 'error');
+      }
+    });
+  }
+
+  function showPurgeResult(message, type = 'info') {
+    if (!purgeResultMsg) return;
+    purgeResultMsg.style.display = 'block';
+    purgeResultMsg.textContent = message;
+    purgeResultMsg.className = `purge-result-msg purge-result-${type}`;
+    setTimeout(() => {
+      purgeResultMsg.style.display = 'none';
+    }, 5000);
+  }
+
+  function showPurgeConfirmModal(count, startVal, endVal, startISO, endISO) {
+    const modal = document.createElement('div');
+    modal.id = 'purge-confirm-modal';
+    modal.innerHTML = `
+      <div class="purge-confirm-overlay">
+        <div class="purge-confirm-box">
+          <div class="purge-confirm-icon">🗑️</div>
+          <h2>Confirmer la purge</h2>
+          <p>Vous êtes sur le point de supprimer <strong>${count} photo(s)</strong> du <strong>${formatDateFR(startVal)}</strong> au <strong>${formatDateFR(endVal)}</strong>.</p>
+          <p class="purge-warning">Cette action est irréversible. Les fichiers seront supprimés définitivement.</p>
+          <div class="purge-confirm-buttons">
+            <button id="purgeConfirmYes" class="purge-btn purge-btn-yes">Oui, purger</button>
+            <button id="purgeConfirmNo" class="purge-btn purge-btn-no">Annuler</button>
+          </div>
+        </div>
+      </div>
+      <style>
+        .purge-confirm-overlay {
+          position: fixed;
+          top: 0; left: 0; right: 0; bottom: 0;
+          background: rgba(0, 0, 0, 0.9);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 99999;
+          animation: purgeFadeIn 0.2s ease;
+        }
+        @keyframes purgeFadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        .purge-confirm-box {
+          background: rgba(30, 58, 95, 0.95);
+          backdrop-filter: blur(10px);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 16px;
+          padding: 40px 60px;
+          text-align: center;
+          color: white;
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+          min-width: 400px;
+          max-width: 550px;
+        }
+        .purge-confirm-icon {
+          font-size: 64px;
+          margin-bottom: 15px;
+        }
+        .purge-confirm-box h2 {
+          margin: 0 0 15px 0;
+          font-size: 24px;
+        }
+        .purge-confirm-box p {
+          margin: 0 0 15px 0;
+          opacity: 0.9;
+          font-size: 16px;
+          line-height: 1.5;
+        }
+        .purge-warning {
+          color: #fbbf24;
+          font-weight: 600;
+          font-size: 14px !important;
+        }
+        .purge-confirm-buttons {
+          display: flex;
+          gap: 20px;
+          justify-content: center;
+          margin-top: 25px;
+        }
+        .purge-btn {
+          border: none;
+          border-radius: 12px;
+          font-size: 18px;
+          font-weight: bold;
+          padding: 16px 40px;
+          cursor: pointer;
+          transition: all 0.15s ease;
+        }
+        .purge-btn-yes {
+          background: rgba(239, 68, 68, 0.3);
+          border: 2px solid rgba(239, 68, 68, 0.5);
+          color: #fff;
+        }
+        .purge-btn-yes:hover {
+          background: rgba(239, 68, 68, 0.5);
+        }
+        .purge-btn-yes:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+        .purge-btn-no {
+          background: rgba(100, 255, 100, 0.3);
+          border: 2px solid rgba(100, 255, 100, 0.5);
+          color: #fff;
+        }
+        .purge-btn-no:hover {
+          background: rgba(100, 255, 100, 0.5);
+        }
+        .purge-btn:active {
+          transform: scale(0.98);
+        }
+      </style>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Bouton Oui - Purger
+    const yesBtn = document.getElementById('purgeConfirmYes');
+    if (yesBtn) {
+      yesBtn.addEventListener('click', async () => {
+        yesBtn.disabled = true;
+        yesBtn.textContent = 'Purge en cours...';
+
+        try {
+          const result = await window.photoAPI.admin.purgePhotos(startISO, endISO);
+          modal.remove();
+
+          if (result.status === 'success') {
+            showPurgeResult(
+              `${result.purged} photo(s) purgée(s) (${result.freed?.mb || 0} MB libérés)${result.errors > 0 ? `, ${result.errors} erreur(s)` : ''}`,
+              result.errors > 0 ? 'warning' : 'success'
+            );
+            // Rafraîchir le dashboard après 3 secondes
+            setTimeout(() => {
+              closeDashboard();
+              showAdminDashboard();
+            }, 3000);
+          } else {
+            showPurgeResult('Erreur: ' + (result.error || 'Inconnue'), 'error');
+          }
+        } catch (error) {
+          modal.remove();
+          console.error('[Admin] Erreur purge:', error);
+          showPurgeResult('Erreur lors de la purge.', 'error');
+        }
+      });
+    }
+
+    // Bouton Non - Annuler
+    const noBtn = document.getElementById('purgeConfirmNo');
+    if (noBtn) {
+      noBtn.addEventListener('click', () => {
+        modal.remove();
+      });
+    }
+  }
+
+  function formatDateFR(dateStr) {
+    const [year, month, day] = dateStr.split('-');
+    return `${day}/${month}/${year}`;
+  }
+
   // Fermer avec Escape
   const escapeHandler = (e) => {
     // Reset timer sur activité
     closeAdminWarningModal();
     resetDashboardTimer();
     if (e.key === 'Escape' && $('#admin-dashboard')) {
+      // Fermer le modal de purge si ouvert
+      const purgeModal = document.getElementById('purge-confirm-modal');
+      if (purgeModal) {
+        purgeModal.remove();
+        return;
+      }
       closeDashboard();
     }
   };

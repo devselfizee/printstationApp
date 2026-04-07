@@ -142,6 +142,7 @@ export async function handleQRCodeScan(qrContent) {
       universe,
       photos: photos.photos || [],
       stats: photos.stats || {},
+      purgedCount: photos.purgedCount || 0,
     };
 
   } catch (error) {
@@ -242,30 +243,22 @@ export async function loadParticipantPhotos(participantId) {
     }
 
     const photoList = [];
-    
+    let purgedCount = 0;
+
     for (const photoData of photoDataList) {
       try {
-        // ⭐ Ne pas afficher les photos en erreur
-        if (photoData.status === 'error') {
-          console.log(`[PhotoDisplay] ❌ Photo rejetée: ${photoData.id}`);
+        // ⭐ Compter les photos purgées
+        if (photoData.status === 'purged' || photoData.purged === 1) {
+          purgedCount++;
           continue;
         }
 
-        let source = null;
-        let available = false;
-
-        // ⭐ Utiliser le local_path avec protocole custom printstation://
-        // Au lieu de lire le fichier et le convertir en base64
-        if (photoData.local_path && photoData.status === 'complete') {
-          // Convertir le chemin local en URL printstation://
-          source = `printstation://local${photoData.local_path}`;
-          available = true;
-          console.log(`[PhotoDisplay] ✅ Photo disponible: ${photoData.id}`);
-        } else if (photoData.status === 'pending' || photoData.status === 'downloading') {
-          console.log(`[PhotoDisplay] ⏳ Photo en attente: ${photoData.id}`);
-          // ⭐ Afficher quand même avec un placeholder
-          available = false; // Pas d'image, mais afficher la photo
+        // ⭐ N'afficher que les photos complètement téléchargées
+        if (photoData.status !== 'complete' || !photoData.local_path) {
+          continue;
         }
+
+        const source = `printstation://local${photoData.local_path}`;
 
         photoList.push({
           id: photoData.id,
@@ -273,7 +266,7 @@ export async function loadParticipantPhotos(participantId) {
           fileName: photoData.file_name,
           status: photoData.status,
           source: source,
-          available: available,
+          available: true,
           downloadedAt: photoData.downloaded_at,
           size: photoData.size_bytes,
           url: photoData.remote_url,
@@ -285,12 +278,13 @@ export async function loadParticipantPhotos(participantId) {
       }
     }
 
-    console.log(`[PhotoDisplay] ${photoList.length} photos chargées (${photoList.filter(p => p.available).length} visibles)`);
+    console.log(`[PhotoDisplay] ⚠️ RÉSULTAT: ${photoList.length} complete, ${purgedCount} purgées, ${photoDataList.length} total → purgedCount=${purgedCount}`);
 
     return {
       status: 'success',
       photos: photoList,
       stats,
+      purgedCount,
     };
 
   } catch (error) {
@@ -299,6 +293,7 @@ export async function loadParticipantPhotos(participantId) {
       status: 'error',
       error: error.message,
       photos: [],
+      purgedCount: 0,
     };
   }
 }

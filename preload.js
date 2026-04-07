@@ -70,6 +70,9 @@ const photoAPI = {
     exportParticipant: (participantId) =>
       ipcRenderer.invoke('admin:export-participant', participantId),
     getPurchaseReport: () => ipcRenderer.invoke('admin:purchase-report'),
+    // Purge photos
+    countPhotosToPurge: (startDate, endDate) => ipcRenderer.invoke('admin:count-photos-to-purge', { startDate, endDate }),
+    purgePhotos: (startDate, endDate) => ipcRenderer.invoke('admin:purge-photos', { startDate, endDate }),
     // Retry photos (stratégie 4 phases)
     forceRetryPhoto: (photoId) => ipcRenderer.invoke('admin:force-retry-photo', photoId),
     forceRetryAll: () => ipcRenderer.invoke('admin:force-retry-all'),

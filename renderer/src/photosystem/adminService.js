@@ -556,6 +556,81 @@ export async function exportParticipantData(participantId) {
 }
 
 /**
+ * ===== PURGE PHOTOS =====
+ */
+
+/**
+ * Compter les photos qui seront purgées dans une plage de dates
+ */
+export async function countPhotosToPurge(startDate, endDate) {
+  try {
+    const count = await db.countPhotosToPurge(startDate, endDate);
+    return { status: 'success', count };
+  } catch (error) {
+    console.error('[AdminService] Erreur countPhotosToPurge:', error);
+    return { status: 'error', error: error.message, count: 0 };
+  }
+}
+
+/**
+ * Purger les photos dans une plage de dates
+ * - Supprime les fichiers physiques
+ * - Marque les photos comme purgées en DB
+ */
+export async function purgePhotos(startDate, endDate) {
+  try {
+    const photos = await db.getPhotosToPurge(startDate, endDate);
+
+    if (!photos || photos.length === 0) {
+      return { status: 'success', purged: 0, errors: 0 };
+    }
+
+    let purged = 0;
+    let errors = 0;
+    let freedBytes = 0;
+
+    for (const photo of photos) {
+      try {
+        // Supprimer le fichier physique si il existe
+        if (photo.local_path) {
+          try {
+            const stat = await fs.stat(photo.local_path);
+            freedBytes += stat.size;
+            await fs.unlink(photo.local_path);
+          } catch (fileError) {
+            // Fichier déjà supprimé ou inaccessible - on continue quand même
+            console.warn(`[AdminService] Fichier déjà absent: ${photo.local_path}`);
+          }
+        }
+
+        // Marquer comme purgée en DB
+        await db.markPhotoPurged(photo.id);
+        purged++;
+      } catch (error) {
+        console.error(`[AdminService] Erreur purge photo ${photo.id}:`, error);
+        errors++;
+      }
+    }
+
+    console.log(`[AdminService] Purge terminée: ${purged} purgées, ${errors} erreurs, ${(freedBytes / (1024 * 1024)).toFixed(2)} MB libérés`);
+
+    return {
+      status: 'success',
+      purged,
+      errors,
+      total: photos.length,
+      freed: {
+        bytes: freedBytes,
+        mb: Math.round(freedBytes / (1024 * 1024) * 100) / 100,
+      },
+    };
+  } catch (error) {
+    console.error('[AdminService] Erreur purgePhotos:', error);
+    return { status: 'error', error: error.message, purged: 0, errors: 0 };
+  }
+}
+
+/**
  * Liste des participants avec achats
  */
 export async function getPurchaseReport() {

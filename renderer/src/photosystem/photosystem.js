@@ -195,6 +195,10 @@ export const admin = {
   generateReport: adminService.generateFullReport,
   exportParticipant: adminService.exportParticipantData,
   getPurchaseReport: adminService.getPurchaseReport,
+
+  // Purge photos
+  countPhotosToPurge: adminService.countPhotosToPurge,
+  purgePhotos: adminService.purgePhotos,
 };
 
 /**

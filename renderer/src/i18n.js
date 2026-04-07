@@ -75,7 +75,10 @@ export const i18n = {
     viewDetail: 'Voir le détail',
     article: 'Article',
     articles: 'Articles',
-    noInternet: 'Pas de connexion internet - Les fonctionnalités sont limitées'
+    noInternet: 'Pas de connexion internet - Les fonctionnalités sont limitées',
+    purgedTitle: 'Photos supprimées',
+    purgedMessage: 'Vos photos ont été supprimées de cette borne.',
+    purgedHint: 'Elles ne sont plus disponibles à la consultation.'
   },
   en: {
     bannerText: 'A PHOTO OF YOUR ADVENTURE',
@@ -151,7 +154,10 @@ export const i18n = {
     viewDetail: 'View details',
     article: 'Item',
     articles: 'Items',
-    noInternet: 'No internet connection - Features are limited'
+    noInternet: 'No internet connection - Features are limited',
+    purgedTitle: 'Photos deleted',
+    purgedMessage: 'Your photos have been deleted from this terminal.',
+    purgedHint: 'They are no longer available for viewing.'
   },
   es: {
     bannerText: 'UNA FOTO DE TU AVENTURA',
@@ -227,7 +233,10 @@ export const i18n = {
     viewDetail: 'Ver detalle',
     article: 'Artículo',
     articles: 'Artículos',
-    noInternet: 'Sin conexión a internet - Las funciones están limitadas'
+    noInternet: 'Sin conexión a internet - Las funciones están limitadas',
+    purgedTitle: 'Fotos eliminadas',
+    purgedMessage: 'Sus fotos han sido eliminadas de este terminal.',
+    purgedHint: 'Ya no están disponibles para su consulta.'
   },
   zh: {
     bannerText: '您的冒险照片',
@@ -303,7 +312,10 @@ export const i18n = {
     viewDetail: '查看详情',
     article: '件商品',
     articles: '件商品',
-    noInternet: '无网络连接 - 功能受限'
+    noInternet: '无网络连接 - 功能受限',
+    purgedTitle: '照片已删除',
+    purgedMessage: '您的照片已从此终端删除。',
+    purgedHint: '照片已无法查看。'
   },
   it: {
     bannerText: 'UNA FOTO DELLA TUA AVVENTURA',
@@ -379,7 +391,10 @@ export const i18n = {
     viewDetail: 'Vedi dettaglio',
     article: 'Articolo',
     articles: 'Articoli',
-    noInternet: 'Nessuna connessione internet - Funzionalità limitate'
+    noInternet: 'Nessuna connessione internet - Funzionalità limitate',
+    purgedTitle: 'Foto eliminate',
+    purgedMessage: 'Le tue foto sono state eliminate da questo terminale.',
+    purgedHint: 'Non sono più disponibili per la consultazione.'
   },
   de: {
     bannerText: 'EIN FOTO VON IHREM ABENTEUER',
@@ -455,7 +470,10 @@ export const i18n = {
     viewDetail: 'Details anzeigen',
     article: 'Artikel',
     articles: 'Artikel',
-    noInternet: 'Keine Internetverbindung - Funktionen eingeschränkt'
+    noInternet: 'Keine Internetverbindung - Funktionen eingeschränkt',
+    purgedTitle: 'Fotos gelöscht',
+    purgedMessage: 'Ihre Fotos wurden von diesem Terminal gelöscht.',
+    purgedHint: 'Sie sind nicht mehr zur Einsicht verfügbar.'
   }
 };
 

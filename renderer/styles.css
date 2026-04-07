@@ -1678,49 +1678,106 @@ body.page-payment { overflow: hidden; }
 .admin-dashboard-container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 40px 20px;
+  padding: 30px 20px;
 }
 
 .admin-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 40px;
+  margin-bottom: 24px;
 }
 
 .admin-header h1 {
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 900;
+  letter-spacing: -0.5px;
 }
 
 .admin-btn-close {
   width: 40px;
   height: 40px;
   border: none;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.08);
   color: #fff;
-  border-radius: 6px;
+  border-radius: 10px;
   font-size: 20px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .admin-btn-close:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.15);
 }
 
 .admin-btn-close:active {
   transform: scale(0.95);
 }
 
+/* TABS */
+.admin-tabs {
+  display: flex;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 4px;
+  margin-bottom: 28px;
+}
+
+.admin-tab {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 12px 20px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.admin-tab:hover {
+  color: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.admin-tab.active {
+  background: rgba(94, 183, 255, 0.15);
+  color: #5eb7ff;
+  box-shadow: 0 2px 8px rgba(94, 183, 255, 0.1);
+}
+
+.admin-tab-content {
+  display: none;
+  animation: tabFadeIn 0.25s ease;
+}
+
+.admin-tab-content.active {
+  display: block;
+}
+
+@keyframes tabFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 .admin-section {
-  margin-bottom: 40px;
+  margin-bottom: 28px;
 }
 
 .admin-section h2 {
-  font-size: 18px;
-  margin-bottom: 20px;
+  font-size: 16px;
+  margin-bottom: 16px;
   font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.admin-section-desc {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 16px;
+  line-height: 1.5;
 }
 
 /* STATS GRID */
@@ -2060,6 +2117,66 @@ body.page-payment { overflow: hidden; }
 .admin-btn-reset:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* ADMIN PURGE */
+.admin-date-input {
+  width: 200px;
+  cursor: pointer;
+  color-scheme: dark;
+}
+
+.admin-btn-purge {
+  background: rgba(239, 68, 68, 0.2);
+  border: 2px solid rgba(239, 68, 68, 0.5);
+  border-radius: 12px;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  padding: 14px 32px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.admin-btn-purge:hover {
+  background: rgba(239, 68, 68, 0.4);
+  border-color: rgba(239, 68, 68, 0.8);
+}
+
+.admin-btn-purge:active {
+  transform: scale(0.98);
+}
+
+.purge-result-msg {
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  text-align: center;
+  font-weight: 500;
+}
+
+.purge-result-success {
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid rgba(16, 185, 129, 0.5);
+  color: #10b981;
+}
+
+.purge-result-error {
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  color: #ef4444;
+}
+
+.purge-result-warning {
+  background: rgba(251, 191, 36, 0.2);
+  border: 1px solid rgba(251, 191, 36, 0.5);
+  color: #fbbf24;
+}
+
+.purge-result-info {
+  background: rgba(96, 165, 250, 0.2);
+  border: 1px solid rgba(96, 165, 250, 0.5);
+  color: #60a5fa;
 }
 
 
