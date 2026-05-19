@@ -582,6 +582,28 @@ async function migrateSyncColumns() {
       await execAsync("ALTER TABLE machine_config ADD COLUMN home_screen_variant TEXT DEFAULT 'default'");
       console.log('[DB] ✅ Colonne home_screen_variant ajoutée à machine_config');
     }
+
+    // Migration: Purge automatique
+    if (!machineConfigColumns.includes('auto_purge_enabled')) {
+      await execAsync('ALTER TABLE machine_config ADD COLUMN auto_purge_enabled INTEGER DEFAULT 0');
+      console.log('[DB] ✅ Colonne auto_purge_enabled ajoutée à machine_config');
+    }
+    if (!machineConfigColumns.includes('auto_purge_days')) {
+      await execAsync('ALTER TABLE machine_config ADD COLUMN auto_purge_days INTEGER DEFAULT 15');
+      console.log('[DB] ✅ Colonne auto_purge_days ajoutée à machine_config');
+    }
+    if (!machineConfigColumns.includes('auto_purge_time')) {
+      await execAsync("ALTER TABLE machine_config ADD COLUMN auto_purge_time TEXT DEFAULT '03:00'");
+      console.log('[DB] ✅ Colonne auto_purge_time ajoutée à machine_config');
+    }
+    if (!machineConfigColumns.includes('auto_purge_last_run')) {
+      await execAsync('ALTER TABLE machine_config ADD COLUMN auto_purge_last_run TEXT');
+      console.log('[DB] ✅ Colonne auto_purge_last_run ajoutée à machine_config');
+    }
+    if (!machineConfigColumns.includes('auto_purge_last_count')) {
+      await execAsync('ALTER TABLE machine_config ADD COLUMN auto_purge_last_count INTEGER DEFAULT 0');
+      console.log('[DB] ✅ Colonne auto_purge_last_count ajoutée à machine_config');
+    }
   } catch (error) {
     console.error('[DB] Erreur migration machine_config:', error);
   }
@@ -1903,6 +1925,56 @@ export async function updateHomeScreenVariant(variant) {
          updated_at = datetime('now', 'localtime')
      WHERE id = 1`,
     [variant]
+  );
+}
+
+/**
+ * ===== PURGE AUTOMATIQUE =====
+ */
+
+/**
+ * Récupérer la config de purge automatique
+ */
+export async function getAutoPurgeConfig() {
+  const config = await getAsync('SELECT auto_purge_enabled, auto_purge_days, auto_purge_time, auto_purge_last_run, auto_purge_last_count FROM machine_config WHERE id = 1');
+  if (!config) {
+    return { enabled: false, days: 15, time: '03:00', lastRun: null, lastCount: 0 };
+  }
+  return {
+    enabled: !!config.auto_purge_enabled,
+    days: config.auto_purge_days || 15,
+    time: config.auto_purge_time || '03:00',
+    lastRun: config.auto_purge_last_run || null,
+    lastCount: config.auto_purge_last_count || 0,
+  };
+}
+
+/**
+ * Mettre à jour la config de purge automatique
+ */
+export async function updateAutoPurgeConfig(enabled, days, time) {
+  return runAsync(
+    `UPDATE machine_config
+     SET auto_purge_enabled = ?,
+         auto_purge_days = ?,
+         auto_purge_time = ?,
+         updated_at = datetime('now', 'localtime')
+     WHERE id = 1`,
+    [enabled ? 1 : 0, days, time]
+  );
+}
+
+/**
+ * Enregistrer la dernière exécution de la purge automatique
+ */
+export async function setAutoPurgeLastRun(isoDateTime, count) {
+  return runAsync(
+    `UPDATE machine_config
+     SET auto_purge_last_run = ?,
+         auto_purge_last_count = ?,
+         updated_at = datetime('now', 'localtime')
+     WHERE id = 1`,
+    [isoDateTime, count]
   );
 }
 

@@ -73,6 +73,9 @@ const photoAPI = {
     // Purge photos
     countPhotosToPurge: (startDate, endDate) => ipcRenderer.invoke('admin:count-photos-to-purge', { startDate, endDate }),
     purgePhotos: (startDate, endDate) => ipcRenderer.invoke('admin:purge-photos', { startDate, endDate }),
+    // Purge automatique
+    getAutoPurgeConfig: () => ipcRenderer.invoke('admin:get-auto-purge-config'),
+    updateAutoPurgeConfig: (enabled, days, time) => ipcRenderer.invoke('admin:update-auto-purge-config', { enabled, days, time }),
     // Retry photos (stratégie 4 phases)
     forceRetryPhoto: (photoId) => ipcRenderer.invoke('admin:force-retry-photo', photoId),
     forceRetryAll: () => ipcRenderer.invoke('admin:force-retry-all'),

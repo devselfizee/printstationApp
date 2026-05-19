@@ -1488,6 +1488,8 @@ app.on('ready', async () => {
           startSyncRetrySystem();
           // Démarrer la synchronisation périodique de l'état de la machine
           startMachineStateSync();
+          // Démarrer le scheduler de purge automatique
+          startAutoPurgeScheduler();
         } else {
           console.log('[Main] ⚠️  Services de sync en attente - Configuration requise');
         }
@@ -1981,6 +1983,20 @@ ipcMain.handle('admin:purge-photos', async (event, { startDate, endDate }) => {
     return { status: 'error', error: 'PhotoSystem non disponible' };
   }
   return photoSystem.admin.purgePhotos(startDate, endDate);
+});
+
+ipcMain.handle('admin:get-auto-purge-config', async () => {
+  if (!photoSystemReady || !photoSystem?.admin) {
+    return { status: 'error', error: 'PhotoSystem non disponible' };
+  }
+  return photoSystem.admin.getAutoPurgeConfig();
+});
+
+ipcMain.handle('admin:update-auto-purge-config', async (event, { enabled, days, time }) => {
+  if (!photoSystemReady || !photoSystem?.admin) {
+    return { status: 'error', error: 'PhotoSystem non disponible' };
+  }
+  return photoSystem.admin.updateAutoPurgeConfig(enabled, days, time);
 });
 
 /**
@@ -5076,6 +5092,35 @@ function startMachineStateSync() {
 }
 
 /**
+ * ===== PURGE AUTOMATIQUE =====
+ * Vérifie toutes les 60s si la purge auto doit être lancée.
+ * Idempotent : runAutoPurgeIfDue ne tourne qu'une fois par jour.
+ */
+let autoPurgeInterval = null;
+
+function startAutoPurgeScheduler() {
+  if (!photoSystem?.admin?.runAutoPurgeIfDue) return;
+
+  // Vérification immédiate au démarrage (rattrape une purge ratée si l'app était éteinte)
+  photoSystem.admin.runAutoPurgeIfDue()
+    .then(r => {
+      if (r.ran) console.log('[AutoPurge] Démarrage:', r);
+    })
+    .catch(err => console.error('[AutoPurge] Erreur démarrage:', err.message));
+
+  if (autoPurgeInterval) clearInterval(autoPurgeInterval);
+  autoPurgeInterval = setInterval(() => {
+    photoSystem.admin.runAutoPurgeIfDue()
+      .then(r => {
+        if (r.ran) console.log('[AutoPurge] Périodique:', r);
+      })
+      .catch(err => console.error('[AutoPurge] Erreur périodique:', err.message));
+  }, 60_000);
+
+  console.log('[AutoPurge] Scheduler démarré (vérification toutes les 60s)');
+}
+
+/**
  * Arrêter la synchronisation périodique et envoyer offline
  */
 async function stopMachineStateSync() {
@@ -5152,6 +5197,7 @@ ipcMain.handle('machine:save-config', async (event, kioskId, salesPointId, machi
     console.log('[IPC] → Démarrage de la synchronisation d\'état machine après première config');
     await syncMachineState('online');
     startMachineStateSync();
+    startAutoPurgeScheduler();
 
     return { status: 'success' };
   } catch (error) {

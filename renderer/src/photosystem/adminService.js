@@ -631,6 +631,90 @@ export async function purgePhotos(startDate, endDate) {
 }
 
 /**
+ * ===== PURGE AUTOMATIQUE =====
+ */
+
+export async function getAutoPurgeConfig() {
+  try {
+    const config = await db.getAutoPurgeConfig();
+    return { status: 'success', config };
+  } catch (error) {
+    console.error('[AdminService] Erreur getAutoPurgeConfig:', error);
+    return { status: 'error', error: error.message };
+  }
+}
+
+export async function updateAutoPurgeConfig(enabled, days, time) {
+  try {
+    const safeDays = Math.max(1, parseInt(days, 10) || 15);
+    const safeTime = /^([01]\d|2[0-3]):[0-5]\d$/.test(time) ? time : '03:00';
+    await db.updateAutoPurgeConfig(!!enabled, safeDays, safeTime);
+    return { status: 'success', config: { enabled: !!enabled, days: safeDays, time: safeTime } };
+  } catch (error) {
+    console.error('[AdminService] Erreur updateAutoPurgeConfig:', error);
+    return { status: 'error', error: error.message };
+  }
+}
+
+/**
+ * Lance la purge automatique si elle est due :
+ * - activée
+ * - pas déjà exécutée aujourd'hui
+ * - heure courante >= heure configurée
+ *
+ * Supprime les photos de plus de N jours.
+ * Sûr à appeler depuis un scheduler (idempotent dans la même journée).
+ */
+export async function runAutoPurgeIfDue() {
+  try {
+    const cfg = await db.getAutoPurgeConfig();
+    if (!cfg.enabled) return { ran: false, reason: 'disabled' };
+
+    const now = new Date();
+    const todayStr = toLocalDateString(now);
+
+    // Déjà tournée aujourd'hui ?
+    if (cfg.lastRun && cfg.lastRun.startsWith(todayStr)) {
+      return { ran: false, reason: 'already-run-today' };
+    }
+
+    // Heure atteinte ?
+    const [hh, mm] = (cfg.time || '03:00').split(':').map(Number);
+    const scheduled = new Date(now);
+    scheduled.setHours(hh, mm, 0, 0);
+    if (now < scheduled) {
+      return { ran: false, reason: 'before-time' };
+    }
+
+    // Cutoff : photos créées avant (now - N jours)
+    const cutoff = new Date(now);
+    cutoff.setDate(cutoff.getDate() - cfg.days);
+
+    const startISO = '1970-01-01T00:00:00.000Z';
+    const endISO = cutoff.toISOString();
+
+    console.log(`[AutoPurge] Lancement: photos créées avant ${endISO} (>${cfg.days}j)`);
+    const result = await purgePhotos(startISO, endISO);
+
+    const purgedCount = result?.purged || 0;
+    await db.setAutoPurgeLastRun(now.toISOString(), purgedCount);
+
+    console.log(`[AutoPurge] Terminé: ${purgedCount} photo(s) purgée(s)`);
+    return { ran: true, purged: purgedCount, errors: result?.errors || 0 };
+  } catch (error) {
+    console.error('[AdminService] Erreur runAutoPurgeIfDue:', error);
+    return { ran: false, error: error.message };
+  }
+}
+
+function toLocalDateString(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+/**
  * Liste des participants avec achats
  */
 export async function getPurchaseReport() {

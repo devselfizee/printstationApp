@@ -199,6 +199,11 @@ export const admin = {
   // Purge photos
   countPhotosToPurge: adminService.countPhotosToPurge,
   purgePhotos: adminService.purgePhotos,
+
+  // Purge automatique
+  getAutoPurgeConfig: adminService.getAutoPurgeConfig,
+  updateAutoPurgeConfig: adminService.updateAutoPurgeConfig,
+  runAutoPurgeIfDue: adminService.runAutoPurgeIfDue,
 };
 
 /**

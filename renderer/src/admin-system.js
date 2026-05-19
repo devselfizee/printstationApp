@@ -727,7 +727,39 @@ async function showAdminDashboard() {
       <!-- TAB: Maintenance -->
       <div class="admin-tab-content" id="tab-maintenance">
         <section class="admin-section">
-          <h2>Purge des photos</h2>
+          <h2>Purge automatique</h2>
+          <p class="admin-section-desc">Supprime quotidiennement les photos plus anciennes qu'un certain nombre de jours. Si l'application est éteinte à l'heure prévue, la purge est rattrapée au prochain démarrage.</p>
+          <div class="admin-settings">
+            <div class="setting-row">
+              <label for="autoPurgeEnabled">Activer la purge automatique</label>
+              <label class="admin-switch">
+                <input type="checkbox" id="autoPurgeEnabled">
+                <span class="admin-switch-slider"></span>
+              </label>
+            </div>
+            <div class="auto-purge-fields" id="autoPurgeFields">
+              <div class="setting-row">
+                <label for="autoPurgeDays">Photos plus anciennes que</label>
+                <div class="admin-input-suffix">
+                  <input type="number" id="autoPurgeDays" class="admin-input admin-input-num" min="1" max="365" value="15">
+                  <span>jours</span>
+                </div>
+              </div>
+              <div class="setting-row">
+                <label for="autoPurgeTime">Heure d'exécution</label>
+                <input type="time" id="autoPurgeTime" class="admin-input admin-input-time" value="03:00">
+              </div>
+              <div class="setting-row auto-purge-status" id="autoPurgeStatus"></div>
+            </div>
+            <div class="setting-row" style="justify-content: flex-end; gap: 10px;">
+              <button id="autoPurgeSaveBtn" class="admin-btn-save">Enregistrer</button>
+            </div>
+            <div id="autoPurgeResultMsg" class="purge-result-msg" style="display:none;"></div>
+          </div>
+        </section>
+
+        <section class="admin-section">
+          <h2>Purge manuelle</h2>
           <p class="admin-section-desc">Supprimez les fichiers physiques des photos sur une période donnée. Les enregistrements sont conservés en base avec un marqueur de purge.</p>
           <div class="admin-settings">
             <div class="setting-row">
@@ -1113,6 +1145,101 @@ async function showAdminDashboard() {
         }, 2000);
       });
     }
+  }
+
+  // Purge automatique
+  const autoPurgeEnabled = $('#autoPurgeEnabled');
+  const autoPurgeDays = $('#autoPurgeDays');
+  const autoPurgeTime = $('#autoPurgeTime');
+  const autoPurgeStatus = $('#autoPurgeStatus');
+  const autoPurgeSaveBtn = $('#autoPurgeSaveBtn');
+  const autoPurgeResultMsg = $('#autoPurgeResultMsg');
+
+  if (autoPurgeEnabled && autoPurgeSaveBtn) {
+    const autoPurgeFields = $('#autoPurgeFields');
+
+    function toggleAutoPurgeFields() {
+      if (!autoPurgeFields) return;
+      autoPurgeFields.classList.toggle('is-visible', autoPurgeEnabled.checked);
+    }
+
+    autoPurgeEnabled.addEventListener('change', toggleAutoPurgeFields);
+
+    // Charger la config existante
+    (async () => {
+      try {
+        const res = await window.photoAPI.admin.getAutoPurgeConfig();
+        if (res?.status === 'success' && res.config) {
+          autoPurgeEnabled.checked = !!res.config.enabled;
+          autoPurgeDays.value = res.config.days || 15;
+          autoPurgeTime.value = res.config.time || '03:00';
+          renderAutoPurgeStatus(res.config);
+        }
+      } catch (error) {
+        console.error('[Admin] Erreur chargement auto-purge:', error);
+      } finally {
+        toggleAutoPurgeFields();
+      }
+    })();
+
+    autoPurgeSaveBtn.addEventListener('click', async () => {
+      const enabled = !!autoPurgeEnabled.checked;
+      const days = parseInt(autoPurgeDays.value, 10);
+      const time = autoPurgeTime.value;
+
+      if (!days || days < 1 || days > 365) {
+        showAutoPurgeResult('Le nombre de jours doit être entre 1 et 365.', 'error');
+        return;
+      }
+      if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) {
+        showAutoPurgeResult('Heure invalide (format HH:MM).', 'error');
+        return;
+      }
+
+      autoPurgeSaveBtn.disabled = true;
+      try {
+        const res = await window.photoAPI.admin.updateAutoPurgeConfig(enabled, days, time);
+        if (res?.status === 'success') {
+          showAutoPurgeResult(
+            enabled
+              ? `Purge automatique activée (>${days}j, à ${time}).`
+              : 'Purge automatique désactivée.',
+            'success'
+          );
+          // Recharger pour rafraîchir le statut "Dernière purge"
+          const fresh = await window.photoAPI.admin.getAutoPurgeConfig();
+          if (fresh?.status === 'success') renderAutoPurgeStatus(fresh.config);
+        } else {
+          showAutoPurgeResult('Erreur: ' + (res?.error || 'Inconnue'), 'error');
+        }
+      } catch (error) {
+        console.error('[Admin] Erreur update auto-purge:', error);
+        showAutoPurgeResult('Erreur lors de l\'enregistrement.', 'error');
+      } finally {
+        autoPurgeSaveBtn.disabled = false;
+      }
+    });
+  }
+
+  function renderAutoPurgeStatus(config) {
+    if (!autoPurgeStatus) return;
+    if (!config?.lastRun) {
+      autoPurgeStatus.textContent = 'Aucune purge automatique exécutée pour le moment.';
+      return;
+    }
+    const d = new Date(config.lastRun);
+    const dateStr = d.toLocaleDateString('fr-FR') + ' à ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    autoPurgeStatus.textContent = `Dernière purge : ${dateStr} (${config.lastCount || 0} photo(s))`;
+  }
+
+  function showAutoPurgeResult(message, type = 'info') {
+    if (!autoPurgeResultMsg) return;
+    autoPurgeResultMsg.style.display = 'block';
+    autoPurgeResultMsg.textContent = message;
+    autoPurgeResultMsg.className = `purge-result-msg purge-result-${type}`;
+    setTimeout(() => {
+      autoPurgeResultMsg.style.display = 'none';
+    }, 5000);
   }
 
   // Purge des photos

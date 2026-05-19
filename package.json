@@ -1,6 +1,6 @@
 {
   "name": "Eclipso",
-  "version": "1.5.8",
+  "version": "1.5.12",
   "main": "main.js",
   "type": "module",
   "description": "Application Electron pour kiosk d'impression photos avec sélection d'univers graphiques, panier dynamique et paiement",
@@ -55,19 +55,13 @@
           "arch": [
             "x64"
           ]
-        },
-        {
-          "target": "portable",
-          "arch": [
-            "x64"
-          ]
         }
       ],
       "icon": "renderer/assets/favicon.ico"
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
+      "allowToChangeInstallationDirectory": false,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "PrintStation"
