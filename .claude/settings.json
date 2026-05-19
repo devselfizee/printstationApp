@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(sqlite3 \"C:/PrintStationApp/Medias/data.db\" \"SELECT participant_id, status, COUNT\\(*\\) as nb FROM photos GROUP BY participant_id, status ORDER BY participant_id;\")",
+      "Bash(sqlite3 \"C:/PrintStationApp/Medias/data.db\" \"SELECT id, participant_id, status, purged, local_path, downloaded_at FROM photos WHERE status = ''purged'' OR purged = 1 LIMIT 10;\")",
+      "Bash(sqlite3 \"C:/PrintStationApp/Medias/data.db\" \"SELECT participant_id, COUNT\\(*\\) as total, SUM\\(CASE WHEN status=''purged'' OR purged=1 THEN 1 ELSE 0 END\\) as purged_count, SUM\\(CASE WHEN status=''complete'' THEN 1 ELSE 0 END\\) as complete_count FROM photos GROUP BY participant_id HAVING purged_count > 0 ORDER BY participant_id;\")",
+      "Bash(sqlite3 \"C:/PrintStationApp/Medias/data.db\" \"SELECT id, universe_id, status FROM participants LIMIT 20;\")",
+      "Bash(node build.js)"
+    ]
+  }
+}
