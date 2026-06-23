@@ -2118,6 +2118,22 @@ ipcMain.handle('admin:update-home-universe', async (event, { universeKey, enable
   }
 });
 
+// Lister les codes d'univers du registre (source de vérité unique pour la validation des scans)
+const FALLBACK_UNIVERSE_CODES = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+ipcMain.handle('universes:list', async () => {
+  if (!photoSystemReady || !photoSystem?.db) {
+    return { status: 'success', codes: FALLBACK_UNIVERSE_CODES, universes: [] };
+  }
+  try {
+    const universes = await photoSystem.db.getHomeScreenUniverses();
+    const codes = universes.map(u => u.universe_key);
+    return { status: 'success', codes, universes };
+  } catch (error) {
+    console.error('[IPC] Erreur universes:list:', error);
+    return { status: 'error', error: error.message, codes: FALLBACK_UNIVERSE_CODES, universes: [] };
+  }
+});
+
 // Lister les images des univers activés (parcourt assets/visuals/{key}/)
 ipcMain.handle('admin:get-home-visuals', async () => {
   try {

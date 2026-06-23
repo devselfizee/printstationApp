@@ -17,6 +17,7 @@ import { initDevSimulator } from './src/dev-simulator.js';
 import { showSetupModal } from './src/pages/setup.js';
 import { initInactivityTimer, startInactivityTimer, stopInactivityTimer } from './src/inactivity-timer.js';
 import { initNetworkStatus, checkInitialConnection } from './src/network-status.js';
+import { loadUniverseCodes } from './src/universes.js';
 
 // Note: stopAllPolls est exposé via window par photoDisplayService (chargé dans le main process)
 
@@ -326,6 +327,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Charger les produits depuis l'API en parallèle
   loadProducts();
+
+  // Charger la liste des codes d'univers depuis le registre admin (source de vérité)
+  loadUniverseCodes();
 
   // Vérifier la configuration après l'initialisation
   checkSetup();

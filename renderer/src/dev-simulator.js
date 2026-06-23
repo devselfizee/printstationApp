@@ -4,6 +4,8 @@
  * Affiche la liste des participants depuis la DB SQLite
  */
 
+import { isValidUniverseCode } from './universes.js';
+
 const $ = (selector) => document.querySelector(selector);
 
 // Modals partagés depuis qr.js (exposés sur window)
@@ -162,7 +164,7 @@ async function showSimulatorPopup() {
       universeSelect.style.opacity = '0.6';
       universeSelect.style.cursor = 'not-allowed';
       universeAutoLabel.textContent = '(auto-sélectionné)';
-    } else if (customInput && ['A', 'B', 'C', 'D', 'E', 'F'].includes(customInput.charAt(0))) {
+    } else if (customInput && isValidUniverseCode(customInput.charAt(0))) {
       // 🆕 Nouveau participant avec préfixe valide → auto-sélectionner l'univers
       const universeId = customInput.charAt(0);
       universeSelect.value = universeId;
@@ -175,7 +177,7 @@ async function showSimulatorPopup() {
       universeSelect.disabled = false;
       universeSelect.style.opacity = '1';
       universeSelect.style.cursor = 'pointer';
-      universeAutoLabel.textContent = customInput ? '(préfixe A-F requis)' : '';
+      universeAutoLabel.textContent = customInput ? '(préfixe univers valide requis)' : '';
     }
   }
 
@@ -218,8 +220,8 @@ async function showSimulatorPopup() {
       const firstLetter = upperInput.charAt(0);
 
       // ⭐ Validation du QR Code
-      // Règles: première lettre doit être A, B, C, D, E ou F et longueur = 6
-      const isValidFirstChar = ['A', 'B', 'C', 'D', 'E', 'F'].includes(firstLetter);
+      // Règles: première lettre = univers valide du registre admin, et longueur = 6
+      const isValidFirstChar = isValidUniverseCode(firstLetter);
       const isValidLength = upperInput.length === 6;
 
       console.log('[DevSim] 🔍 Validation QR Code:');

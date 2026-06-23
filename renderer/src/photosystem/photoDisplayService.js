@@ -14,6 +14,36 @@ import { triggerParticipantSync } from './photosystem.js';
 // ⭐ Callbacks pour les mises à jour (IPC)
 let onPhotosUpdated = null;
 
+// ===== Codes d'univers valides (source de vérité unique : registre admin) =====
+// Peuplé depuis la DB au démarrage via refreshUniverseCodes(). Le fallback couvre
+// le cas où la DB n'a pas encore répondu.
+const FALLBACK_UNIVERSE_CODES = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+let validUniverseCodes = [...FALLBACK_UNIVERSE_CODES];
+
+/**
+ * Recharger les codes d'univers valides depuis le registre (table home_screen_universes).
+ * À appeler au démarrage du système (et après toute modification du registre).
+ */
+export async function refreshUniverseCodes() {
+  try {
+    const codes = await db.getUniverseKeys();
+    if (Array.isArray(codes) && codes.length > 0) {
+      validUniverseCodes = codes.map(c => String(c).toUpperCase());
+      console.log('[PhotoDisplay] Codes univers chargés depuis le registre:', validUniverseCodes.join(', '));
+    }
+  } catch (error) {
+    console.warn('[PhotoDisplay] Échec chargement codes univers, fallback utilisé:', error.message);
+  }
+  return validUniverseCodes;
+}
+
+/**
+ * Vérifie qu'un code d'univers existe dans le registre.
+ */
+export function isValidUniverseCode(code) {
+  return !!code && validUniverseCodes.includes(String(code).toUpperCase());
+}
+
 export function setPhotosUpdatedCallback(callback) {
   onPhotosUpdated = callback;
 }
@@ -48,8 +78,8 @@ export function parseQRData(qrContent) {
     if (content.length >= 2) {
       const firstChar = content.charAt(0).toUpperCase();
 
-      // Vérifier que la première lettre est un univers valide (A-F)
-      if (['A', 'B', 'C', 'D', 'E', 'F'].includes(firstChar)) {
+      // Vérifier que la première lettre est un univers valide (registre admin)
+      if (isValidUniverseCode(firstChar)) {
         const participantId = content.substring(1);
         console.log('[PhotoDisplay] QR format simple détecté:', { universe: firstChar, participantId });
         return {

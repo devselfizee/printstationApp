@@ -126,12 +126,14 @@ async function seedDefaultData() {
       await addUniverse('E', 'Batisseurs', '/assets/banniere-batisseurs.jpg');
       await addUniverse('F', 'Titanic', '/assets/banniere-titanic.jpg');
       await addUniverse('G', 'Colisée', '/assets/banniere-colisee.jpg');
-      
+      await addUniverse('H', 'H Infinity', '/assets/banniere-monde-perdu.jpg');
+
       console.log("[DB] ✅ 2 univers créés (A: L'horizon de kheops, B: Mondes Disparus)");
     } else {
       // await addUniverse('E', 'Batisseurs', '/assets/banniere-batisseurs.jpg');
       await addUniverse('F', 'Titanic', '/assets/banniere-titanic.jpg');
       await addUniverse('G', 'Colisée', '/assets/banniere-colisee.jpg');
+      await addUniverse('H', 'H Infinity', '/assets/banniere-monde-perdu.jpg');
       console.log(`[DB] ✓ ${universes.length} univers déjà présents`);
     }
   } catch (error) {
@@ -410,7 +412,8 @@ async function createTables() {
     { key: 'D', name: 'Impressionnistes', enabled: 1 },
     { key: 'E', name: 'Batisseurs', enabled: 1 },
     { key: 'F', name: 'Titanic', enabled: 1 },
-    { key: 'G', name: 'Colisée', enabled: 1 }
+    { key: 'G', name: 'Colisée', enabled: 1 },
+    { key: 'H', name: 'H Infinity', enabled: 1 }
   ];
 
   for (const stmt of statements) {
@@ -1994,6 +1997,15 @@ export async function getHomeScreenUniverses() {
  */
 export async function getEnabledHomeUniverses() {
   return allAsync('SELECT * FROM home_screen_universes WHERE enabled = 1 ORDER BY universe_key');
+}
+
+/**
+ * Récupérer la liste des codes d'univers du registre (source de vérité unique).
+ * Utilisée pour la validation des QR codes dans toute la plateforme.
+ */
+export async function getUniverseKeys() {
+  const rows = await allAsync('SELECT universe_key FROM home_screen_universes ORDER BY universe_key');
+  return rows.map(r => r.universe_key);
 }
 
 /**

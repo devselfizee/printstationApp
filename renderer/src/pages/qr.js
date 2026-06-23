@@ -8,6 +8,7 @@
 import { state } from '../state.js';
 import { $ } from '../utils.js';
 import { t } from '../i18n.js';
+import { isValidUniverseCode } from '../universes.js';
 
 // ============================================
 // MODAL "PHOTOS NON DISPONIBLES"
@@ -482,12 +483,12 @@ async function processPhysicalScan(rawData) {
     }
 
     // ⭐ Validation du QR Code (sauf si c'est du JSON)
-    // Règles: première lettre doit être A-G et longueur = 6
+    // Règles: première lettre = univers valide du registre admin, et longueur = 6
     const isJSON = processedData.startsWith('{') || processedData.startsWith('[');
     if (!isJSON) {
       const upperData = processedData.toUpperCase();
       const firstChar = upperData.charAt(0);
-      const isValidFirstChar = ['A', 'B', 'C', 'D', 'E', 'F', 'G'].includes(firstChar);
+      const isValidFirstChar = isValidUniverseCode(firstChar);
       const isValidLength = upperData.length === 6;
 
       console.log('[QR] 🔍 Validation QR Code:');
@@ -519,8 +520,8 @@ async function processPhysicalScan(rawData) {
       const upperData = processedData.toUpperCase();
       const firstChar = upperData.charAt(0);
 
-      // Vérifier si le premier caractère est une lettre d'univers (A-G)
-      if (['A', 'B', 'C', 'D', 'E', 'F', 'G'].includes(firstChar) && upperData.length > 1) {
+      // Vérifier si le premier caractère est une lettre d'univers valide (registre admin)
+      if (isValidUniverseCode(firstChar) && upperData.length > 1) {
         qrData = {
           universe: firstChar,
           participantId: upperData.substring(1)

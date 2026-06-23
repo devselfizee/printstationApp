@@ -165,6 +165,11 @@ const photoAPI = {
     fetch: () => ipcRenderer.invoke('products:fetch'),
   },
 
+  // Univers (registre — source de vérité unique pour la liste des codes valides)
+  universes: {
+    list: () => ipcRenderer.invoke('universes:list'),
+  },
+
   // Participants
   participants: {
     addOrUpdate: (participantId, universeId, status) => ipcRenderer.invoke('participant:add-or-update', participantId, universeId, status),

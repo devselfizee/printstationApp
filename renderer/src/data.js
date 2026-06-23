@@ -139,6 +139,24 @@ export const UNIVERSES = {
         image: './assets/porte-cle-disparu.png'
       }
     }
+  },
+  H: {
+    id: 'H',
+    name: 'H Infinity',
+    banner: './assets/banniere-monde-perdu.jpg',
+    photos: [
+      { id: 'p16', title: '', src: './assets/disparu-photo1.jpg' },
+      { id: 'p17', title: '', src: './assets/disparu-photo2.jpg' },
+      { id: 'p18', title: '', src: './assets/disparu-photo3.jpg' }
+    ],
+    productVisuals: {
+      print: {
+        image: './assets/chevalet-disparu.png'
+      },
+      magnet: {
+        image: './assets/porte-cle-disparu.png'
+      }
+    }
   }
 };
 

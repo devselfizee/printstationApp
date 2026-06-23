@@ -61,6 +61,10 @@ export async function initializePhotoSystem() {
     console.log('[PhotoSystem] → Réconciliation participants');
     await db.reconcileParticipants();
 
+    // 2b. Charger les codes d'univers valides depuis le registre (source de vérité)
+    console.log('[PhotoSystem] → Chargement des codes d\'univers');
+    await displayService.refreshUniverseCodes();
+
     // 3. Initialiser les répertoires
     console.log('[PhotoSystem] → Création répertoires');
     await universeService.initUniverseDirectories();
