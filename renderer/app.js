@@ -342,6 +342,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 // ============================================
 let devToolsVisible = false;
 
+// Les outils dev ne sont accessibles qu'en développement
+let devToolsAllowed = false;
+window.appConfig?.getConfig?.()
+  .then((config) => { devToolsAllowed = config?.isDev === true; })
+  .catch(() => { devToolsAllowed = false; });
+
 function toggleDevTools() {
   devToolsVisible = !devToolsVisible;
   console.log(`[DevTools] Mode dev ${devToolsVisible ? 'activé' : 'désactivé'}`);
@@ -368,6 +374,7 @@ function toggleDevTools() {
 document.addEventListener('keydown', (e) => {
   if (e.key === 'F5') {
     e.preventDefault(); // Empêcher le refresh par défaut
+    if (!devToolsAllowed) return;
     toggleDevTools();
   }
 });

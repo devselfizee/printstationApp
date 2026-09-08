@@ -274,6 +274,8 @@ const defaultConfig = {
   // Timeout d'inactivité pour l'admin (20s par défaut)
   adminInactivityTimeout: 20000,
   version: null,
+  // Outils dev désactivés tant que le main n'a pas confirmé le mode développement
+  isDev: false,
 };
 
 // Cache pour la config chargée

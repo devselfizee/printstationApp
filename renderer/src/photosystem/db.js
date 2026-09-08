@@ -126,14 +126,14 @@ async function seedDefaultData() {
       await addUniverse('E', 'Batisseurs', '/assets/banniere-batisseurs.jpg');
       await addUniverse('F', 'Titanic', '/assets/banniere-titanic.jpg');
       await addUniverse('G', 'Colisée', '/assets/banniere-colisee.jpg');
-      await addUniverse('H', 'H Infinity', '/assets/banniere-monde-perdu.jpg');
+      await addUniverse('H', 'The infinite', '/assets/banniere-theinfinite.jpg');
 
       console.log("[DB] ✅ 2 univers créés (A: L'horizon de kheops, B: Mondes Disparus)");
     } else {
       // await addUniverse('E', 'Batisseurs', '/assets/banniere-batisseurs.jpg');
       await addUniverse('F', 'Titanic', '/assets/banniere-titanic.jpg');
       await addUniverse('G', 'Colisée', '/assets/banniere-colisee.jpg');
-      await addUniverse('H', 'H Infinity', '/assets/banniere-monde-perdu.jpg');
+      await addUniverse('H', 'The infinite', '/assets/banniere-theinfinite.jpg');
       console.log(`[DB] ✓ ${universes.length} univers déjà présents`);
     }
   } catch (error) {
@@ -413,7 +413,7 @@ async function createTables() {
     { key: 'E', name: 'Batisseurs', enabled: 1 },
     { key: 'F', name: 'Titanic', enabled: 1 },
     { key: 'G', name: 'Colisée', enabled: 1 },
-    { key: 'H', name: 'H Infinity', enabled: 1 }
+    { key: 'H', name: 'The infinite', enabled: 1 }
   ];
 
   for (const stmt of statements) {
@@ -434,6 +434,16 @@ async function createTables() {
     } catch (error) {
       console.error('[DB] Erreur insertion univers:', error);
     }
+  }
+
+  // Correctif de nom pour les bornes déjà seedées (mise à jour) :
+  // home_screen_universes est en INSERT OR IGNORE, le nom n'est donc pas rafraîchi seul.
+  // Idempotent et ciblé sur l'ancien nom erroné uniquement.
+  try {
+    await runAsync(`UPDATE home_screen_universes SET name = 'The infinite' WHERE universe_key = 'H' AND name = 'H Infinity'`);
+    await runAsync(`UPDATE universes SET name = 'The infinite' WHERE id = 'H' AND name = 'H Infinity'`);
+  } catch (error) {
+    console.error('[DB] Erreur correctif nom univers H:', error);
   }
 
   // Migration: Ajouter les colonnes de synchronisation si elles n'existent pas

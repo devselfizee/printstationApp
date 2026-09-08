@@ -1,6 +1,6 @@
 {
   "name": "Eclipso",
-  "version": "1.5.12",
+  "version": "1.5.15",
   "main": "main.js",
   "type": "module",
   "description": "Application Electron pour kiosk d'impression photos avec sélection d'univers graphiques, panier dynamique et paiement",
@@ -61,6 +61,7 @@
     },
     "nsis": {
       "oneClick": false,
+      "perMachine": true,
       "allowToChangeInstallationDirectory": false,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,

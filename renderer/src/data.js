@@ -142,8 +142,8 @@ export const UNIVERSES = {
   },
   H: {
     id: 'H',
-    name: 'H Infinity',
-    banner: './assets/banniere-monde-perdu.jpg',
+    name: 'The infinite',
+    banner: './assets/banniere-theinfinite.jpg',
     photos: [
       { id: 'p16', title: '', src: './assets/disparu-photo1.jpg' },
       { id: 'p17', title: '', src: './assets/disparu-photo2.jpg' },

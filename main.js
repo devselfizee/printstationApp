@@ -1355,6 +1355,15 @@ function createWindow() {
   }
   // mainWindow.webContents.openDevTools();
 
+  // En production, F5 ne doit ni recharger la page ni ouvrir les outils dev
+  if (process.env.NODE_ENV !== 'development') {
+    mainWindow.webContents.on('before-input-event', (event, input) => {
+      if (input.type === 'keyDown' && input.key === 'F5') {
+        event.preventDefault();
+      }
+    });
+  }
+
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
@@ -1684,6 +1693,9 @@ function createMenu() {
 
 // Toggle dev menu visibility (F5)
 ipcMain.handle('app:toggle-dev-menu', () => {
+  // Le menu dev reste inaccessible en production
+  if (process.env.NODE_ENV !== 'development') return false;
+
   devMenuVisible = !devMenuVisible;
   createMenu();
   console.log(`[Menu] Dev menu ${devMenuVisible ? 'visible' : 'masqué'}`);
@@ -1696,6 +1708,7 @@ ipcMain.handle('app:get-config', () => {
     inactivityTimeout: parseInt(process.env.INACTIVITY_TIMEOUT_MS) || 60000,
     adminInactivityTimeout: parseInt(process.env.ADMIN_INACTIVITY_TIMEOUT_MS) || 20000,
     version: app.getVersion(),
+    isDev: process.env.NODE_ENV === 'development',
   };
 });
 

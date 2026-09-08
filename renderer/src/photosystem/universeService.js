@@ -270,8 +270,8 @@ const LOCAL_UNIVERSES = {
   },
   H: {
     id: 'H',
-    name: 'H Infinity',
-    description: 'H Infinity',
+    name: 'The infinite',
+    description: 'The infinite',
 
     theme: {
       primaryColor: '#0ea5e9',
