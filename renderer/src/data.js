@@ -157,6 +157,24 @@ export const UNIVERSES = {
         image: './assets/porte-cle-disparu.png'
       }
     }
+  },
+  I: {
+    id: 'I',
+    name: 'Everest',
+    banner: './assets/banniere-everest.jpg',
+    photos: [
+      { id: 'p19', title: '', src: './assets/disparu-photo1.jpg' },
+      { id: 'p20', title: '', src: './assets/disparu-photo2.jpg' },
+      { id: 'p21', title: '', src: './assets/disparu-photo3.jpg' }
+    ],
+    productVisuals: {
+      print: {
+        image: './assets/chevalet-disparu.png'
+      },
+      magnet: {
+        image: './assets/porte-cle-disparu.png'
+      }
+    }
   }
 };
 

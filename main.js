@@ -2146,7 +2146,7 @@ ipcMain.handle('admin:update-home-universe', async (event, { universeKey, enable
 });
 
 // Lister les codes d'univers du registre (source de vérité unique pour la validation des scans)
-const FALLBACK_UNIVERSE_CODES = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+const FALLBACK_UNIVERSE_CODES = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'];
 ipcMain.handle('universes:list', async () => {
   if (!photoSystemReady || !photoSystem?.db) {
     return { status: 'success', codes: FALLBACK_UNIVERSE_CODES, universes: [] };

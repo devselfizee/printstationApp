@@ -9,7 +9,7 @@
  */
 
 // Utilisé tant que le registre n'a pas répondu (1er rendu, DB pas prête, etc.)
-const FALLBACK_CODES = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+const FALLBACK_CODES = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'];
 
 let universeCodes = [...FALLBACK_CODES];
 let loaded = false;

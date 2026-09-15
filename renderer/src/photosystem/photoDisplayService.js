@@ -17,7 +17,7 @@ let onPhotosUpdated = null;
 // ===== Codes d'univers valides (source de vérité unique : registre admin) =====
 // Peuplé depuis la DB au démarrage via refreshUniverseCodes(). Le fallback couvre
 // le cas où la DB n'a pas encore répondu.
-const FALLBACK_UNIVERSE_CODES = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+const FALLBACK_UNIVERSE_CODES = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'];
 let validUniverseCodes = [...FALLBACK_UNIVERSE_CODES];
 
 /**
