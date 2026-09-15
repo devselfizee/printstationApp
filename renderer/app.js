@@ -10,7 +10,7 @@ import { renderCart } from './src/pages/cart.js';
 import { renderPayment } from './src/pages/payment.js';
 import { renderForm } from './src/pages/form.js';
 import { renderThanks } from './src/pages/thanks.js';
-import { showUpsell, closeModal } from './src/pages/modal.js';
+import { showUpsell, showCartBonus, closeModal } from './src/pages/modal.js';
 import { goBack } from './src/navigation.js';
 import { initAdminButton } from './src/admin-system.js';
 import { initDevSimulator } from './src/dev-simulator.js';
@@ -78,6 +78,9 @@ async function render() {
     // Cacher la zone longpress admin sur les autres pages
     if (window.hideAdminLongPressZone) window.hideAdminLongPressZone();
   }
+
+  // Page produit : hauteur bornée pour que le pied de page reste visible sans scroller
+  app.classList.toggle('page-detail', state.page === 'detail');
 
   // Appliquer la classe page-payment sur le body pour masquer le scrollX
   if (state.page === 'payment') {
@@ -152,6 +155,7 @@ window.render = render;
 window.scanQR = scanQR;
 window.loadUniverse = loadUniverse;
 window.showUpsell = showUpsell;
+window.showCartBonus = showCartBonus;
 window.closeModal = closeModal;
 window.addUpsell = addUpsell;
 window.backToQR = backToQR;
@@ -223,6 +227,11 @@ async function loadDefaultLang(shouldRender = true) {
         if (result.config.default_lang) {
           state.lang = result.config.default_lang;
           console.log('[App] 🌍 Langue par défaut chargée:', state.lang);
+        }
+        // Popup de remise après ajout au panier (colonne absente sur une base ancienne = activée)
+        if (result.config.cart_bonus_popup !== undefined && result.config.cart_bonus_popup !== null) {
+          state.cartBonusPopup = !!result.config.cart_bonus_popup;
+          console.log('[App] 🎉 Popup de remise:', state.cartBonusPopup ? 'activée' : 'désactivée');
         }
         // Charger la variante d'écran d'accueil
         if (result.config.home_screen_variant) {

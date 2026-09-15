@@ -322,8 +322,12 @@ el.innerHTML = `
       // 🆕 Créer ou mettre à jour la commande + sync Supabase
       await syncOrderAfterChange();
 
-      // TOAST au click "Ajouter"
-      toast(t('added'));
+      // Popup de remise si activée en admin, sinon le toast d'origine
+      if (state.cartBonusPopup && window.showCartBonus) {
+        window.showCartBonus();
+      } else {
+        toast(t('added'));
+      }
     } finally {
       // Restaurer le bouton cliqué
       cmdBtn.disabled = false;

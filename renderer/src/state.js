@@ -15,6 +15,7 @@ export const state = {
   timer: null,
   thanksCounter: 5,
   photoIndex: 0,
+  cartBonusPopup: true,  // Popup de remise après ajout au panier (activable depuis l'admin)
   furthestStep: null  // Étape la plus avancée atteinte dans le parcours
 };
 

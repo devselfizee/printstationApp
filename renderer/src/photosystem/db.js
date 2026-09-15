@@ -596,6 +596,12 @@ async function migrateSyncColumns() {
       console.log('[DB] ✅ Colonne home_screen_variant ajoutée à machine_config');
     }
 
+    // Migration: Popup de remise après ajout au panier (activée par défaut)
+    if (!machineConfigColumns.includes('cart_bonus_popup')) {
+      await execAsync('ALTER TABLE machine_config ADD COLUMN cart_bonus_popup INTEGER DEFAULT 1');
+      console.log('[DB] ✅ Colonne cart_bonus_popup ajoutée à machine_config');
+    }
+
     // Migration: Purge automatique
     if (!machineConfigColumns.includes('auto_purge_enabled')) {
       await execAsync('ALTER TABLE machine_config ADD COLUMN auto_purge_enabled INTEGER DEFAULT 0');
@@ -1938,6 +1944,19 @@ export async function updateHomeScreenVariant(variant) {
          updated_at = datetime('now', 'localtime')
      WHERE id = 1`,
     [variant]
+  );
+}
+
+/**
+ * Activer ou désactiver la popup de remise affichée après un ajout au panier
+ */
+export async function updateCartBonusPopup(enabled) {
+  return runAsync(
+    `UPDATE machine_config
+     SET cart_bonus_popup = ?,
+         updated_at = datetime('now', 'localtime')
+     WHERE id = 1`,
+    [enabled ? 1 : 0]
   );
 }
 

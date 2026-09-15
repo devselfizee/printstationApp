@@ -2070,6 +2070,20 @@ ipcMain.handle('admin:update-default-lang', async (event, lang) => {
 });
 
 // Mettre à jour la variante de l'écran d'accueil
+ipcMain.handle('admin:update-cart-bonus-popup', async (event, enabled) => {
+  if (!photoSystemReady || !photoSystem?.db) {
+    return { status: 'error', error: 'PhotoSystem non disponible' };
+  }
+  try {
+    await photoSystem.db.updateCartBonusPopup(enabled);
+    console.log('[IPC] Popup de remise:', enabled ? 'activée' : 'désactivée');
+    return { status: 'success', enabled: !!enabled };
+  } catch (error) {
+    console.error('[IPC] Erreur update-cart-bonus-popup:', error);
+    return { status: 'error', error: error.message };
+  }
+});
+
 ipcMain.handle('admin:update-home-variant', async (event, variant) => {
   if (!photoSystemReady || !photoSystem?.db) {
     return { status: 'error', error: 'PhotoSystem non disponible' };

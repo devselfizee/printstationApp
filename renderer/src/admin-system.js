@@ -519,12 +519,17 @@ async function showAdminDashboard() {
   // Charger la configuration machine (pour la langue par défaut)
   let machineConfig = null;
   let currentDefaultLang = 'fr';
+  let cartBonusPopupEnabled = true;
   try {
     if (window.photoAPI?.admin?.getMachineConfig) {
       const result = await window.photoAPI.admin.getMachineConfig();
       if (result.status === 'success' && result.config) {
         machineConfig = result.config;
         currentDefaultLang = machineConfig.default_lang || 'fr';
+        // Colonne absente sur une base ancienne : la popup est considérée active
+        cartBonusPopupEnabled = machineConfig.cart_bonus_popup === undefined || machineConfig.cart_bonus_popup === null
+          ? true
+          : !!machineConfig.cart_bonus_popup;
         console.log('[Admin] Config machine:', machineConfig);
       }
     }
@@ -694,6 +699,19 @@ async function showAdminDashboard() {
           </div>
         </section>
 
+        <section class="admin-section">
+          <h2>Popup de remise</h2>
+          <p class="admin-section-desc">Affiche une popup après chaque ajout au panier : elle annonce la remise acquise sur les articles suivants et propose de valider la commande sans faire défiler la page.</p>
+          <div class="admin-settings">
+            <div class="setting-row">
+              <label for="cartBonusPopupEnabled">Activer la popup de remise</label>
+              <label class="admin-switch">
+                <input type="checkbox" id="cartBonusPopupEnabled" ${cartBonusPopupEnabled ? 'checked' : ''}>
+                <span class="admin-switch-slider"></span>
+              </label>
+            </div>
+          </div>
+        </section>
         <section class="admin-section">
           <h2>Messages de remerciement</h2>
           <div class="admin-settings">
@@ -971,6 +989,27 @@ async function showAdminDashboard() {
   }
 
   // Sélecteur de langue par défaut
+  // Popup de remise : prend effet immédiatement, sans redémarrer la borne
+  const cartBonusPopupToggle = $('#cartBonusPopupEnabled');
+  if (cartBonusPopupToggle) {
+    cartBonusPopupToggle.addEventListener('change', async (e) => {
+      const enabled = e.target.checked;
+      try {
+        const result = await window.photoAPI.admin.updateCartBonusPopup(enabled);
+        if (result.status === 'success') {
+          // Appliquer au parcours client en cours
+          if (window.state) window.state.cartBonusPopup = enabled;
+          console.log('[Admin] Popup de remise:', enabled ? 'activée' : 'désactivée');
+        } else {
+          console.error('[Admin] Erreur popup de remise:', result.error);
+          e.target.checked = !enabled; // Revert
+        }
+      } catch (error) {
+        console.error('[Admin] Erreur popup de remise:', error);
+        e.target.checked = !enabled; // Revert
+      }
+    });
+  }
   const defaultLangSelect = $('#defaultLangSelect');
   if (defaultLangSelect) {
     defaultLangSelect.addEventListener('change', async (e) => {

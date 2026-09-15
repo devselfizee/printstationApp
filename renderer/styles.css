@@ -17,6 +17,10 @@ body{ background:var(--panel); color:var(--txt); font:16px/1.45 ui-sans-serif, s
 .app.page-qr { height:1920px; min-height:1920px; display:block; }
 .app.page-qr .main { position:absolute; inset:90px 0 0 0; margin-top:0; }
 
+/* Page produit : hauteur bornée pour que .main > section défile en interne et que le
+   pied de page (Valider la commande) reste visible sans faire défiler la page entière. */
+.app.page-detail { height:100vh; }
+
 /* === TOPBAR FIX === */
 header.topbar{
   position:absolute; 
@@ -843,6 +847,15 @@ header.topbar{
 .modal .btn-yes:hover{ box-shadow: 0 10px 20px rgba(94,183,255,.2); }
 .modal .btn-no{ background:#e5e7eb; color:#0f172a; }
 .modal .btn-no:hover{ background:#d1d5db; }
+
+/* Popup de remise affichée après un ajout au panier */
+.modal-bonus{ max-width:560px; text-align:center; }
+.bonus-icon{ font-size:64px; line-height:1; margin-bottom:8px; }
+.modal-bonus h3{ margin:0 0 14px; }
+.bonus-message{ font-size:19px; line-height:1.5; color:#374151; margin:0 0 28px; }
+.bonus-message strong{ color:var(--e-navy); font-weight:900; white-space:nowrap; }
+.bonus-actions{ display:flex; gap:14px; }
+.bonus-actions button{ flex:1; padding:18px 16px; border:none; border-radius:12px; font-weight:900; font-size:17px; cursor:pointer; transition: all .2s ease; }
 
 /* CART/PROGRESS */
 .progress{ display:flex; align-items:center; justify-content:center; gap:12px; margin:16px 0 60px; font-weight:800; }

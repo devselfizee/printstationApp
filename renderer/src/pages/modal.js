@@ -70,6 +70,50 @@ export const showUpsell = (photo, product) => {
   };
 };
 
+
+// Remise annoncée dans la popup de fin d'ajout au panier.
+// Valeur fixe et volontairement décorrélée des tarifs : c'est un message commercial, la
+// facturation reste celle des prix `first`/`next` venus de Supabase (cf. unitPrice() dans data.js).
+const ANNOUNCED_DISCOUNT_PCT = 50;
+
+/**
+ * Popup affichée après l'ajout d'un produit au panier.
+ * Elle annonce la remise acquise sur les articles suivants et ramène le bouton de validation
+ * sous les yeux du client, qui devait sinon faire défiler la page produit pour le trouver.
+ * Activable/désactivable depuis l'admin (state.cartBonusPopup).
+ */
+export const showCartBonus = () => {
+  const modal = $('#modal');
+  if (!modal) return;
+
+  const label = `<strong>-${ANNOUNCED_DISCOUNT_PCT}%</strong>`;
+  // Le 1er article débloque la remise, les suivants en bénéficient déjà
+  const key = getTotalCartQty(state.cart) <= 1 ? 'bonusUnlocked' : 'bonusActive';
+
+  modal.innerHTML = `
+    <div class="modal modal-bonus">
+      <div class="bonus-icon">🎉</div>
+      <h3>${t('bonusTitle')}</h3>
+      <p class="bonus-message">${t(key).replace('{pct}', label)}</p>
+      <div class="bonus-actions">
+        <button class="btn-no" id="bonusContinueBtn">${t('bonusContinue')}</button>
+        <button class="btn-yes" id="bonusCheckoutBtn">${t('bonusCheckout')}</button>
+      </div>
+    </div>`;
+
+  modal.classList.add('show');
+
+  // Continuer : on ferme et on laisse le client sur la page produit
+  $('#bonusContinueBtn').onclick = () => closeModal();
+
+  // Valider : même destination que le bouton du pied de page
+  $('#bonusCheckoutBtn').onclick = () => {
+    closeModal();
+    state.page = 'cart';
+    window.render();
+  };
+};
+
 export const closeModal = () => {
   const modal = $('#modal');
   modal.classList.remove('show');
