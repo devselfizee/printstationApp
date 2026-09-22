@@ -145,6 +145,9 @@ async function backToQR() {
   clearInterval(state.timer);
   clearTimeout(state.timer);
   if (window.stopAllPolls) window.stopAllPolls();  // Arrêter tous les pollings photo
+  // Fermer une popup restée ouverte : #modal est frère de #app, le re-rendu ne l'efface pas
+  // (sans ça, un timeout d'inactivité ramenait à l'accueil avec la popup encore par-dessus)
+  closeModal();
   resetState();
   // Recharger la langue par défaut depuis la config (sans re-render car on le fait après)
   await loadDefaultLang(false);
