@@ -605,6 +605,12 @@ async function migrateSyncColumns() {
       console.log('[DB] ✅ Colonne cart_bonus_popup ajoutée à machine_config');
     }
 
+    // Migration: Offre remise au bar (bandeau promo + mention dans la popup), activée par défaut
+    if (!machineConfigColumns.includes('bar_promo_enabled')) {
+      await execAsync('ALTER TABLE machine_config ADD COLUMN bar_promo_enabled INTEGER DEFAULT 1');
+      console.log('[DB] ✅ Colonne bar_promo_enabled ajoutée à machine_config');
+    }
+
     // Migration: Purge automatique
     if (!machineConfigColumns.includes('auto_purge_enabled')) {
       await execAsync('ALTER TABLE machine_config ADD COLUMN auto_purge_enabled INTEGER DEFAULT 0');
@@ -1957,6 +1963,19 @@ export async function updateCartBonusPopup(enabled) {
   return runAsync(
     `UPDATE machine_config
      SET cart_bonus_popup = ?,
+         updated_at = datetime('now', 'localtime')
+     WHERE id = 1`,
+    [enabled ? 1 : 0]
+  );
+}
+
+/**
+ * Activer ou désactiver l'offre remise au bar (bandeau promo + mention dans la popup)
+ */
+export async function updateBarPromo(enabled) {
+  return runAsync(
+    `UPDATE machine_config
+     SET bar_promo_enabled = ?,
          updated_at = datetime('now', 'localtime')
      WHERE id = 1`,
     [enabled ? 1 : 0]

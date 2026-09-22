@@ -228,10 +228,15 @@ async function loadDefaultLang(shouldRender = true) {
           state.lang = result.config.default_lang;
           console.log('[App] 🌍 Langue par défaut chargée:', state.lang);
         }
-        // Popup de remise après ajout au panier (colonne absente sur une base ancienne = activée)
+        // Popup après ajout au panier (colonne absente sur une base ancienne = activée)
         if (result.config.cart_bonus_popup !== undefined && result.config.cart_bonus_popup !== null) {
           state.cartBonusPopup = !!result.config.cart_bonus_popup;
-          console.log('[App] 🎉 Popup de remise:', state.cartBonusPopup ? 'activée' : 'désactivée');
+          console.log('[App] 🛒 Popup après ajout:', state.cartBonusPopup ? 'activée' : 'désactivée');
+        }
+        // Offre remise au bar (colonne absente sur une base ancienne = activée)
+        if (result.config.bar_promo_enabled !== undefined && result.config.bar_promo_enabled !== null) {
+          state.barPromo = !!result.config.bar_promo_enabled;
+          console.log('[App] 🍹 Offre bar:', state.barPromo ? 'activée' : 'désactivée');
         }
         // Charger la variante d'écran d'accueil
         if (result.config.home_screen_variant) {
@@ -351,10 +356,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 // ============================================
 let devToolsVisible = false;
 
-// Les outils dev ne sont accessibles qu'en développement
+// Les outils dev ne sont accessibles que si le main les autorise (dev, ou ENABLE_DEV_TOOLS)
 let devToolsAllowed = false;
 window.appConfig?.getConfig?.()
-  .then((config) => { devToolsAllowed = config?.isDev === true; })
+  .then((config) => { devToolsAllowed = config?.devToolsEnabled === true; })
   .catch(() => { devToolsAllowed = false; });
 
 function toggleDevTools() {

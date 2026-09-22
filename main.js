@@ -1332,6 +1332,15 @@ try {
  * ===== WINDOW MANAGEMENT =====
  */
 
+/**
+ * Les outils de développement (F5 → simulateur et stats, menu Développement, DevTools) sont
+ * ouverts en mode développement, et en production uniquement si le .env embarqué dans le build
+ * porte ENABLE_DEV_TOOLS=true. Absent ou à autre chose : verrouillé, comme sur une borne client.
+ */
+function devToolsAllowed() {
+  return process.env.NODE_ENV === 'development' || process.env.ENABLE_DEV_TOOLS === 'true';
+}
+
 function createWindow() {
   console.log('[Main] preload path:', path.join(__dirname, 'preload.js'));
 
@@ -1355,8 +1364,8 @@ function createWindow() {
   }
   // mainWindow.webContents.openDevTools();
 
-  // En production, F5 ne doit ni recharger la page ni ouvrir les outils dev
-  if (process.env.NODE_ENV !== 'development') {
+  // Hors outils dev autorisés, F5 ne doit ni recharger la page ni ouvrir les outils dev
+  if (!devToolsAllowed()) {
     mainWindow.webContents.on('before-input-event', (event, input) => {
       if (input.type === 'keyDown' && input.key === 'F5') {
         event.preventDefault();
@@ -1637,7 +1646,7 @@ app.on('browser-window-created', (_, window) => {
 let devMenuVisible = false;
 
 function createMenu() {
-  const isDev = process.env.NODE_ENV === 'development';
+  const isDev = devToolsAllowed();
 
   // Par défaut, masquer le menu
   if (!devMenuVisible) {
@@ -1693,8 +1702,8 @@ function createMenu() {
 
 // Toggle dev menu visibility (F5)
 ipcMain.handle('app:toggle-dev-menu', () => {
-  // Le menu dev reste inaccessible en production
-  if (process.env.NODE_ENV !== 'development') return false;
+  // Le menu dev reste inaccessible tant que les outils dev ne sont pas autorisés
+  if (!devToolsAllowed()) return false;
 
   devMenuVisible = !devMenuVisible;
   createMenu();
@@ -1708,7 +1717,7 @@ ipcMain.handle('app:get-config', () => {
     inactivityTimeout: parseInt(process.env.INACTIVITY_TIMEOUT_MS) || 60000,
     adminInactivityTimeout: parseInt(process.env.ADMIN_INACTIVITY_TIMEOUT_MS) || 20000,
     version: app.getVersion(),
-    isDev: process.env.NODE_ENV === 'development',
+    devToolsEnabled: devToolsAllowed(),
   };
 });
 
@@ -2080,6 +2089,20 @@ ipcMain.handle('admin:update-cart-bonus-popup', async (event, enabled) => {
     return { status: 'success', enabled: !!enabled };
   } catch (error) {
     console.error('[IPC] Erreur update-cart-bonus-popup:', error);
+    return { status: 'error', error: error.message };
+  }
+});
+
+ipcMain.handle('admin:update-bar-promo', async (event, enabled) => {
+  if (!photoSystemReady || !photoSystem?.db) {
+    return { status: 'error', error: 'PhotoSystem non disponible' };
+  }
+  try {
+    await photoSystem.db.updateBarPromo(enabled);
+    console.log('[IPC] Offre bar:', enabled ? 'activée' : 'désactivée');
+    return { status: 'success', enabled: !!enabled };
+  } catch (error) {
+    console.error('[IPC] Erreur update-bar-promo:', error);
     return { status: 'error', error: error.message };
   }
 });

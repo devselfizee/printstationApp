@@ -1,4 +1,6 @@
 :root{
+  /* Rayons d'angle des deux bandeaux */
+  --promo-radius:10px; --pickup-radius:26px;
   --e-navy:#1b1f3a;
   --e-sky:#5eb7ff;
   --panel:#f7f8fb; --bg:#fff; --muted:#eef2f7; /*--txt:#0f172a;*/ --sub:#6b7280;
@@ -662,29 +664,104 @@ header.topbar{
 }
 
 
-.pickup-notice {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 16px 24px;
-  margin: 0 auto 24px;
-  background: linear-gradient(135deg, rgba(30, 58, 95, 0.08) 0%, rgba(30, 58, 95, 0.04) 100%);
-  border: 1px solid rgba(30, 58, 95, 0.15);
-  border-radius: 12px;
-  max-width: 500px;
+/* ===== Bandeau « retrait au comptoir » ===== */
+.pickup-notice{
+  position:relative; display:flex; align-items:center; gap:52px;
+  /* Même largeur que le bandeau promo, sur toutes les pages */
+  width:100%; max-width:1000px; padding:18px 30px 18px 56px; margin:0 auto 22px; overflow:hidden;
+  background:#fdf4df; border-radius:var(--pickup-radius);
+  box-shadow:0 8px 22px rgba(146,110,40,.10);
 }
-.pickup-notice svg {
-  width: 24px;
-  height: 24px;
-  stroke: var(--brand, #1e3a5f);
-  flex-shrink: 0;
+/* Vague ambre montant du coin bas droit */
+.pickup-notice::after{
+  content:''; position:absolute; right:-80px; bottom:-168px; width:400px; height:300px;
+  background:#f8e3ad; border-radius:50%; pointer-events:none;
 }
-.pickup-notice span {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--brand, #1e3a5f);
+
+.pickup-badge{
+  position:relative; z-index:1; flex-shrink:0;
+  width:76px; height:76px; border-radius:50%;
+  display:grid; place-items:center; background:#fbe1a6;
 }
+/* Ciblé sur la pastille : sinon la règle rognait aussi le SVG du tracé pointillé */
+.pickup-badge svg{ width:41px; height:41px; stroke:#b9651a; stroke-width:1.8; }
+/* Petits rayons autour de la pastille, deux de chaque côté */
+.pickup-ray{ position:absolute; width:5px; height:20px; border-radius:3px; background:#f2b53c; }
+.pickup-ray.r1{ top:4px; left:-16px; transform:rotate(-54deg); }
+.pickup-ray.r2{ top:-15px; left:6px; transform:rotate(-26deg); }
+.pickup-ray.r3{ top:-18px; right:14px; transform:rotate(10deg); }
+.pickup-ray.r4{ top:-4px; right:-14px; transform:rotate(42deg); }
+
+.pickup-copy{ position:relative; z-index:1; display:flex; flex-direction:column; gap:2px; flex-shrink:0; }
+.pickup-title{ font-size:34px; font-weight:900; color:#3f2a12; line-height:1.15; white-space:nowrap; }
+.pickup-sub{ font-size:26px; font-weight:400; color:#a3907a; line-height:1.25; white-space:nowrap; }
+
+.pickup-trail{ position:relative; z-index:1; width:244px; height:92px; margin:0 40px 0 auto; flex-shrink:0; }
+
+/* ===== Bandeau promo « remise au bar » (liste + page produit, piloté en admin) ===== */
+.bar-promo{
+  position:relative; display:flex; align-items:center; gap:20px;
+  /* Largeur identique quelle que soit la page : le conteneur de la liste n'a pas de padding,
+     celui de la page produit en a 30px — la largeur fixe centrée gomme la différence. */
+  width:100%; max-width:1000px; padding:18px 30px; margin:0 auto 22px; overflow:hidden;
+  background:linear-gradient(100deg,#101f4c 0%,#16295e 55%,#1b3070 100%);
+  border-radius:var(--promo-radius); color:#fff;
+  box-shadow:0 10px 26px rgba(11,16,37,.28);
+}
+/* Cocotier en fond, calé en bas à droite */
+.bar-promo::after{
+  content:''; position:absolute; right:0; bottom:0; width:330px; height:100%;
+  background:url('./assets/cocotier.png') right bottom / contain no-repeat;
+  opacity:.5; pointer-events:none;
+}
+
+.bar-promo-glass{ position:relative; z-index:1; font-size:64px; line-height:1; flex-shrink:0; }
+
+/* Le pourcentage sur son pavé rose légèrement incliné */
+.bar-promo-pct{
+  position:relative; z-index:1; flex-shrink:0;
+  padding:6px 20px; border-radius:10px; transform:rotate(-1.5deg);
+  background:linear-gradient(95deg,#ff1f6f 0%,#ff4f45 100%);
+}
+.bar-promo-pct b{
+  display:block; transform:rotate(1.5deg);
+  font-size:60px; font-weight:900; line-height:1.05; letter-spacing:-.02em; color:#fff;
+  text-shadow:4px 5px 0 #57c4f5;
+}
+
+/* flex-shrink:0 + nowrap : sans ça, les titres se coupaient en deux lignes */
+.bar-promo-copy{ position:relative; z-index:1; display:flex; flex-direction:column; gap:2px; flex-shrink:0; }
+.bar-promo-title{ position:relative; font-size:31px; font-weight:900; line-height:1.15; white-space:nowrap; }
+.bar-promo-sub{ position:relative; font-size:25px; font-weight:400; color:#d3dcef; line-height:1.25; white-space:nowrap; }
+/* Trait rose sous le sous-titre */
+.bar-promo-sub::after{
+  content:''; position:absolute; left:14%; right:6%; bottom:-9px; height:5px;
+  border-radius:3px; background:#ff1f6f; transform:rotate(-.6deg);
+}
+
+/* « Profitez-en ! » manuscrit, souligné d'un trait blanc */
+.bar-promo-cta{
+  position:relative; z-index:1; flex-shrink:0; margin-left:auto; padding:0 6px 10px;
+  font-family:'Segoe Script','Brush Script MT',cursive; font-size:31px; color:#fff; white-space:nowrap;
+}
+.bar-promo-cta::after{
+  content:''; position:absolute; left:0; right:10px; bottom:0; height:3px;
+  border-radius:2px; background:#fff; transform:rotate(-1.2deg);
+}
+
+/* Confettis : ancrés au verre et au titre, jamais sur les lettres */
+.bar-promo-dash{ position:absolute; width:5px; height:18px; border-radius:3px; }
+/* À gauche du verre */
+.bar-promo-dash.d1{ top:4px; left:-20px; background:#ff1f6f; transform:rotate(-30deg); }
+.bar-promo-dash.d2{ bottom:8px; left:-26px; height:14px; background:#ff8a3d; transform:rotate(26deg); }
+/* Au-dessus du mot « de » */
+.bar-promo-dash.d3{ top:-17px; left:5px; background:#ff1f6f; transform:rotate(-22deg); }
+/* À droite du mot « bar » */
+.bar-promo-dash.d4{ top:-9px; right:-32px; background:#ff1f6f; transform:rotate(20deg); }
+.bar-promo-dash.d5{ top:15px; right:-44px; height:14px; background:#ff8a3d; transform:rotate(-16deg); }
+
+/* Sur la liste, le bandeau suit la bannière pleine largeur de l'univers */
+.listing-enter .bar-promo{ margin-top:24px; }
 
 /* Cart detail section in footer */
 .cart-detail {
@@ -848,14 +925,60 @@ header.topbar{
 .modal .btn-no{ background:#e5e7eb; color:#0f172a; }
 .modal .btn-no:hover{ background:#d1d5db; }
 
-/* Popup de remise affichée après un ajout au panier */
-.modal-bonus{ max-width:560px; text-align:center; }
-.bonus-icon{ font-size:64px; line-height:1; margin-bottom:8px; }
-.modal-bonus h3{ margin:0 0 14px; }
-.bonus-message{ font-size:19px; line-height:1.5; color:#374151; margin:0 0 28px; }
-.bonus-message strong{ color:var(--e-navy); font-weight:900; white-space:nowrap; }
+/* ===== Popup affichée après un ajout au panier ===== */
+.modal-bonus{ max-width:620px; padding:0; overflow:hidden; border-radius:24px; text-align:center; }
+
+/* Bandeau haut : dégradé marine, fine texture diagonale et balayage lumineux au premier affichage */
+.bonus-head{ position:relative; padding:38px 32px 44px; background:linear-gradient(135deg,var(--e-navy) 0%,#2d3a6b 100%); overflow:hidden; }
+.bonus-head::before{
+  content:''; position:absolute; inset:0;
+  background:repeating-linear-gradient(135deg,rgba(255,255,255,.05) 0 2px,transparent 2px 14px);
+}
+.bonus-head::after{
+  content:''; position:absolute; top:-60%; width:55%; height:220%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent);
+  transform:rotate(18deg); animation:bonusShine 2.4s ease-in-out .3s both;
+}
+@keyframes bonusShine{ from{ left:-60%; } to{ left:150%; } }
+
+/* Pastille de remise, centrée dans le bandeau (pas de débordement : overflow:hidden la rognerait) */
+.bonus-stamp{
+  position:relative; z-index:1; width:168px; height:168px; margin:0 auto;
+  border-radius:50%; display:grid; place-content:center;
+  background:linear-gradient(160deg,#8ed0ff 0%,var(--e-sky) 55%,#2f9bec 100%);
+  color:var(--e-navy);
+  box-shadow:0 18px 36px rgba(11,16,37,.38), 0 0 0 10px rgba(94,183,255,.16);
+  animation:bonusStamp .55s cubic-bezier(.2,1.25,.3,1) .1s both;
+}
+.bonus-stamp::before{ content:''; position:absolute; inset:13px; border:2px dashed rgba(11,16,37,.25); border-radius:50%; }
+.bonus-stamp-pct{ font-size:60px; font-weight:900; line-height:1; letter-spacing:-.03em; }
+.bonus-stamp-pct small{ font-size:30px; font-weight:900; }
+@keyframes bonusStamp{ from{ opacity:0; transform:scale(.55) rotate(-14deg); } to{ opacity:1; transform:none; } }
+
+.bonus-body{ padding:32px 40px 34px; }
+.modal-bonus h3{ margin:0 0 12px; font-size:30px; font-weight:900; color:var(--e-navy); }
+.bonus-message{ max-width:430px; margin:0 auto 28px; font-size:19px; line-height:1.55; color:#4b5563; }
+/* Sans message promo, on aère entre le titre et les boutons */
+.modal-bonus h3 + .bonus-actions{ margin-top:26px; }
+
 .bonus-actions{ display:flex; gap:14px; }
-.bonus-actions button{ flex:1; padding:18px 16px; border:none; border-radius:12px; font-weight:900; font-size:17px; cursor:pointer; transition: all .2s ease; }
+.bonus-actions button{
+  flex:1; padding:18px 16px; border:none; border-radius:12px;
+  font-weight:900; font-size:16px; text-transform:uppercase; letter-spacing:.05em;
+  cursor:pointer; transition:all .2s ease;
+}
+.modal-bonus .btn-yes{ background:var(--brand); color:#0a1630; }
+.modal-bonus .btn-yes:hover{ transform:translateY(-2px); box-shadow:0 12px 24px rgba(94,183,255,.3); }
+.modal-bonus .btn-no{ background:#e5e7eb; color:var(--txt); }
+.modal-bonus .btn-no:hover{ transform:translateY(-2px); background:#d1d5db; }
+
+/* Case « Ne plus afficher ce message pour cette commande » : toute la ligne est cliquable (tactile) */
+.bonus-dismiss{
+  display:flex; align-items:center; justify-content:center; gap:12px;
+  margin-top:22px; padding:16px 12px 4px; border-top:1px dashed #e5e7eb;
+  font-size:15px; color:#9ca3af; cursor:pointer; user-select:none;
+}
+.bonus-dismiss input{ width:24px; height:24px; margin:0; flex-shrink:0; accent-color:var(--e-navy); cursor:pointer; }
 
 /* CART/PROGRESS */
 .progress{ display:flex; align-items:center; justify-content:center; gap:12px; margin:16px 0 60px; font-weight:800; }

@@ -1,6 +1,6 @@
 import { state } from '../state.js';
 import { t, tProduct } from '../i18n.js';
-import { $, getQty, getTotalCartQty, updateCartCount, toast, addOne, removeOne, cartSubtotal, cartNominal, handleOrderCancellation, showCancelOrderModal, formatPrice } from '../utils.js';
+import { $, getQty, getTotalCartQty, updateCartCount, toast, addOne, removeOne, cartSubtotal, cartNominal, handleOrderCancellation, showCancelOrderModal, formatPrice, barPromoBannerHTML } from '../utils.js';
 import { createFooterBar, attachFooterListeners, updateFooterBar } from '../utils.js';
 import { getProductVisual } from '../data.js';
 
@@ -322,8 +322,9 @@ el.innerHTML = `
       // 🆕 Créer ou mettre à jour la commande + sync Supabase
       await syncOrderAfterChange();
 
-      // Popup de remise si activée en admin, sinon le toast d'origine
-      if (state.cartBonusPopup && window.showCartBonus) {
+      // Popup si activée en admin et pas masquée par le client pour cette commande,
+      // sinon le toast d'origine
+      if (state.cartBonusPopup && !state.cartBonusPopupDismissed && window.showCartBonus) {
         window.showCartBonus();
       } else {
         toast(t('added'));
@@ -431,13 +432,28 @@ export const renderDetail = (root) => {
   const section = document.createElement('section');
   section.innerHTML = `<h2 class="detail-title">${t('photo')}</h2>
     <div class="detail-preview"><img src="${p.source}" alt=""></div>
+    ${barPromoBannerHTML()}
     <!-- Notice retrait comptoir -->
     <div class="pickup-notice">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+      <span class="pickup-badge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3.6 8.6 5.6 4h12.8l2 4.6"></path>
+          <path d="M3.6 8.6h16.8"></path>
+          <path d="M4.8 8.6V20a1 1 0 0 0 1 1h12.4a1 1 0 0 0 1-1V8.6"></path>
+          <path d="M9.4 21v-4.8a2.6 2.6 0 0 1 5.2 0V21"></path>
+        </svg>
+        <i class="pickup-ray r1"></i><i class="pickup-ray r2"></i>
+        <i class="pickup-ray r3"></i><i class="pickup-ray r4"></i>
+      </span>
+      <span class="pickup-copy">
+        <span class="pickup-title">${t('pickupTitle')}</span>
+        <span class="pickup-sub">${t('pickupSub')}</span>
+      </span>
+      <svg class="pickup-trail" viewBox="0 0 260 96" fill="none" aria-hidden="true">
+        <path d="M6 80 C 62 80, 64 24, 118 24 S 178 74, 222 38" stroke="#f0bf55" stroke-width="4"
+          stroke-linecap="round" stroke-dasharray="13 13"/>
+        <path d="M228 12 L250 50 L229 45 L221 60 Z" fill="#f3b94a"/>
       </svg>
-      <span>${t('pickupNotice')}</span>
     </div>`;
 
   // Si aucun produit, tenter de recharger

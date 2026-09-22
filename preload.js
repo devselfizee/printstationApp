@@ -86,6 +86,7 @@ const photoAPI = {
     // Variante écran d'accueil (legacy)
     updateHomeVariant: (variant) => ipcRenderer.invoke('admin:update-home-variant', variant),
     updateCartBonusPopup: (enabled) => ipcRenderer.invoke('admin:update-cart-bonus-popup', enabled),
+    updateBarPromo: (enabled) => ipcRenderer.invoke('admin:update-bar-promo', enabled),
     getHomeVariants: () => ipcRenderer.invoke('admin:get-home-variants'),
     getHomeVisuals: () => ipcRenderer.invoke('admin:get-home-visuals'),
     // Univers écran d'accueil
@@ -275,8 +276,8 @@ const defaultConfig = {
   // Timeout d'inactivité pour l'admin (20s par défaut)
   adminInactivityTimeout: 20000,
   version: null,
-  // Outils dev désactivés tant que le main n'a pas confirmé le mode développement
-  isDev: false,
+  // Outils dev désactivés tant que le main ne les a pas explicitement autorisés
+  devToolsEnabled: false,
 };
 
 // Cache pour la config chargée

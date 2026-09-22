@@ -1,6 +1,6 @@
 import { state } from '../state.js';
 import { t } from '../i18n.js';
-import { formatPrice, cartSubtotal, handleOrderCancellation, showCancelOrderModal, updateCartCount } from '../utils.js';
+import { formatPrice, cartSubtotal, handleOrderCancellation, showCancelOrderModal, updateCartCount, barPromoBannerHTML } from '../utils.js';
 import { UNIVERSES } from '../data.js';
 
 // Helper pour générer les labels du footer
@@ -55,6 +55,7 @@ export const renderListing = (root) => {
       <div class="hero-text">${t('bannerText')}</div>
       <img src="${banner}" alt="">
     </div>
+    ${barPromoBannerHTML()}
     <div class="section"><h2>${t('photos')}</h2></div>
     <div class="grid" id="grid"></div>`;
   

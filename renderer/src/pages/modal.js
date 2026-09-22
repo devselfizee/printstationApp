@@ -2,6 +2,7 @@ import { state } from '../state.js';
 import { t } from '../i18n.js';
 import { $, updateCartCount, addOne, toast, getQty, lineTotal, getTotalCartQty } from '../utils.js';
 import { renderOffer } from './detail.js';
+import { NEXT_ITEMS_DISCOUNT_PCT } from '../data.js';
 
 export const showUpsell = (photo, product) => {
   const modal = $('#modal');
@@ -71,37 +72,49 @@ export const showUpsell = (photo, product) => {
 };
 
 
-// Remise annoncée dans la popup de fin d'ajout au panier.
-// Valeur fixe et volontairement décorrélée des tarifs : c'est un message commercial, la
-// facturation reste celle des prix `first`/`next` venus de Supabase (cf. unitPrice() dans data.js).
-const ANNOUNCED_DISCOUNT_PCT = 50;
-
 /**
- * Popup affichée après l'ajout d'un produit au panier.
+ * Popup affichée après l'ajout d'un produit au panier (interrupteur admin : state.cartBonusPopup).
  * Elle annonce la remise acquise sur les articles suivants et ramène le bouton de validation
- * sous les yeux du client, qui devait sinon faire défiler la page produit pour le trouver.
- * Activable/désactivable depuis l'admin (state.cartBonusPopup).
+ * sous les yeux du client, qui devait sinon faire défiler la page produit.
+ * Rien à voir avec la remise au bar de la bannière pub : ce sont deux offres séparées.
  */
 export const showCartBonus = () => {
   const modal = $('#modal');
   if (!modal) return;
 
-  const label = `<strong>-${ANNOUNCED_DISCOUNT_PCT}%</strong>`;
-  // Le 1er article débloque la remise, les suivants en bénéficient déjà
+  // Le 1er article débloque la remise, les articles suivants en bénéficient déjà
   const key = getTotalCartQty(state.cart) <= 1 ? 'bonusUnlocked' : 'bonusActive';
+  // La pastille porte le chiffre : dans la phrase il reste en texte simple, pour ne pas
+  // concurrencer visuellement le bandeau.
+  const message = t(key).replace('{pct}', `${NEXT_ITEMS_DISCOUNT_PCT}%`);
 
   modal.innerHTML = `
     <div class="modal modal-bonus">
-      <div class="bonus-icon">🎉</div>
-      <h3>${t('bonusTitle')}</h3>
-      <p class="bonus-message">${t(key).replace('{pct}', label)}</p>
-      <div class="bonus-actions">
-        <button class="btn-no" id="bonusContinueBtn">${t('bonusContinue')}</button>
-        <button class="btn-yes" id="bonusCheckoutBtn">${t('bonusCheckout')}</button>
+      <div class="bonus-head">
+        <div class="bonus-stamp">
+          <span class="bonus-stamp-pct">${NEXT_ITEMS_DISCOUNT_PCT}<small>%</small></span>
+        </div>
+      </div>
+      <div class="bonus-body">
+        <h3>${t('bonusTitle')}</h3>
+        <p class="bonus-message">${message}</p>
+        <div class="bonus-actions">
+          <button class="btn-no" id="bonusContinueBtn">${t('bonusContinue')}</button>
+          <button class="btn-yes" id="bonusCheckoutBtn">${t('bonusCheckout')}</button>
+        </div>
+        <label class="bonus-dismiss">
+          <input type="checkbox" id="bonusDismissChk">
+          <span>${t('bonusDontShow')}</span>
+        </label>
       </div>
     </div>`;
 
   modal.classList.add('show');
+
+  // « Ne plus afficher » : vaut pour la commande en cours, oublié au prochain scan (resetState)
+  $('#bonusDismissChk').onchange = (e) => {
+    state.cartBonusPopupDismissed = e.target.checked;
+  };
 
   // Continuer : on ferme et on laisse le client sur la page produit
   $('#bonusContinueBtn').onclick = () => closeModal();

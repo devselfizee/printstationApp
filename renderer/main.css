@@ -106,33 +106,9 @@
   color: white;
 }
 
-/* Pickup notice - plus visible */
-.pickup-notice {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 14px 20px;
-  margin: 0 0 20px;
-  background: #fef3c7;
-  border-radius: 10px;
-  border: 1px solid #fcd34d;
-  max-width: 100%;
-}
-
-.pickup-notice svg {
-  width: 20px;
-  height: 20px;
-  color: #b45309;
-  stroke: #b45309;
-  flex-shrink: 0;
-}
-
-.pickup-notice span {
-  font-size: 15px;
-  color: #92400e;
-  font-weight: 500;
-}
+/* Le bandeau « retrait au comptoir » est désormais entièrement défini dans styles.css.
+   Les anciennes règles vivaient ici et, ce fichier étant chargé après styles.css, elles
+   écrasaient la nouvelle intégration (largeur, icône, taille du texte). */
 .btn-cancel {
 	background: #ff7f00 !important;
     color: white !important;

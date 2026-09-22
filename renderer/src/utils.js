@@ -1,7 +1,31 @@
 import { state } from './state.js';
 import { t } from './i18n.js';
+import { BAR_DISCOUNT_PCT } from './data.js';
 
 export const $ = (sel, root = document) => root.querySelector(sel);
+
+/**
+ * Bandeau promo « remise au bar », affiché sur la liste des photos et la page produit.
+ * Piloté par l'interrupteur admin « Bannière pub » (state.barPromo).
+ */
+export const barPromoBannerHTML = () => {
+  if (!state.barPromo) return '';
+  return `
+    <div class="bar-promo">
+      <span class="bar-promo-glass">
+        <i class="bar-promo-dash d1"></i><i class="bar-promo-dash d2"></i>
+        🍹
+      </span>
+      <span class="bar-promo-pct"><b>${BAR_DISCOUNT_PCT}%</b></span>
+      <span class="bar-promo-copy">
+        <span class="bar-promo-title">
+          <i class="bar-promo-dash d3"></i>${t('barPromoTitle')}<i class="bar-promo-dash d4"></i><i class="bar-promo-dash d5"></i>
+        </span>
+        <span class="bar-promo-sub">${t('barPromoSub')}</span>
+      </span>
+      <span class="bar-promo-cta">${t('barPromoCta')}</span>
+    </div>`;
+};
 export const $$ = (sel, root = document) => root.querySelectorAll(sel);
 
 export const keyFor = (photoId, productId) => `${photoId}::${productId}`;

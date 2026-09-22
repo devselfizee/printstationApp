@@ -1,3 +1,11 @@
+// Deux offres commerciales distinctes, sans lien entre elles.
+
+// Remise accordée sur les articles suivants, annoncée par la popup d'ajout au panier.
+export const NEXT_ITEMS_DISCOUNT_PCT = 50;
+
+// Remise au bar offerte pour l'achat de toute photo, annoncée par la bannière pub.
+export const BAR_DISCOUNT_PCT = 50;
+
 export const PRODUCTS = {
   print: {
     id: 'print',
