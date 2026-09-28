@@ -303,8 +303,8 @@ const LOCAL_UNIVERSES = {
       background: '/assets/E/bg.jpg',
     },
   },
-  I: {
-    id: 'I',
+  J: {
+    id: 'J',
     name: 'Everest',
     description: 'Everest',
 

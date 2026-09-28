@@ -122,6 +122,8 @@ export async function getDashboardStats() {
         list: participants.map(p => ({
           id: p.id,
           universe_id: p.universe_id,
+          // Lettre d'origine quand elle diffère de l'univers réel (ex. I rattachée à H)
+          source_universe_id: p.source_universe_id || null,
           status: p.status,
           created_at: p.created_at,
           last_synced: p.last_synced,

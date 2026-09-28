@@ -69,7 +69,8 @@ async function showSimulatorPopup() {
   // Charger les participants depuis l'API
   let participants = [];
   let universes = [];
-  const participantUniverseMap = {}; // 🆕 Map participant → universe
+  const participantUniverseMap = {};   // Map participant → univers réel (pour le sélecteur)
+  const participantScanLetterMap = {}; // Map participant → lettre du QR d'origine (ex. I)
 
   try {
     // ⭐ CORRECTION: Utiliser la bonne API
@@ -83,6 +84,9 @@ async function showSimulatorPopup() {
       // 🆕 Créer une map participant → universe pour l'auto-sélection
       participants.forEach(p => {
         participantUniverseMap[p.id] = p.universe_id;
+        // Si les photos sont arrivées de booth sous une lettre rattachée, on rejoue cette
+        // lettre-là : sinon la simulation enverrait H là où le vrai QR porte un I.
+        participantScanLetterMap[p.id] = p.source_universe_id || p.universe_id;
       });
 
       console.log('[DevSim] Participants chargés:', participants.length);
@@ -96,7 +100,14 @@ async function showSimulatorPopup() {
   // Créer la liste HTML des participants
   const participantsList = participants.length > 0
     ? `<option value="">-- Sélectionner un participant --</option>` +
-      participants.map(p => `<option value="${p.id}" data-universe="${p.universe_id}">${p.id} (${p.universe_id || p.status})</option>`).join('')
+      participants.map(p => {
+        // Lettre rattachée : on montre « I → H » pour que la simulation soit lisible
+        const label = p.source_universe_id
+          ? `${p.id} (${p.source_universe_id} → ${p.universe_id})`
+          : `${p.id} (${p.universe_id || p.status})`;
+        const scanLetter = p.source_universe_id || p.universe_id;
+        return `<option value="${p.id}" data-universe="${scanLetter}">${label}</option>`;
+      }).join('')
     : '<option value="">-- Aucun participant en DB --</option>';
 
   const universesList = universes.length > 0
@@ -159,11 +170,16 @@ async function showSimulatorPopup() {
     if (selectedParticipant && participantUniverseMap[selectedParticipant]) {
       // Participant existant → auto-sélectionner l'univers
       const universeId = participantUniverseMap[selectedParticipant];
+      const scanLetter = participantScanLetterMap[selectedParticipant];
+      // Le sélecteur montre l'univers réel (le seul présent dans le registre) ; le libellé
+      // signale la lettre effectivement rejouée quand elle diffère.
       universeSelect.value = universeId;
       universeSelect.disabled = true;
       universeSelect.style.opacity = '0.6';
       universeSelect.style.cursor = 'not-allowed';
-      universeAutoLabel.textContent = '(auto-sélectionné)';
+      universeAutoLabel.textContent = scanLetter && scanLetter !== universeId
+        ? `(auto-sélectionné — QR rejoué avec la lettre ${scanLetter})`
+        : '(auto-sélectionné)';
     } else if (customInput && isValidUniverseCode(customInput.charAt(0))) {
       // 🆕 Nouveau participant avec préfixe valide → auto-sélectionner l'univers
       const universeId = customInput.charAt(0);
@@ -211,7 +227,8 @@ async function showSimulatorPopup() {
     if (selectedFromList) {
       // Participant existant sélectionné depuis la liste
       participantId = selectedFromList;
-      universe = participantUniverseMap[participantId] || universeSelect.value;
+      // On rejoue la lettre du QR d'origine (ex. I), pas l'univers rattaché
+      universe = participantScanLetterMap[participantId] || participantUniverseMap[participantId] || universeSelect.value;
       isNewParticipant = false;
       console.log('[DevSim] Participant existant sélectionné:', participantId);
     } else if (customInput) {
@@ -301,6 +318,9 @@ async function showSimulatorPopup() {
             window.state.photos = result.photos || [];
             window.state.participantId = result.participantId;
             window.state.universeId = result.universeId || universe;
+            // Lettre du QR rejoué : sans elle, la commande repartirait sous l'univers
+            // rattaché (H) au lieu du code réellement présenté (ex. I).
+            window.state.scannedUniverseId = result.scannedUniverseId || universe || null;
 
             // Changer de page
             window.state.page = 'listing';

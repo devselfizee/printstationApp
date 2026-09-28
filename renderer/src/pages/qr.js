@@ -8,7 +8,7 @@
 import { state } from '../state.js';
 import { $ } from '../utils.js';
 import { t } from '../i18n.js';
-import { isValidUniverseCode } from '../universes.js';
+import { isValidUniverseCode, resolveUniverseCode } from '../universes.js';
 
 // ============================================
 // MODAL "PHOTOS NON DISPONIBLES"
@@ -522,8 +522,15 @@ async function processPhysicalScan(rawData) {
 
       // Vérifier si le premier caractère est une lettre d'univers valide (registre admin)
       if (isValidUniverseCode(firstChar) && upperData.length > 1) {
+        // Une lettre peut être rattachée à un autre univers (ex. I → H) : on normalise ici,
+        // pour que plus rien en aval ne voie la lettre d'origine.
+        const universe = resolveUniverseCode(firstChar);
+        if (universe !== firstChar) {
+          console.log(`[QR] 🔗 Lettre ${firstChar} rattachée à l'univers ${universe}`);
+        }
         qrData = {
-          universe: firstChar,
+          universe,
+          scannedUniverse: firstChar,  // conservée pour la traçabilité du QR physique
           participantId: upperData.substring(1)
         };
         console.log('[QR] ✅ Format préfixe univers détecté:', qrData);
@@ -579,6 +586,8 @@ async function processPhysicalScan(rawData) {
           window.state.photos = result.photos || [];
           window.state.participantId = result.participantId;
           window.state.universeId = result.universeId || qrData.universe;
+          // Lettre réellement présentée, conservée pour la traçabilité de la commande
+          window.state.scannedUniverseId = result.scannedUniverseId || qrData.scannedUniverse || null;
           window.state.page = 'listing';
           window.render();
           console.log('[QR] ✅ Navigation vers listing effectuée');

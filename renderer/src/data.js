@@ -166,8 +166,8 @@ export const UNIVERSES = {
       }
     }
   },
-  I: {
-    id: 'I',
+  J: {
+    id: 'J',
     name: 'Everest',
     banner: './assets/banniere-everest.jpg',
     photos: [

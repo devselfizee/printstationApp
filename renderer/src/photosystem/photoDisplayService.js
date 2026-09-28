@@ -8,6 +8,7 @@
  */
 
 import * as db from './db.js';
+import { resolveUniverseCode } from './universeAliases.js';
 import { loadUniverse } from './universeService.js';
 import { triggerParticipantSync } from './photosystem.js';
 
@@ -17,7 +18,7 @@ let onPhotosUpdated = null;
 // ===== Codes d'univers valides (source de vérité unique : registre admin) =====
 // Peuplé depuis la DB au démarrage via refreshUniverseCodes(). Le fallback couvre
 // le cas où la DB n'a pas encore répondu.
-const FALLBACK_UNIVERSE_CODES = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'];
+const FALLBACK_UNIVERSE_CODES = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J'];
 let validUniverseCodes = [...FALLBACK_UNIVERSE_CODES];
 
 /**
@@ -41,7 +42,8 @@ export async function refreshUniverseCodes() {
  * Vérifie qu'un code d'univers existe dans le registre.
  */
 export function isValidUniverseCode(code) {
-  return !!code && validUniverseCodes.includes(String(code).toUpperCase());
+  // Une lettre rattachée à un autre univers (ex. I → H) est valide si sa cible l'est
+  return !!code && validUniverseCodes.includes(resolveUniverseCode(code));
 }
 
 export function setPhotosUpdatedCallback(callback) {
@@ -137,7 +139,15 @@ export async function handleQRCodeScan(qrContent) {
     const qrData = parseQRData(qrContent);
     validateQRData(qrData);
 
-    const { universe: universeId, participantId } = qrData;
+    // Dernier filet : le renderer normalise déjà, mais un QR au format JSON ou URL passe ici
+    // sans être repassé par lui. Rien ne doit être écrit sous une lettre rattachée.
+    // scannedUniverse porte la lettre physiquement présentée quand elle diffère de l'univers.
+    const { participantId } = qrData;
+    const scannedCode = String(qrData.scannedUniverse || qrData.universe || '').toUpperCase();
+    const universeId = resolveUniverseCode(scannedCode);
+    if (universeId !== scannedCode) {
+      console.log(`[PhotoDisplay] Lettre ${scannedCode} rattachée à l'univers ${universeId}`);
+    }
 
     console.log('[PhotoDisplay] Chargement univers:', universeId);
     const universe = await loadUniverse(universeId);
@@ -153,10 +163,10 @@ export async function handleQRCodeScan(qrContent) {
     console.log(`[PhotoDisplay] ✅ Participant ${participantId} ajouté/mis à jour localement`);
 
     // Sync participant vers Supabase via callback (non bloquant)
-    triggerParticipantSync(participantId, universeId);
+    triggerParticipantSync(participantId, universeId, scannedCode);
 
     // ⭐ Enregistrer le scan dans scan_stories
-    await db.addScanStory(participantId, universeId);
+    await db.addScanStory(participantId, universeId, scannedCode);
     console.log('[PhotoDisplay] Scan enregistré dans scan_stories');
 
     // ⭐ Charger les photos initiales
@@ -169,6 +179,7 @@ export async function handleQRCodeScan(qrContent) {
       status: 'success',
       participantId,
       universeId,
+      scannedUniverseId: scannedCode,  // lettre du QR présenté, pour la traçabilité
       universe,
       photos: photos.photos || [],
       stats: photos.stats || {},

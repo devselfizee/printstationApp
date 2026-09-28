@@ -367,6 +367,7 @@ export const handleOrderCancellation = async (source = 'unknown') => {
         orderId: orderId,
         participantId: state.participantId || state.sessionId,
         universeId: state.universe?.id || state.universeId || 'B',
+        scannedUniverseId: state.scannedUniverseId || null,
         totalAmount: totalAmount,
         discountAmount: discountAmount,
         finalAmount: finalAmount,

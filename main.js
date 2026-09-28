@@ -12,6 +12,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // ============================================
 import logger from './services/LoggerService.js';
 import { checkForUpdates } from './services/updater.js';
+import { resolveUniverseCode } from './renderer/src/photosystem/universeAliases.js';
 
 // Récupérer la version depuis package.json
 const packageJson = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
@@ -1480,9 +1481,9 @@ app.on('ready', async () => {
 
         // Configurer le callback de sync participant APRÈS le chargement de la config
         if (photoSystem.setParticipantSyncCallback) {
-          photoSystem.setParticipantSyncCallback((participantId, universeId) => {
-            console.log('[Main] Callback sync participant appelé:', { participantId, universeId });
-            syncParticipantToRemote(participantId, universeId)
+          photoSystem.setParticipantSyncCallback((participantId, universeId, scannedUniverseId = null) => {
+            console.log('[Main] Callback sync participant appelé:', { participantId, universeId, scannedUniverseId });
+            syncParticipantToRemote(participantId, universeId, scannedUniverseId)
               .then(result => {
                 if (result.status === 'success') {
                   console.log(`[Main] ✅ Participant ${participantId} synchronisé vers Supabase`);
@@ -1768,7 +1769,7 @@ ipcMain.handle('photos:scan-qr', async (event, qrContent) => {
       const timezoneOffset = offsetHours >= 0 ? `+${offsetHours}` : `${offsetHours}`;
 
       // Sync scan story vers Supabase (non bloquant)
-      syncScanStoryToRemote(result.participantId, result.universeId, createdAt, timezone, timezoneOffset)
+      syncScanStoryToRemote(result.participantId, result.universeId, createdAt, timezone, timezoneOffset, result.scannedUniverseId)
         .then(syncResult => {
           if (syncResult.status === 'success') {
             console.log('[IPC] Scan story synchronisé vers Supabase');
@@ -1781,7 +1782,7 @@ ipcMain.handle('photos:scan-qr', async (event, qrContent) => {
         });
 
       // Sync participant vers Supabase (non bloquant)
-      syncParticipantToRemote(result.participantId, result.universeId)
+      syncParticipantToRemote(result.participantId, result.universeId, result.scannedUniverseId)
         .then(syncResult => {
           if (syncResult.status === 'success') {
             console.log('[IPC] Participant synchronisé vers Supabase');
@@ -2169,7 +2170,7 @@ ipcMain.handle('admin:update-home-universe', async (event, { universeKey, enable
 });
 
 // Lister les codes d'univers du registre (source de vérité unique pour la validation des scans)
-const FALLBACK_UNIVERSE_CODES = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'];
+const FALLBACK_UNIVERSE_CODES = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J'];
 ipcMain.handle('universes:list', async () => {
   if (!photoSystemReady || !photoSystem?.db) {
     return { status: 'success', codes: FALLBACK_UNIVERSE_CODES, universes: [] };
@@ -3329,9 +3330,11 @@ async function syncOrderToRemoteAPI(orderId, supabaseOrderId = null) {
     // Transformer les données au format attendu par l'API
     const participantId = orderWithItems.participant_id || 'Anonymous';
     const universeId = orderWithItems.universe_id || null;
+    // qrcode = code physiquement scanné (ex. I12233) ; universe_id = univers réel (H)
+    const scannedCode = orderWithItems.scanned_universe_id || universeId;
     const payload = {
       participant_id: participantId,
-      qrcode: universeId && participantId ? `${universeId}${participantId}` : null,
+      qrcode: scannedCode && participantId ? `${scannedCode}${participantId}` : null,
       customer_email: orderWithItems.email || null, // Email peut être null
       customer_address: null,
       subtotal_ht: Math.round(subtotal_ht_raw * 100), // Prix HT en centimes
@@ -3704,6 +3707,8 @@ async function createOrderRemote(orderData) {
     // Transformer les données au format attendu par l'API
     const participantId = orderData.participantId || 'Anonymous';
     const universeId = orderData.universeId || null;
+    // qrcode = code physiquement scanné (ex. I12233) ; universe_id = univers réel (H)
+    const scannedCode = orderData.scannedUniverseId || universeId;
     const total_amount_raw = orderData.totalAmount; // Prix TTC
 
     // Calcul des montants HT et TVA
@@ -3719,7 +3724,7 @@ async function createOrderRemote(orderData) {
     console.log('[CreateOrder] Préparation du payload:');
     console.log('[CreateOrder]   - participant_id:', participantId);
     console.log('[CreateOrder]   - universe_id:', universeId);
-    console.log('[CreateOrder]   - qrcode:', universeId && participantId ? `${universeId}${participantId}` : null);
+    console.log('[CreateOrder]   - qrcode:', scannedCode && participantId ? `${scannedCode}${participantId}` : null);
     console.log('[CreateOrder]   - TVA rate:', tvaRate, '%');
     console.log('[CreateOrder]   - subtotal_ht (HT en centimes):', subtotal_ht);
     console.log('[CreateOrder]   - vat_amount (TVA en centimes):', vat_amount);
@@ -3727,7 +3732,7 @@ async function createOrderRemote(orderData) {
 
     const payload = {
       participant_id: participantId,
-      qrcode: universeId && participantId ? `${universeId}${participantId}` : null,
+      qrcode: scannedCode && participantId ? `${scannedCode}${participantId}` : null,
       customer_email: '', // Chaîne vide pour cette étape (pas encore d'email)
       customer_address: null,
       subtotal_ht: subtotal_ht, // Prix HT en centimes
@@ -3911,6 +3916,8 @@ async function createCompletedOrderRemote(localOrderId) {
 
     const participantId = orderWithItems.participant_id || 'Anonymous';
     const universeId = orderWithItems.universe_id || null;
+    // qrcode = code physiquement scanné (ex. I12233) ; universe_id = univers réel (H)
+    const scannedCode = orderWithItems.scanned_universe_id || universeId;
 
     console.log('[CreateCompletedOrder] Calcul TVA:');
     console.log('[CreateCompletedOrder]   - TVA rate:', tvaRate, '%');
@@ -3921,7 +3928,7 @@ async function createCompletedOrderRemote(localOrderId) {
     // Construire le payload pour l'API
     const payload = {
       participant_id: participantId,
-      qrcode: universeId && participantId ? `${universeId}${participantId}` : null,
+      qrcode: scannedCode && participantId ? `${scannedCode}${participantId}` : null,
       customer_email: orderWithItems.email || null,
       customer_address: null,
       subtotal_ht: subtotal_ht, // Prix HT en centimes
@@ -4751,7 +4758,7 @@ ipcMain.handle('order:cancel-remote', async (event, supabaseOrderId, lastStep = 
  * @param {string} timezone - Timezone de la borne (ex: Europe/Paris)
  * @param {string} timezoneOffset - Décalage horaire par rapport à GMT (ex: "+2", "-5")
  */
-async function syncScanStoryToRemote(participantId, universeId, createdAt, timezone = null, timezoneOffset = null) {
+async function syncScanStoryToRemote(participantId, universeId, createdAt, timezone = null, timezoneOffset = null, scannedUniverseId = null) {
   if (!API_SYNC_CONFIG.enabled) {
     console.log('[ScanStory] API désactivée');
     return { status: 'skipped', message: 'API désactivée' };
@@ -4771,8 +4778,11 @@ async function syncScanStoryToRemote(participantId, universeId, createdAt, timez
     const kioskId = API_SYNC_CONFIG.kioskId;
     console.log('[ScanStory] kiosk_id:', kioskId);
 
-    // Construire le qrcode = universe_id + participant_id
-    const qrcode = universeId && participantId ? `${universeId}${participantId}` : null;
+    // Le qrcode reflète le code physiquement présenté par le client : quand une lettre est
+    // rattachée à un autre univers (ex. I → H), elle doit rester retrouvable ici, alors que
+    // universe_id porte l'univers réel et donc les statistiques.
+    const scannedCode = scannedUniverseId || universeId;
+    const qrcode = scannedCode && participantId ? `${scannedCode}${participantId}` : null;
     console.log('[ScanStory] qrcode:', qrcode);
 
     // Convertir la date locale en format ISO pour Supabase
@@ -4857,17 +4867,17 @@ async function syncScanStoryToRemote(participantId, universeId, createdAt, timez
 }
 
 // Handler IPC pour synchroniser un scan story
-ipcMain.handle('scan-story:sync-remote', async (event, { participantId, universeId, createdAt, timezone, timezoneOffset }) => {
+ipcMain.handle('scan-story:sync-remote', async (event, { participantId, universeId, createdAt, timezone, timezoneOffset, scannedUniverseId }) => {
   console.log('[IPC] scan-story:sync-remote appelé');
-  return await syncScanStoryToRemote(participantId, universeId, createdAt, timezone, timezoneOffset);
+  return await syncScanStoryToRemote(participantId, universeId, createdAt, timezone, timezoneOffset, scannedUniverseId);
 });
 
 /**
  * ===== SYNCHRONISATION PARTICIPANTS VERS SUPABASE =====
  * Synchronise un participant vers l'API Supabase /manage-participants
  */
-async function syncParticipantToRemote(participantId, universeId) {
-  console.log('[Participant] syncParticipantToRemote appelé:', { participantId, universeId });
+async function syncParticipantToRemote(participantId, universeId, scannedUniverseId = null) {
+  console.log('[Participant] syncParticipantToRemote appelé:', { participantId, universeId, scannedUniverseId });
 
   if (!API_SYNC_CONFIG.enabled) {
     console.log('[Participant] API désactivée');
@@ -4909,8 +4919,11 @@ async function syncParticipantToRemote(participantId, universeId) {
     console.log('[Participant] kiosk_id:', kioskId);
     console.log('[Participant] sales_point_id:', salesPointId);
 
-    // Construire le qrcode = universe_id + participant_id
-    const qrcode = (universeId && participantId) ? `${universeId}${participantId}` : null;
+    // Le qrcode reflète le code physiquement présenté : quand une lettre est rattachée à un
+    // autre univers (ex. I → H), elle reste retrouvable ici, alors que universe_id porte
+    // l'univers réel. Repli sur l'univers quand aucune lettre rattachée n'est en jeu.
+    const scannedCode = scannedUniverseId || universeId;
+    const qrcode = (scannedCode && participantId) ? `${scannedCode}${participantId}` : null;
     console.log('[Participant] qrcode:', qrcode);
 
     // Construire le payload
@@ -4998,9 +5011,9 @@ async function syncParticipantToRemote(participantId, universeId) {
 }
 
 // Handler IPC pour synchroniser un participant
-ipcMain.handle('participant:sync-remote', async (event, { participantId, universeId }) => {
+ipcMain.handle('participant:sync-remote', async (event, { participantId, universeId, scannedUniverseId }) => {
   console.log('[IPC] participant:sync-remote appelé');
-  return await syncParticipantToRemote(participantId, universeId);
+  return await syncParticipantToRemote(participantId, universeId, scannedUniverseId);
 });
 
 /**
@@ -5496,7 +5509,10 @@ ipcMain.handle('app:quit', async (event) => {
 /**
  * ===== HANDLERS IPC PARTICIPANTS =====
  */
-ipcMain.handle('participant:add-or-update', async (event, participantId, universeId, status) => {
+ipcMain.handle('participant:add-or-update', async (event, participantId, rawUniverseId, status) => {
+  // Porte d'entrée utilisée par le simulateur de scan : on rattache ici aussi, sinon un
+  // participant serait créé sous une lettre rattachée (ex. I) et synchronisé comme tel.
+  const universeId = resolveUniverseCode(rawUniverseId);
   console.log('[IPC] participant:add-or-update appelé:', { participantId, universeId, status });
 
   if (!photoSystemReady || !photoSystem?.db) {
@@ -5507,8 +5523,8 @@ ipcMain.handle('participant:add-or-update', async (event, participantId, univers
     await photoSystem.db.addOrUpdateParticipant(participantId, universeId, status || 'active');
     console.log('[IPC] ✅ Participant créé/mis à jour:', participantId);
 
-    // Sync participant vers Supabase (non bloquant)
-    syncParticipantToRemote(participantId, universeId)
+    // Sync participant vers Supabase (non bloquant) : la lettre reçue sert au qrcode
+    syncParticipantToRemote(participantId, universeId, rawUniverseId)
       .then(syncResult => {
         if (syncResult.status === 'success') {
           console.log('[IPC] Participant synchronisé vers Supabase:', participantId);

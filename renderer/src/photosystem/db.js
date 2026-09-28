@@ -127,7 +127,7 @@ async function seedDefaultData() {
       await addUniverse('F', 'Titanic', '/assets/banniere-titanic.jpg');
       await addUniverse('G', 'Colisée', '/assets/banniere-colisee.jpg');
       await addUniverse('H', 'The infinite', '/assets/banniere-theinfinite.jpg');
-      await addUniverse('I', 'Everest', '/assets/banniere-everest.jpg');
+      await addUniverse('J', 'Everest', '/assets/banniere-everest.jpg');
 
       console.log("[DB] ✅ 2 univers créés (A: L'horizon de kheops, B: Mondes Disparus)");
     } else {
@@ -135,7 +135,7 @@ async function seedDefaultData() {
       await addUniverse('F', 'Titanic', '/assets/banniere-titanic.jpg');
       await addUniverse('G', 'Colisée', '/assets/banniere-colisee.jpg');
       await addUniverse('H', 'The infinite', '/assets/banniere-theinfinite.jpg');
-      await addUniverse('I', 'Everest', '/assets/banniere-everest.jpg');
+      await addUniverse('J', 'Everest', '/assets/banniere-everest.jpg');
       console.log(`[DB] ✓ ${universes.length} univers déjà présents`);
     }
   } catch (error) {
@@ -416,7 +416,7 @@ async function createTables() {
     { key: 'F', name: 'Titanic', enabled: 1 },
     { key: 'G', name: 'Colisée', enabled: 1 },
     { key: 'H', name: 'The infinite', enabled: 1 },
-    { key: 'I', name: 'Everest', enabled: 1 }
+    { key: 'J', name: 'Everest', enabled: 1 }
   ];
 
   for (const stmt of statements) {
@@ -447,6 +447,46 @@ async function createTables() {
     await runAsync(`UPDATE universes SET name = 'The infinite' WHERE id = 'H' AND name = 'H Infinity'`);
   } catch (error) {
     console.error('[DB] Erreur correctif nom univers H:', error);
+  }
+
+  // Everest avait été attribué par erreur à la lettre I : il passe en J, et I redevient
+  // libre (elle désignait en réalité le même univers que H). Ciblé sur le nom, donc sans
+  // effet si la lettre I a été réattribuée autrement. La ligne correspondante de la table
+  // universes est laissée en place : scan_stories et participants y font référence.
+  try {
+    await runAsync(`DELETE FROM home_screen_universes WHERE universe_key = 'I' AND name = 'Everest'`);
+  } catch (error) {
+    console.error('[DB] Erreur retrait de l\'ancien univers I (Everest → J):', error);
+  }
+
+  // Migration: lettre d'univers reçue avant rattachement, pour en garder la trace en local.
+  // Remplie uniquement quand elle diffère de l'univers réel (cf. addScanStory / addPhoto) :
+  // une colonne non nulle signale donc un rattachement, aujourd'hui le seul I.
+  try {
+    const photosInfo = await allAsync('PRAGMA table_info(photos)');
+    if (!photosInfo.some(c => c.name === 'source_universe_id')) {
+      await execAsync('ALTER TABLE photos ADD COLUMN source_universe_id TEXT');
+      console.log('[DB] ✅ Colonne source_universe_id ajoutée (photos)');
+    }
+    const scanStoriesInfo = await allAsync('PRAGMA table_info(scan_stories)');
+    if (!scanStoriesInfo.some(c => c.name === 'scanned_universe_id')) {
+      await execAsync('ALTER TABLE scan_stories ADD COLUMN scanned_universe_id TEXT');
+      console.log('[DB] ✅ Colonne scanned_universe_id ajoutée (scan_stories)');
+    }
+  } catch (error) {
+    console.error('[DB] Erreur migration colonnes de trace d\'univers:', error);
+  }
+
+  // Migration: lettre réellement scannée sur la commande (ex. I quand elle est rattachée à H).
+  // Permet de reconstruire le qrcode du QR physique lors des synchros ultérieures.
+  try {
+    const ordersInfo = await allAsync('PRAGMA table_info(orders)');
+    if (!ordersInfo.some(c => c.name === 'scanned_universe_id')) {
+      await execAsync('ALTER TABLE orders ADD COLUMN scanned_universe_id TEXT');
+      console.log('[DB] ✅ Colonne scanned_universe_id ajoutée (orders)');
+    }
+  } catch (error) {
+    console.error('[DB] Erreur migration colonne scanned_universe_id:', error);
   }
 
   // Migration: Ajouter les colonnes de synchronisation si elles n'existent pas
@@ -599,15 +639,16 @@ async function migrateSyncColumns() {
       console.log('[DB] ✅ Colonne home_screen_variant ajoutée à machine_config');
     }
 
-    // Migration: Popup de remise après ajout au panier (activée par défaut)
+    // Migration: Popup de remise après ajout au panier (désactivée par défaut, tant que
+    // l'opération n'est pas validée : elle s'active borne par borne depuis l'admin)
     if (!machineConfigColumns.includes('cart_bonus_popup')) {
-      await execAsync('ALTER TABLE machine_config ADD COLUMN cart_bonus_popup INTEGER DEFAULT 1');
+      await execAsync('ALTER TABLE machine_config ADD COLUMN cart_bonus_popup INTEGER DEFAULT 0');
       console.log('[DB] ✅ Colonne cart_bonus_popup ajoutée à machine_config');
     }
 
-    // Migration: Offre remise au bar (bandeau promo + mention dans la popup), activée par défaut
+    // Migration: Bannière pub « remise au bar » (désactivée par défaut, même raison)
     if (!machineConfigColumns.includes('bar_promo_enabled')) {
-      await execAsync('ALTER TABLE machine_config ADD COLUMN bar_promo_enabled INTEGER DEFAULT 1');
+      await execAsync('ALTER TABLE machine_config ADD COLUMN bar_promo_enabled INTEGER DEFAULT 0');
       console.log('[DB] ✅ Colonne bar_promo_enabled ajoutée à machine_config');
     }
 
@@ -750,8 +791,18 @@ export async function updateParticipantStatus(participantId, status) {
 }
 
 export async function getParticipantsByUniverse(universeId) {
+  // source_universe_id : lettre sous laquelle booth a envoyé les photos, quand elle diffère de
+  // l'univers réel (ex. I rattachée à H). Nulle pour un participant arrivé sous son propre
+  // univers — c'est ce qui permet au simulateur de rejouer le vrai code du QR.
   return allAsync(
-    `SELECT * FROM participants WHERE universe_id = ? ORDER BY created_at DESC`,
+    `SELECT p.*,
+            (SELECT ph.source_universe_id
+               FROM photos ph
+              WHERE ph.participant_id = p.id AND ph.source_universe_id IS NOT NULL
+              LIMIT 1) AS source_universe_id
+       FROM participants p
+      WHERE p.universe_id = ?
+      ORDER BY p.created_at DESC`,
     [universeId]
   );
 }
@@ -801,7 +852,11 @@ export async function getSyncLogs(participantId, limit = 10) {
  * Ajouter une entrée dans scan_stories lors d'un scan valide
  * Retourne l'ID et la date de création pour la synchronisation
  */
-export async function addScanStory(participantId, universeId) {
+export async function addScanStory(participantId, universeId, scannedUniverseId = null) {
+  // Null quand le code présenté est celui de l'univers : seuls les rattachements (ex. I → H)
+  // laissent une trace, la lecture retombant sur universe_id le cas échéant.
+  const aliasedCode = scannedUniverseId && scannedUniverseId !== universeId ? scannedUniverseId : null;
+
   // Générer la date en heure locale au format SQLite
   const now = new Date();
   const year = now.getFullYear();
@@ -821,15 +876,16 @@ export async function addScanStory(participantId, universeId) {
   const timezoneOffset = offsetHours >= 0 ? `+${offsetHours}` : `${offsetHours}`;
 
   const result = await runAsync(
-    `INSERT INTO scan_stories (participant_id, universe_id, timezone, timezone_offset, created_at)
-     VALUES (?, ?, ?, ?, ?)`,
-    [participantId, universeId, timezone, timezoneOffset, createdAt]
+    `INSERT INTO scan_stories (participant_id, universe_id, scanned_universe_id, timezone, timezone_offset, created_at)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [participantId, universeId, aliasedCode, timezone, timezoneOffset, createdAt]
   );
 
   return {
     id: result.lastID,
     participantId,
     universeId,
+    scannedUniverseId: aliasedCode,
     timezone,
     timezoneOffset,
     createdAt
@@ -920,6 +976,7 @@ export async function addPhoto(photo) {
     id,
     participantId,
     universe,
+    sourceUniverse,
     fileName,
     url,
     checksum,
@@ -929,12 +986,16 @@ export async function addPhoto(photo) {
     borneInfo,
   } = photo;
 
+  // Null quand booth a envoyé l'univers réel : seuls les rattachements (ex. I → H) laissent
+  // une trace, la lecture retombant sur universe_id le cas échéant.
+  const aliasedSource = sourceUniverse && sourceUniverse !== universe ? sourceUniverse : null;
+
   return runAsync(
     `INSERT OR REPLACE INTO photos (
-      id, participant_id, universe_id, file_name, remote_url, checksum,
+      id, participant_id, universe_id, source_universe_id, file_name, remote_url, checksum,
       size_bytes, incrustation_id, date_photo, borne_info, status, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP)`,
-    [id, participantId, universe || null, fileName, url, checksum, size, incrustationId || null, datePhoto || null, borneInfo || null]
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP)`,
+    [id, participantId, universe || null, aliasedSource, fileName, url, checksum, size, incrustationId || null, datePhoto || null, borneInfo || null]
   );
 }
 
@@ -1144,6 +1205,7 @@ export async function createOrder(orderData) {
     orderId,
     participantId,
     universeId,
+    scannedUniverseId = null,
     subtotalHt = 0,
     vatAmount = 0,
     totalAmount,
@@ -1157,12 +1219,16 @@ export async function createOrder(orderData) {
     lastStep = null
   } = orderData;
 
+  // Null quand le code scanné est celui de l'univers : seuls les rattachements (ex. I → H)
+  // laissent une trace, la lecture retombant sur universe_id le cas échéant.
+  const aliasedCode = scannedUniverseId && scannedUniverseId !== universeId ? scannedUniverseId : null;
+
   return runAsync(
     `INSERT INTO orders (
-      id, participant_id, universe_id, subtotal_ht, vat_amount, total_amount, discount_amount,
+      id, participant_id, universe_id, scanned_universe_id, subtotal_ht, vat_amount, total_amount, discount_amount,
       final_amount, lang, email, optin, payment_method, notes, last_step, status, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', datetime('now', 'localtime'), datetime('now', 'localtime'))`,
-    [orderId, participantId, universeId, subtotalHt, vatAmount, totalAmount, discountAmount, finalAmount, lang, email, optin ? 1 : 0, paymentMethod, notes, lastStep]
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', datetime('now', 'localtime'), datetime('now', 'localtime'))`,
+    [orderId, participantId, universeId, aliasedCode, subtotalHt, vatAmount, totalAmount, discountAmount, finalAmount, lang, email, optin ? 1 : 0, paymentMethod, notes, lastStep]
   );
 }
 

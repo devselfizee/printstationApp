@@ -28,9 +28,10 @@ export function setParticipantSyncCallback(callback) {
 /**
  * Appeler le callback de sync participant (utilisé par les services internes)
  */
-export function triggerParticipantSync(participantId, universeId) {
+export function triggerParticipantSync(participantId, universeId, scannedUniverseId = null) {
   if (onParticipantSyncCallback) {
-    onParticipantSyncCallback(participantId, universeId);
+    // scannedUniverseId : lettre réellement présentée quand elle est rattachée (ex. I → H)
+    onParticipantSyncCallback(participantId, universeId, scannedUniverseId);
   } else {
     console.warn('[PhotoSystem] Callback de sync participant non configuré');
   }

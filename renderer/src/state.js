@@ -15,8 +15,10 @@ export const state = {
   timer: null,
   thanksCounter: 5,
   photoIndex: 0,
-  cartBonusPopup: true,  // Popup après ajout au panier (activable depuis l'admin)
-  barPromo: true,        // Bannière pub « remise au bar » (activable depuis l'admin)
+  // Désactivées par défaut : elles ne s'affichent que si l'admin de la borne les a activées
+  cartBonusPopup: false,  // Popup après ajout au panier
+  barPromo: false,        // Bannière pub « remise au bar »
+  scannedUniverseId: null,  // Lettre du QR réellement présenté (ex. I rattachée à l'univers H)
   cartBonusPopupDismissed: false,  // « Ne plus afficher » coché dans la popup pendant la commande en cours
   furthestStep: null  // Étape la plus avancée atteinte dans le parcours
 };
@@ -54,6 +56,7 @@ export const resetState = () => {
   state.thanksCounter = 5;
   state.photoIndex = 0;
   state.furthestStep = null;  // Réinitialiser l'étape la plus avancée
+  state.scannedUniverseId = null;
   state.cartBonusPopupDismissed = false;  // La popup réapparaît à chaque nouveau scan
   if (state.timer) clearTimeout(state.timer);
 };

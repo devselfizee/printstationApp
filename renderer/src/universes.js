@@ -9,7 +9,12 @@
  */
 
 // Utilisé tant que le registre n'a pas répondu (1er rendu, DB pas prête, etc.)
-const FALLBACK_CODES = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'];
+import { resolveUniverseCode } from './photosystem/universeAliases.js';
+
+// Réexporté pour que les pages n'aient qu'un seul module à connaître
+export { resolveUniverseCode, isUniverseAlias } from './photosystem/universeAliases.js';
+
+const FALLBACK_CODES = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J'];
 
 let universeCodes = [...FALLBACK_CODES];
 let loaded = false;
@@ -46,7 +51,8 @@ export function getUniverseCodes() {
  */
 export function isValidUniverseCode(code) {
   if (!code) return false;
-  return universeCodes.includes(String(code).toUpperCase());
+  // Une lettre rattachée à un autre univers (ex. I → H) est valide si sa cible l'est
+  return universeCodes.includes(resolveUniverseCode(code));
 }
 
 /**

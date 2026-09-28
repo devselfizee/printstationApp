@@ -10,6 +10,7 @@
  */
 
 import * as db from './db.js';
+import { resolveUniverseCode } from './universeAliases.js';
 import * as downloadService from './photoDownloadService.js';
 import { triggerParticipantSync } from './photosystem.js';
 import logger from '../../../services/LoggerService.js';
@@ -404,7 +405,11 @@ async function processRemotePhoto(remotePhoto) {
 
     // ⭐ CORRECTION: Créer/mettre à jour le participant AVANT d'ajouter la photo
     const participantId = remotePhoto.participantId || 'unknown';
-    const universeId = remotePhoto.universe || 'unknown';
+    // Même rattachement que pour les scans : une photo taguée avec une lettre rattachée
+    // (ex. I) rejoint son univers réel au lieu d'en recréer un. La lettre d'origine est
+    // conservée à part, pour qu'on sache en local d'où la photo est arrivée.
+    const sourceUniverseId = remotePhoto.universe || null;
+    const universeId = resolveUniverseCode(remotePhoto.universe) || 'unknown';
 
     try {
       // Ajouter/mettre à jour le participant localement
@@ -412,7 +417,7 @@ async function processRemotePhoto(remotePhoto) {
       console.log(`[PhotoSync] ✅ Participant ${participantId} créé/mis à jour localement`);
 
       // Sync participant vers Supabase via callback (non bloquant)
-      triggerParticipantSync(participantId, universeId);
+      triggerParticipantSync(participantId, universeId, sourceUniverseId);
     } catch (error) {
       console.error(`[PhotoSync] ⚠️  Erreur création participant: ${error.message}`);
       // Continuer quand même pour ajouter la photo
@@ -423,6 +428,7 @@ async function processRemotePhoto(remotePhoto) {
       id: remotePhoto.id,
       participantId: participantId,
       universe: universeId,
+      sourceUniverse: sourceUniverseId,
       fileName: `${remotePhoto.id}.jpg`,
       url: remotePhoto.url,
       checksum: remotePhoto.checksum,

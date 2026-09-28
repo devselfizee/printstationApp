@@ -519,21 +519,17 @@ async function showAdminDashboard() {
   // Charger la configuration machine (pour la langue par défaut)
   let machineConfig = null;
   let currentDefaultLang = 'fr';
-  let cartBonusPopupEnabled = true;
-  let barPromoEnabled = true;
+  let cartBonusPopupEnabled = false;
+  let barPromoEnabled = false;
   try {
     if (window.photoAPI?.admin?.getMachineConfig) {
       const result = await window.photoAPI.admin.getMachineConfig();
       if (result.status === 'success' && result.config) {
         machineConfig = result.config;
         currentDefaultLang = machineConfig.default_lang || 'fr';
-        // Colonne absente sur une base ancienne : la popup est considérée active
-        cartBonusPopupEnabled = machineConfig.cart_bonus_popup === undefined || machineConfig.cart_bonus_popup === null
-          ? true
-          : !!machineConfig.cart_bonus_popup;
-        barPromoEnabled = machineConfig.bar_promo_enabled === undefined || machineConfig.bar_promo_enabled === null
-          ? true
-          : !!machineConfig.bar_promo_enabled;
+        // Colonne absente sur une base ancienne : les deux sont considérées désactivées
+        cartBonusPopupEnabled = !!machineConfig.cart_bonus_popup;
+        barPromoEnabled = !!machineConfig.bar_promo_enabled;
         console.log('[Admin] Config machine:', machineConfig);
       }
     }
