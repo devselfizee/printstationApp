@@ -141,6 +141,43 @@ function addUpsell(photoId, productId) {
   render();
 }
 
+/**
+ * Recharger la configuration d'affichage du point de vente depuis l'admin web.
+ * Jamais attendue par le parcours client : si le réseau traîne, la borne continue avec ce
+ * qu'elle a. Appelée au démarrage, au retour à l'accueil et au scan.
+ */
+async function refreshDisplayConfig() {
+  try {
+    const result = await window.photoAPI?.admin?.getDisplayConfig?.();
+    if (result?.status === 'success' && result.config) {
+      const config = result.config;
+      const changed = state.barPromo !== !!config.bannerEnabled
+        || state.cartBonusPopup !== !!config.popupEnabled
+        || JSON.stringify(state.banner) !== JSON.stringify(
+          config.bannerEnabled ? { type: config.bannerType, translations: config.translations } : null);
+
+      state.barPromo = !!config.bannerEnabled;
+      state.cartBonusPopup = !!config.popupEnabled;
+      state.banner = config.bannerEnabled
+        ? { type: config.bannerType, translations: config.translations || {} }
+        : null;
+      console.log('[App] 🎛️ Affichage — bannière:', state.barPromo ? config.bannerType : 'non',
+        '| popup:', state.cartBonusPopup);
+
+      // Appelée au scan, la réponse peut arriver après l'affichage de la liste des photos.
+      // On ne redessine que là, et seulement si la valeur a bougé : plus loin dans le
+      // parcours, un re-rendu perdrait le défilement du client pour un gain nul.
+      if (changed && state.page === 'listing') {
+        console.log('[App] Configuration reçue après le rendu, liste redessinée');
+        render();
+      }
+    }
+  } catch (error) {
+    console.warn('[App] Config affichage indisponible:', error.message);
+  }
+}
+window.refreshDisplayConfig = refreshDisplayConfig;
+
 async function backToQR() {
   clearInterval(state.timer);
   clearTimeout(state.timer);
@@ -149,6 +186,8 @@ async function backToQR() {
   // (sans ça, un timeout d'inactivité ramenait à l'accueil avec la popup encore par-dessus)
   closeModal();
   resetState();
+  // Entre deux clients : la borne est inactive, la valeur sera en place au scan suivant
+  refreshDisplayConfig();
   // Recharger la langue par défaut depuis la config (sans re-render car on le fait après)
   await loadDefaultLang(false);
   render();
@@ -230,16 +269,6 @@ async function loadDefaultLang(shouldRender = true) {
         if (result.config.default_lang) {
           state.lang = result.config.default_lang;
           console.log('[App] 🌍 Langue par défaut chargée:', state.lang);
-        }
-        // Popup après ajout au panier (colonne absente sur une base ancienne = activée)
-        if (result.config.cart_bonus_popup !== undefined && result.config.cart_bonus_popup !== null) {
-          state.cartBonusPopup = !!result.config.cart_bonus_popup;
-          console.log('[App] 🛒 Popup après ajout:', state.cartBonusPopup ? 'activée' : 'désactivée');
-        }
-        // Offre remise au bar (colonne absente sur une base ancienne = activée)
-        if (result.config.bar_promo_enabled !== undefined && result.config.bar_promo_enabled !== null) {
-          state.barPromo = !!result.config.bar_promo_enabled;
-          console.log('[App] 🍹 Offre bar:', state.barPromo ? 'activée' : 'désactivée');
         }
         // Charger la variante d'écran d'accueil
         if (result.config.home_screen_variant) {
@@ -347,6 +376,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Charger la liste des codes d'univers depuis le registre admin (source de vérité)
   loadUniverseCodes();
+
+  // Configuration d'affichage du point de vente (bannière pub, popup de remise)
+  refreshDisplayConfig();
 
   // Vérifier la configuration après l'initialisation
   checkSetup();

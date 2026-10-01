@@ -1898,6 +1898,186 @@ ipcMain.handle('admin:dashboard', async () => {
   return photoSystem.admin.getDashboardStats();
 });
 */
+/**
+ * Configuration d'affichage du point de vente : bannière et popup de remise.
+ *
+ * Pilotée depuis l'admin web. La borne mémorise la réponse en base pour continuer à afficher
+ * hors ligne, et renvoie la version connue en `since` : le serveur répond alors "unchanged"
+ * sans transférer les six traductions.
+ */
+const KIOSK_CONFIG_URL = process.env.KIOSK_CONFIG_URL
+  || 'https://api.orkessi.com/functions/v1/manage-kiosk-config';
+
+/**
+ * Télécharger les images d'une bannière et les ranger à côté des photos, pour qu'elles
+ * restent affichables sans réseau. Non bloquant : la bannière s'affiche depuis l'URL
+ * distante tant que la copie locale n'est pas là.
+ */
+async function cacheBannerImages(translations, version) {
+  const dir = path.join(app.getPath('userData'), 'banners');
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+
+  const seen = new Set();
+
+  for (const [lang, entry] of Object.entries(translations || {})) {
+    const url = entry?.image_url;
+    if (!url) continue;
+
+    const ext = (path.extname(new URL(url).pathname) || '.png').toLowerCase();
+    const dest = path.join(dir, `banner-v${version}-${lang}${ext}`);
+    seen.add(path.basename(dest));
+
+    if (fs.existsSync(dest)) {
+      entry.image_local = `printstation://local${dest}`;
+      continue;
+    }
+
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      fs.writeFileSync(dest, Buffer.from(await response.arrayBuffer()));
+      entry.image_local = `printstation://local${dest}`;
+      console.log('[DisplayConfig] Image mise en cache:', path.basename(dest));
+    } catch (error) {
+      console.warn(`[DisplayConfig] Image ${lang} non téléchargée: ${error.message}`);
+    }
+  }
+
+  // Purge des versions précédentes, sinon le disque enfle à chaque campagne
+  try {
+    for (const file of fs.readdirSync(dir)) {
+      if (file.startsWith('banner-v') && !seen.has(file)) {
+        fs.unlinkSync(path.join(dir, file));
+      }
+    }
+  } catch (error) {
+    console.warn('[DisplayConfig] Purge des anciennes images:', error.message);
+  }
+
+  return translations;
+}
+
+ipcMain.handle('config:fetch-display', async () => {
+  const db = photoSystemReady && photoSystem?.db ? photoSystem.db : null;
+
+  // La configuration déjà connue sert de réponse par défaut : toute erreur laisse la
+  // bannière en place plutôt que de la faire disparaître en pleine opération.
+  let local = null;
+  try {
+    local = db ? await db.getDisplayConfig() : null;
+  } catch (error) {
+    console.warn('[DisplayConfig] Lecture locale impossible:', error.message);
+  }
+  const fallback = { status: 'success', config: local };
+
+  try {
+    // Le point de vente fait foi : l'offre est négociée par site, pas par borne
+    let salesPointId = API_SYNC_CONFIG.salesPointId;
+    if (db) {
+      const machineConfig = await db.getMachineConfig();
+      if (machineConfig?.sales_point_id) salesPointId = machineConfig.sales_point_id;
+    }
+    if (!salesPointId) {
+      console.warn('[DisplayConfig] sales_point_id non configuré');
+      return fallback;
+    }
+
+    let url = `${KIOSK_CONFIG_URL}?pos_id=${encodeURIComponent(salesPointId)}`;
+    if (local?.version != null) url += `&since=${encodeURIComponent(local.version)}`;
+
+    // 5s de garde : l'appel ne bloque pas le parcours, mais il ne doit pas traîner
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+
+    let response;
+    try {
+      response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': API_SYNC_CONFIG.supabaseAnonKey,
+          'Authorization': `Bearer ${API_SYNC_CONFIG.supabaseAnonKey}`,
+        },
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
+
+    const body = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      console.warn('[DisplayConfig] HTTP', response.status, body?.message || '');
+      return fallback;
+    }
+
+    // Rien n'a changé depuis le dernier appel : le cas courant, et il ne coûte rien
+    if (body?.status === 'unchanged') {
+      console.log('[DisplayConfig] Inchangée (version', body.version, ')');
+      return fallback;
+    }
+
+    // Point de vente inconnu : on garde ce qu'on a plutôt que de vider l'affichage
+    if (!body?.config) {
+      console.log('[DisplayConfig] Aucune configuration pour ce point de vente');
+      return fallback;
+    }
+
+    const remote = body.config;
+    const banner = remote.banner || {};
+    const translations = banner.translations || {};
+
+    const config = {
+      version: remote.version,
+      updatedAt: remote.updated_at,
+      bannerEnabled: banner.enabled === true,
+      bannerType: banner.type || null,
+      translations,
+      popupEnabled: remote.popup?.enabled === true,
+    };
+
+    if (db) {
+      try {
+        await db.saveDisplayConfig(config);
+      } catch (error) {
+        console.error('[DisplayConfig] Enregistrement local impossible:', error.message);
+      }
+    }
+
+    console.log('[DisplayConfig] Version', config.version,
+      '| bannière:', config.bannerEnabled ? config.bannerType : 'désactivée',
+      '| popup:', config.popupEnabled);
+
+    // Les images partent en tâche de fond : la bannière s'affiche tout de suite depuis
+    // l'URL distante, et la copie locale prend le relais au prochain rendu.
+    if (banner.type === 'image' && db) {
+      cacheBannerImages(translations, remote.version)
+        .then(cached => db.saveDisplayConfig({ ...config, translations: cached }))
+        .catch(error => console.warn('[DisplayConfig] Mise en cache:', error.message));
+    }
+
+    return { status: 'success', config };
+  } catch (error) {
+    console.warn('[DisplayConfig] Indisponible:', error.message);
+    return fallback;
+  }
+});
+
+// Compteurs de l'écran d'accueil : une seule requête agrégée, sans passer par le dashboard
+ipcMain.handle('admin:photo-stats', async () => {
+  if (!photoSystemReady || !photoSystem?.db) {
+    return { status: 'error', error: 'PhotoSystem non disponible' };
+  }
+
+  try {
+    const stats = await photoSystem.db.getGlobalPhotoStats();
+    return { status: 'success', stats };
+  } catch (error) {
+    console.error('[Main] Erreur admin:photo-stats →', error);
+    return { status: 'error', error: error.message };
+  }
+});
+
 ipcMain.handle('admin:dashboard', async () => {
   if (!photoSystemReady || !photoSystem?.admin) {
     return { status: 'error', error: 'PhotoSystem non disponible' };
@@ -2080,34 +2260,6 @@ ipcMain.handle('admin:update-default-lang', async (event, lang) => {
 });
 
 // Mettre à jour la variante de l'écran d'accueil
-ipcMain.handle('admin:update-cart-bonus-popup', async (event, enabled) => {
-  if (!photoSystemReady || !photoSystem?.db) {
-    return { status: 'error', error: 'PhotoSystem non disponible' };
-  }
-  try {
-    await photoSystem.db.updateCartBonusPopup(enabled);
-    console.log('[IPC] Popup de remise:', enabled ? 'activée' : 'désactivée');
-    return { status: 'success', enabled: !!enabled };
-  } catch (error) {
-    console.error('[IPC] Erreur update-cart-bonus-popup:', error);
-    return { status: 'error', error: error.message };
-  }
-});
-
-ipcMain.handle('admin:update-bar-promo', async (event, enabled) => {
-  if (!photoSystemReady || !photoSystem?.db) {
-    return { status: 'error', error: 'PhotoSystem non disponible' };
-  }
-  try {
-    await photoSystem.db.updateBarPromo(enabled);
-    console.log('[IPC] Offre bar:', enabled ? 'activée' : 'désactivée');
-    return { status: 'success', enabled: !!enabled };
-  } catch (error) {
-    console.error('[IPC] Erreur update-bar-promo:', error);
-    return { status: 'error', error: error.message };
-  }
-});
-
 ipcMain.handle('admin:update-home-variant', async (event, variant) => {
   if (!photoSystemReady || !photoSystem?.db) {
     return { status: 'error', error: 'PhotoSystem non disponible' };

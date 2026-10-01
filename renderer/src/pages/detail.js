@@ -426,15 +426,15 @@ async function retryLoadProducts() {
   }
 }
 
-export const renderDetail = (root) => {
-  const p = state.currentPhoto || state.photos[0];
-  const main = document.createElement('div');
-  main.className = 'main detail-enter';
-  const section = document.createElement('section');
-  section.innerHTML = `<h2 class="detail-title">${t('photo')}</h2>
-    <div class="detail-preview"><img src="${p.source}" alt=""></div>
-    ${barPromoBannerHTML()}
-    <!-- Notice retrait comptoir -->
+/**
+ * Bandeau « retrait au comptoir ». Un seul emplacement est réservé à ce type de message :
+ * empilé sous la bannière pub, il repoussait les produits sous la ligne de flottaison et
+ * obligeait à faire défiler. La bannière pub a donc la priorité quand elle est active.
+ */
+const pickupNoticeHTML = () => {
+  if (state.barPromo) return '';
+
+  return `
     <div class="pickup-notice">
       <span class="pickup-badge">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
@@ -456,6 +456,17 @@ export const renderDetail = (root) => {
         <path d="M228 12 L250 50 L229 45 L221 60 Z" fill="#f3b94a"/>
       </svg>
     </div>`;
+};
+
+export const renderDetail = (root) => {
+  const p = state.currentPhoto || state.photos[0];
+  const main = document.createElement('div');
+  main.className = 'main detail-enter';
+  const section = document.createElement('section');
+  section.innerHTML = `<h2 class="detail-title">${t('photo')}</h2>
+    <div class="detail-preview"><img src="${p.source}" alt=""></div>
+    ${barPromoBannerHTML()}
+    ${pickupNoticeHTML()}`;
 
   // Si aucun produit, tenter de recharger
   if (Object.keys(window.PRODUCTS).length === 0) {

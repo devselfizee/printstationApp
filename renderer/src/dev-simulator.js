@@ -296,6 +296,9 @@ async function showSimulatorPopup() {
 
         if (result.status === 'success') {
           console.log('[DevSim] ✅ Scan réussi!');
+
+          // Même filet que le vrai scan : le simulateur doit reproduire le parcours client
+          window.refreshDisplayConfig?.();
           console.log('[DevSim] Participant:', result.participantId);
           console.log('[DevSim] Photos:', result.photos?.length || 0);
 

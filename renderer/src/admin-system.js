@@ -519,17 +519,12 @@ async function showAdminDashboard() {
   // Charger la configuration machine (pour la langue par défaut)
   let machineConfig = null;
   let currentDefaultLang = 'fr';
-  let cartBonusPopupEnabled = false;
-  let barPromoEnabled = false;
   try {
     if (window.photoAPI?.admin?.getMachineConfig) {
       const result = await window.photoAPI.admin.getMachineConfig();
       if (result.status === 'success' && result.config) {
         machineConfig = result.config;
         currentDefaultLang = machineConfig.default_lang || 'fr';
-        // Colonne absente sur une base ancienne : les deux sont considérées désactivées
-        cartBonusPopupEnabled = !!machineConfig.cart_bonus_popup;
-        barPromoEnabled = !!machineConfig.bar_promo_enabled;
         console.log('[Admin] Config machine:', machineConfig);
       }
     }
@@ -699,33 +694,8 @@ async function showAdminDashboard() {
           </div>
         </section>
 
-        <section class="admin-section">
-          <h2>Popup après ajout au panier</h2>
-          <p class="admin-section-desc">Après chaque ajout au panier, affiche une popup annonçant la remise acquise sur les articles suivants, qui propose de continuer ses achats ou de valider la commande sans faire défiler la page produit. Sans rapport avec la bannière pub ci-dessous.</p>
-          <div class="admin-settings">
-            <div class="setting-row">
-              <label for="cartBonusPopupEnabled">Activer la popup</label>
-              <label class="admin-switch">
-                <input type="checkbox" id="cartBonusPopupEnabled" ${cartBonusPopupEnabled ? 'checked' : ''}>
-                <span class="admin-switch-slider"></span>
-              </label>
-            </div>
-          </div>
-        </section>
-
-        <section class="admin-section">
-          <h2>Bannière pub « remise au bar »</h2>
-          <p class="admin-section-desc">Affiche une bannière publicitaire sur la liste des photos et la page produit, annonçant la remise au bar offerte pour l'achat de toute photo. Quand la bannière est active, la popup d'ajout au panier mentionne aussi l'offre. À désactiver sur les sites sans bar.</p>
-          <div class="admin-settings">
-            <div class="setting-row">
-              <label for="barPromoEnabled">Afficher la bannière</label>
-              <label class="admin-switch">
-                <input type="checkbox" id="barPromoEnabled" ${barPromoEnabled ? 'checked' : ''}>
-                <span class="admin-switch-slider"></span>
-              </label>
-            </div>
-          </div>
-        </section>
+        <!-- Popup de remise et bannière pub : plus de réglage ici, ils sont pilotés
+             par point de vente depuis l'admin web et appliqués à la borne. -->
         <section class="admin-section">
           <h2>Messages de remerciement</h2>
           <div class="admin-settings">
@@ -1003,48 +973,6 @@ async function showAdminDashboard() {
   }
 
   // Sélecteur de langue par défaut
-  // Bannière pub « remise au bar » : prend effet au prochain affichage des pages, sans redémarrer la borne
-  const barPromoToggle = $('#barPromoEnabled');
-  if (barPromoToggle) {
-    barPromoToggle.addEventListener('change', async (e) => {
-      const enabled = e.target.checked;
-      try {
-        const result = await window.photoAPI.admin.updateBarPromo(enabled);
-        if (result.status === 'success') {
-          if (window.state) window.state.barPromo = enabled;
-          console.log('[Admin] Offre bar:', enabled ? 'activée' : 'désactivée');
-        } else {
-          console.error('[Admin] Erreur offre bar:', result.error);
-          e.target.checked = !enabled; // Revert
-        }
-      } catch (error) {
-        console.error('[Admin] Erreur offre bar:', error);
-        e.target.checked = !enabled; // Revert
-      }
-    });
-  }
-
-  // Popup après ajout au panier : prend effet immédiatement, sans redémarrer la borne
-  const cartBonusPopupToggle = $('#cartBonusPopupEnabled');
-  if (cartBonusPopupToggle) {
-    cartBonusPopupToggle.addEventListener('change', async (e) => {
-      const enabled = e.target.checked;
-      try {
-        const result = await window.photoAPI.admin.updateCartBonusPopup(enabled);
-        if (result.status === 'success') {
-          // Appliquer au parcours client en cours
-          if (window.state) window.state.cartBonusPopup = enabled;
-          console.log('[Admin] Popup de remise:', enabled ? 'activée' : 'désactivée');
-        } else {
-          console.error('[Admin] Erreur popup de remise:', result.error);
-          e.target.checked = !enabled; // Revert
-        }
-      } catch (error) {
-        console.error('[Admin] Erreur popup de remise:', error);
-        e.target.checked = !enabled; // Revert
-      }
-    });
-  }
   const defaultLangSelect = $('#defaultLangSelect');
   if (defaultLangSelect) {
     defaultLangSelect.addEventListener('change', async (e) => {

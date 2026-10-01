@@ -1,3 +1,40 @@
+/* Montserrat embarquée : la borne doit fonctionner hors ligne, et une police chargée
+   depuis Google Fonts disparaissait de TOUTE l'interface dès qu'il n'y avait pas de réseau.
+   Deux sous-ensembles suffisent aux six langues : latin et latin-ext (le chinois n'est pas
+   couvert par Montserrat, il retombe sur la police système, comme aujourd'hui). */
+@font-face {
+  font-family: 'Montserrat';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('./assets/fonts/montserrat-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Montserrat';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('./assets/fonts/montserrat-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Montserrat';
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+  src: url('./assets/fonts/montserrat-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Montserrat';
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+  src: url('./assets/fonts/montserrat-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 :root{
   /* Rayons d'angle des deux bandeaux */
   --promo-radius:10px; --pickup-radius:26px;
@@ -698,72 +735,18 @@ header.topbar{
 
 .pickup-trail{ position:relative; z-index:1; width:244px; height:92px; margin:0 40px 0 auto; flex-shrink:0; }
 
-/* ===== Bandeau promo « remise au bar » (liste + page produit, piloté en admin) ===== */
-.bar-promo{
-  position:relative; display:flex; align-items:center; gap:20px;
-  /* Largeur identique quelle que soit la page : le conteneur de la liste n'a pas de padding,
-     celui de la page produit en a 30px — la largeur fixe centrée gomme la différence. */
-  width:100%; max-width:1000px; padding:18px 30px; margin:0 auto 22px; overflow:hidden;
-  background:linear-gradient(100deg,#101f4c 0%,#16295e 55%,#1b3070 100%);
-  border-radius:var(--promo-radius); color:#fff;
-  box-shadow:0 10px 26px rgba(11,16,37,.28);
+/* ===== Bannière du point de vente (contenu servi par l'admin web) =====
+   Emplacement neutre de 980x150 px : le fragment HTML ou l'image apporte tout le décor,
+   la borne ne fournit que le cadre et le centrage. */
+.pdv-banner{
+  width:980px; height:150px; max-width:100%;
+  margin:0 auto 22px; overflow:hidden;
+  border-radius:var(--promo-radius);
 }
-/* Cocotier en fond, calé en bas à droite */
-.bar-promo::after{
-  content:''; position:absolute; right:0; bottom:0; width:330px; height:100%;
-  background:url('./assets/cocotier.png') right bottom / contain no-repeat;
-  opacity:.5; pointer-events:none;
-}
+.pdv-banner img{ width:100%; height:100%; object-fit:cover; display:block; }
+/* Sur la liste, la bannière suit la bannière pleine largeur de l'univers */
+.listing-enter .pdv-banner{ margin-top:24px; }
 
-.bar-promo-glass{ position:relative; z-index:1; font-size:64px; line-height:1; flex-shrink:0; }
-
-/* Le pourcentage sur son pavé rose légèrement incliné */
-.bar-promo-pct{
-  position:relative; z-index:1; flex-shrink:0;
-  padding:6px 20px; border-radius:10px; transform:rotate(-1.5deg);
-  background:linear-gradient(95deg,#ff1f6f 0%,#ff4f45 100%);
-}
-.bar-promo-pct b{
-  display:block; transform:rotate(1.5deg);
-  font-size:60px; font-weight:900; line-height:1.05; letter-spacing:-.02em; color:#fff;
-  text-shadow:4px 5px 0 #57c4f5;
-}
-
-/* flex-shrink:0 + nowrap : sans ça, les titres se coupaient en deux lignes */
-.bar-promo-copy{ position:relative; z-index:1; display:flex; flex-direction:column; gap:2px; flex-shrink:0; }
-.bar-promo-title{ position:relative; font-size:31px; font-weight:900; line-height:1.15; white-space:nowrap; }
-.bar-promo-sub{ position:relative; font-size:25px; font-weight:400; color:#d3dcef; line-height:1.25; white-space:nowrap; }
-/* Trait rose sous le sous-titre */
-.bar-promo-sub::after{
-  content:''; position:absolute; left:14%; right:6%; bottom:-9px; height:5px;
-  border-radius:3px; background:#ff1f6f; transform:rotate(-.6deg);
-}
-
-/* « Profitez-en ! » manuscrit, souligné d'un trait blanc */
-.bar-promo-cta{
-  position:relative; z-index:1; flex-shrink:0; margin-left:auto; padding:0 6px 10px;
-  font-family:'Segoe Script','Brush Script MT',cursive; font-size:31px; color:#fff; white-space:nowrap;
-}
-.bar-promo-cta::after{
-  content:''; position:absolute; left:0; right:10px; bottom:0; height:3px;
-  border-radius:2px; background:#fff; transform:rotate(-1.2deg);
-}
-
-/* Confettis : ancrés au verre et au titre, jamais sur les lettres */
-.bar-promo-dash{ position:absolute; width:5px; height:18px; border-radius:3px; }
-/* À gauche du verre */
-.bar-promo-dash.d1{ top:4px; left:-20px; background:#ff1f6f; transform:rotate(-30deg); }
-.bar-promo-dash.d2{ bottom:8px; left:-26px; height:14px; background:#ff8a3d; transform:rotate(26deg); }
-/* Au-dessus du mot « de » */
-.bar-promo-dash.d3{ top:-17px; left:5px; background:#ff1f6f; transform:rotate(-22deg); }
-/* À droite du mot « bar » */
-.bar-promo-dash.d4{ top:-9px; right:-32px; background:#ff1f6f; transform:rotate(20deg); }
-.bar-promo-dash.d5{ top:15px; right:-44px; height:14px; background:#ff8a3d; transform:rotate(-16deg); }
-
-/* Sur la liste, le bandeau suit la bannière pleine largeur de l'univers */
-.listing-enter .bar-promo{ margin-top:24px; }
-
-/* Cart detail section in footer */
 .cart-detail {
   display: flex;
   flex-direction: column;

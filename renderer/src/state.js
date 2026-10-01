@@ -15,9 +15,11 @@ export const state = {
   timer: null,
   thanksCounter: 5,
   photoIndex: 0,
-  // Désactivées par défaut : elles ne s'affichent que si l'admin de la borne les a activées
+  // Pilotées par point de vente depuis l'admin web, jamais depuis la borne. Désactivées tant
+  // que l'endpoint de configuration n'a pas répondu : on ne promet pas une offre non confirmée.
   cartBonusPopup: false,  // Popup après ajout au panier
-  barPromo: false,        // Bannière pub « remise au bar »
+  barPromo: false,        // Bannière activée pour ce point de vente
+  banner: null,           // { type: 'html'|'image', translations: { fr: {...}, ... } }
   scannedUniverseId: null,  // Lettre du QR réellement présenté (ex. I rattachée à l'univers H)
   cartBonusPopupDismissed: false,  // « Ne plus afficher » coché dans la popup pendant la commande en cours
   furthestStep: null  // Étape la plus avancée atteinte dans le parcours

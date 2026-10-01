@@ -553,6 +553,10 @@ async function processPhysicalScan(rawData) {
 
       if (result.status === 'success') {
         console.log('[QR] ✅ Scan réussi!');
+
+        // Sans attendre la réponse : une modification faite dans l'admin web pendant que la
+        // borne patientait sur l'accueil doit s'appliquer à ce client-ci, pas au suivant.
+        window.refreshDisplayConfig?.();
         console.log('[QR] 👤 Participant:', result.participantId);
         console.log('[QR] 📸 Photos:', result.photos?.length || 0);
 
@@ -654,11 +658,13 @@ export const renderQR = (root) => {
   // ===== CHARGER LES STATS =====
   loadStats();
 
-  // ===== POLLING STATS TOUTES LES 5 SECONDES =====
+  // ===== POLLING STATS =====
+  // 30s : ces compteurs alimentent le panneau de maintenance, masqué par défaut et ouvert
+  // avec F5. Toutes les 5s, la requête concurrençait le rendu de l'animation d'accueil.
   if (statsPollInterval) {
     clearInterval(statsPollInterval);
   }
-  statsPollInterval = setInterval(loadStats, 5000);
+  statsPollInterval = setInterval(loadStats, 30000);
 
   // Exposer le cleanup globalement pour que le routeur puisse l'appeler
   window.cleanupQRPage = () => {
@@ -714,7 +720,7 @@ export const renderQR = (root) => {
         // Créer les cartes (sans rotation pour un look plus propre comme l'original)
         const cardsHtml = rowImages.map((src) => {
           return `<div class="home-visual-card">
-            <img src="${src}" alt="" loading="lazy">
+            <img src="${src}" alt="">
           </div>`;
         }).join('');
 
@@ -732,16 +738,17 @@ export const renderQR = (root) => {
 
   async function loadStats() {
     try {
-      if (!window.photoAPI?.admin?.getDashboard) {
+      if (!window.photoAPI?.admin?.getPhotoStats) {
         return;
       }
 
-      const stats = await window.photoAPI.admin.getDashboard();
+      // Requête agrégée dédiée : le dashboard complet parcourait toute la base à chaque appel
+      const result = await window.photoAPI.admin.getPhotoStats();
 
-      if (stats && stats.photos) {
-        const downloaded = stats.photos.downloaded || 0;
-        const pending = stats.photos.pending || 0;
-        const errors = stats.photos.errors || 0;
+      if (result?.status === 'success' && result.stats) {
+        const downloaded = result.stats.downloaded || 0;
+        const pending = result.stats.pending || 0;
+        const errors = result.stats.errors || 0;
 
         const downloadedEl = document.getElementById('statsDownloaded');
         const pendingEl = document.getElementById('statsPending');

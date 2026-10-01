@@ -356,6 +356,19 @@ async function createTables() {
 
     `CREATE INDEX IF NOT EXISTS idx_sync_log_participant ON sync_log(participant_id);`,
 
+    // Configuration d'affichage du point de vente, servie par l'admin web. Conservée en
+    // local pour survivre à une coupure réseau et pour alimenter le paramètre `since`.
+    `CREATE TABLE IF NOT EXISTS kiosk_display_config (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      version INTEGER,
+      updated_at TEXT,
+      banner_enabled INTEGER DEFAULT 0,
+      banner_type TEXT,
+      translations TEXT,
+      popup_enabled INTEGER DEFAULT 0,
+      fetched_at DATETIME
+    );`,
+
     `CREATE TABLE IF NOT EXISTS machine_config (
       id INTEGER PRIMARY KEY CHECK (id = 1),
       kiosk_id TEXT NOT NULL,
@@ -637,19 +650,6 @@ async function migrateSyncColumns() {
     if (!machineConfigColumns.includes('home_screen_variant')) {
       await execAsync("ALTER TABLE machine_config ADD COLUMN home_screen_variant TEXT DEFAULT 'default'");
       console.log('[DB] ✅ Colonne home_screen_variant ajoutée à machine_config');
-    }
-
-    // Migration: Popup de remise après ajout au panier (désactivée par défaut, tant que
-    // l'opération n'est pas validée : elle s'active borne par borne depuis l'admin)
-    if (!machineConfigColumns.includes('cart_bonus_popup')) {
-      await execAsync('ALTER TABLE machine_config ADD COLUMN cart_bonus_popup INTEGER DEFAULT 0');
-      console.log('[DB] ✅ Colonne cart_bonus_popup ajoutée à machine_config');
-    }
-
-    // Migration: Bannière pub « remise au bar » (désactivée par défaut, même raison)
-    if (!machineConfigColumns.includes('bar_promo_enabled')) {
-      await execAsync('ALTER TABLE machine_config ADD COLUMN bar_promo_enabled INTEGER DEFAULT 0');
-      console.log('[DB] ✅ Colonne bar_promo_enabled ajoutée à machine_config');
     }
 
     // Migration: Purge automatique
@@ -1079,6 +1079,25 @@ export async function updatePhotoDownloadProgress(photoId, localPath, checksum) 
 /**
  * Obtenir les stats d'un participant
  */
+/**
+ * Statistiques photos globales, en UNE requête agrégée (index idx_photos_status).
+ * L'écran d'accueil les rafraîchit en boucle : passer par getDashboardStats() imposait de
+ * charger tous les participants puis une requête par participant, coût qui grandit avec la
+ * base jusqu'à monopoliser le processus principal et figer l'animation de l'accueil.
+ */
+export async function getGlobalPhotoStats() {
+  const stats = await getAsync(
+    `SELECT
+      COUNT(*) as total,
+      SUM(CASE WHEN status IN ('complete', 'purged', 'downloading') THEN 1 ELSE 0 END) as downloaded,
+      SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
+      SUM(CASE WHEN status = 'error' THEN 1 ELSE 0 END) as errors
+     FROM photos`
+  );
+
+  return stats || { total: 0, downloaded: 0, pending: 0, errors: 0 };
+}
+
 export async function getPhotoStats(participantId) {
   const stats = await getAsync(
     `SELECT
@@ -1945,6 +1964,50 @@ export async function saveSyncState(lastSync, lastId) {
 /**
  * Récupérer la configuration de la machine
  */
+/**
+ * Configuration d'affichage mémorisée. Les traductions sont stockées en JSON : leur forme
+ * appartient à l'admin web, la borne n'a pas à la décomposer en colonnes.
+ */
+export async function getDisplayConfig() {
+  const row = await getAsync('SELECT * FROM kiosk_display_config WHERE id = 1');
+  if (!row) return null;
+
+  let translations = {};
+  try {
+    translations = row.translations ? JSON.parse(row.translations) : {};
+  } catch (error) {
+    console.error('[DB] Traductions illisibles, ignorées:', error.message);
+  }
+
+  return {
+    version: row.version,
+    updatedAt: row.updated_at,
+    bannerEnabled: !!row.banner_enabled,
+    bannerType: row.banner_type,
+    translations,
+    popupEnabled: !!row.popup_enabled,
+  };
+}
+
+/**
+ * Remplacer la configuration d'affichage mémorisée.
+ */
+export async function saveDisplayConfig(config) {
+  return runAsync(
+    `INSERT OR REPLACE INTO kiosk_display_config
+       (id, version, updated_at, banner_enabled, banner_type, translations, popup_enabled, fetched_at)
+     VALUES (1, ?, ?, ?, ?, ?, ?, datetime('now', 'localtime'))`,
+    [
+      config.version ?? null,
+      config.updatedAt ?? null,
+      config.bannerEnabled ? 1 : 0,
+      config.bannerType ?? null,
+      JSON.stringify(config.translations || {}),
+      config.popupEnabled ? 1 : 0,
+    ]
+  );
+}
+
 export async function getMachineConfig() {
   return getAsync('SELECT * FROM machine_config WHERE id = 1');
 }
@@ -2019,32 +2082,6 @@ export async function updateHomeScreenVariant(variant) {
          updated_at = datetime('now', 'localtime')
      WHERE id = 1`,
     [variant]
-  );
-}
-
-/**
- * Activer ou désactiver la popup de remise affichée après un ajout au panier
- */
-export async function updateCartBonusPopup(enabled) {
-  return runAsync(
-    `UPDATE machine_config
-     SET cart_bonus_popup = ?,
-         updated_at = datetime('now', 'localtime')
-     WHERE id = 1`,
-    [enabled ? 1 : 0]
-  );
-}
-
-/**
- * Activer ou désactiver l'offre remise au bar (bandeau promo + mention dans la popup)
- */
-export async function updateBarPromo(enabled) {
-  return runAsync(
-    `UPDATE machine_config
-     SET bar_promo_enabled = ?,
-         updated_at = datetime('now', 'localtime')
-     WHERE id = 1`,
-    [enabled ? 1 : 0]
   );
 }
 

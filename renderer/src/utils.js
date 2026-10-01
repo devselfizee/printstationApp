@@ -1,30 +1,60 @@
 import { state } from './state.js';
 import { t } from './i18n.js';
-import { BAR_DISCOUNT_PCT } from './data.js';
 
 export const $ = (sel, root = document) => root.querySelector(sel);
 
 /**
- * Bandeau promo « remise au bar », affiché sur la liste des photos et la page produit.
- * Piloté par l'interrupteur admin « Bannière pub » (state.barPromo).
+ * Nettoyer un fragment HTML venu du serveur avant de l'injecter.
+ *
+ * Le fragment est composé dans notre propre admin, mais il atterrit dans la page qui expose
+ * l'accès aux commandes et au paiement : un copier-coller malheureux ne doit pas pouvoir
+ * l'atteindre. On retire les scripts, les gestionnaires d'événements, les URL exécutables et
+ * les feuilles de style, qui fuiraient sur toute l'interface.
+ */
+const sanitizeBannerHTML = (html) => {
+  const doc = new DOMParser().parseFromString(`<div>${html}</div>`, 'text/html');
+  const root = doc.body.firstElementChild;
+  if (!root) return '';
+
+  root.querySelectorAll('script, style, link, iframe, object, embed').forEach(el => el.remove());
+
+  root.querySelectorAll('*').forEach(el => {
+    for (const attr of [...el.attributes]) {
+      const name = attr.name.toLowerCase();
+      const value = (attr.value || '').replace(/\s/g, '').toLowerCase();
+      if (name.startsWith('on')) {
+        el.removeAttribute(attr.name);
+      } else if ((name === 'href' || name === 'src') && value.startsWith('javascript:')) {
+        el.removeAttribute(attr.name);
+      }
+    }
+  });
+
+  return root.innerHTML;
+};
+
+/**
+ * Bannière du point de vente, affichée sur la liste des photos et la page produit.
+ * Son contenu vient de l'admin web : soit un fragment HTML autonome, soit une image, dans la
+ * langue en cours. Une langue absente retombe sur le français.
  */
 export const barPromoBannerHTML = () => {
-  if (!state.barPromo) return '';
-  return `
-    <div class="bar-promo">
-      <span class="bar-promo-glass">
-        <i class="bar-promo-dash d1"></i><i class="bar-promo-dash d2"></i>
-        🍹
-      </span>
-      <span class="bar-promo-pct"><b>${BAR_DISCOUNT_PCT}%</b></span>
-      <span class="bar-promo-copy">
-        <span class="bar-promo-title">
-          <i class="bar-promo-dash d3"></i>${t('barPromoTitle')}<i class="bar-promo-dash d4"></i><i class="bar-promo-dash d5"></i>
-        </span>
-        <span class="bar-promo-sub">${t('barPromoSub')}</span>
-      </span>
-      <span class="bar-promo-cta">${t('barPromoCta')}</span>
-    </div>`;
+  if (!state.barPromo || !state.banner) return '';
+
+  const translations = state.banner.translations || {};
+  const entry = translations[state.lang] || translations.fr;
+  if (!entry) return '';
+
+  if (state.banner.type === 'image') {
+    // L'URL distante sert tant que la copie locale n'est pas téléchargée
+    const src = entry.image_local || entry.image_url;
+    if (!src) return '';
+    return `<div class="pdv-banner"><img src="${src}" alt=""></div>`;
+  }
+
+  const html = sanitizeBannerHTML(entry.html || '');
+  if (!html.trim()) return '';
+  return `<div class="pdv-banner">${html}</div>`;
 };
 export const $$ = (sel, root = document) => root.querySelectorAll(sel);
 
@@ -198,6 +228,51 @@ export const updateFooterBar = (config = {}) => {
   attachFooterListeners(config);
 };
 
+const MODAL_SPINNER = `<span style="display:inline-block;width:20px;height:20px;
+  border:3px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;
+  animation:spin .8s linear infinite;vertical-align:middle;"></span>`;
+
+/**
+ * Câblage commun aux modales de confirmation qui déclenchent un traitement asynchrone.
+ * La modale reste ouverte pendant le traitement, boutons désactivés et minuteur dans le
+ * bouton de confirmation : la fermer tout de suite laissait le client plusieurs secondes
+ * sur l'écran précédent, le temps de l'aller-retour vers Supabase, ce qui ressemblait à un
+ * plantage. Elle ne disparaît qu'une fois la navigation faite.
+ */
+const wireConfirmModal = ({ modal, confirmBtn, cancelBtn, overlay, onConfirm }) => {
+  let processing = false;
+
+  const dismiss = () => {
+    if (processing) return;
+    modal.classList.remove('visible');
+    setTimeout(() => modal.remove(), 300);
+  };
+
+  if (cancelBtn) cancelBtn.onclick = dismiss;
+  if (overlay) overlay.onclick = dismiss;
+
+  confirmBtn.onclick = async () => {
+    if (processing) return;  // Double appui : le traitement ne doit pas partir deux fois
+    processing = true;
+
+    confirmBtn.disabled = true;
+    confirmBtn.innerHTML = MODAL_SPINNER;
+    if (cancelBtn) {
+      cancelBtn.disabled = true;
+      cancelBtn.style.opacity = '0.5';
+    }
+
+    try {
+      await onConfirm();
+    } catch (error) {
+      console.error('[Modal] Erreur pendant la confirmation:', error);
+    } finally {
+      // La navigation a déjà eu lieu dans onConfirm : on découvre la page d'arrivée en fermant
+      modal.remove();
+    }
+  };
+};
+
 /**
  * Affiche un modal de confirmation pour quitter si le panier n'est pas vide
  */
@@ -228,25 +303,13 @@ export const showQuitConfirmModal = (onConfirm) => {
   // Animations d'entrée
   setTimeout(() => modal.classList.add('visible'), 10);
 
-  // Gestionnaires de boutons
-  modal.querySelector('.btn-cancel-modal').onclick = () => {
-    modal.classList.remove('visible');
-    setTimeout(() => modal.remove(), 300);
-  };
-
-  modal.querySelector('.btn-confirm-quit').onclick = () => {
-    modal.classList.remove('visible');
-    setTimeout(() => {
-      modal.remove();
-      onConfirm();
-    }, 300);
-  };
-
-  // Fermer en cliquant sur l'overlay
-  modal.querySelector('.quit-confirm-overlay').onclick = () => {
-    modal.classList.remove('visible');
-    setTimeout(() => modal.remove(), 300);
-  };
+  wireConfirmModal({
+    modal,
+    confirmBtn: modal.querySelector('.btn-confirm-quit'),
+    cancelBtn: modal.querySelector('.btn-cancel-modal'),
+    overlay: modal.querySelector('.quit-confirm-overlay'),
+    onConfirm,
+  });
 };
 
 /**
@@ -284,19 +347,13 @@ export const showCancelOrderModal = (onCancel) => {
     setTimeout(() => modal.remove(), 300);
   };
 
-  modal.querySelector('.btn-cancel-order').onclick = () => {
-    modal.classList.remove('visible');
-    setTimeout(() => {
-      modal.remove();
-      onCancel();
-    }, 300);
-  };
-
-  // Fermer en cliquant sur l'overlay
-  modal.querySelector('.quit-confirm-overlay').onclick = () => {
-    modal.classList.remove('visible');
-    setTimeout(() => modal.remove(), 300);
-  };
+  wireConfirmModal({
+    modal,
+    confirmBtn: modal.querySelector('.btn-cancel-order'),
+    cancelBtn: modal.querySelector('.btn-continue-shopping'),
+    overlay: modal.querySelector('.quit-confirm-overlay'),
+    onConfirm: onCancel,
+  });
 };
 
 /**

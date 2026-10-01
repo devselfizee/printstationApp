@@ -31,10 +31,11 @@
 }
 .offer .visu {
 /*	height: 170px;*/
-  height: 150px;
+  /* height: 150px; */
+  height: 110px;
 }
 .offer .visu img{
-  max-height: 140px !important;
+  max-height: 100px !important;
 }
 
 .cart-product-thumb {

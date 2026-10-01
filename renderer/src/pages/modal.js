@@ -22,7 +22,24 @@ export const showUpsell = (photo, product) => {
   modal.classList.add('show');
   
   // Bouton "Ajouter" dans la modal
+  let upsellProcessing = false;
   $('#addUpsellBtn').onclick = async () => {
+    // L'enregistrement en base prend un instant : sans garde, un double appui ajouterait
+    // l'article deux fois, et sans retour visuel le client croit que son clic n'a rien fait.
+    if (upsellProcessing) return;
+    upsellProcessing = true;
+
+    const addBtn = $('#addUpsellBtn');
+    const skipBtn = $('#skipUpsellBtn');
+    addBtn.disabled = true;
+    addBtn.innerHTML = `<span style="display:inline-block;width:20px;height:20px;
+      border:3px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;
+      animation:spin .8s linear infinite;vertical-align:middle;"></span>`;
+    if (skipBtn) {
+      skipBtn.disabled = true;
+      skipBtn.style.opacity = '0.5';
+    }
+
     // Ajouter au panier local
     state.cart = addOne(photo.id, product.id, state.cart, window.PRODUCTS);
     updateCartCount();
@@ -64,6 +81,7 @@ export const showUpsell = (photo, product) => {
   
   // Bouton "Non, merci"
   $('#skipUpsellBtn').onclick = () => {
+    if (upsellProcessing) return;  // Un ajout est en cours, on ne double pas la navigation
     closeModal();
     // Afficher le panier quand même
     state.page = 'cart';

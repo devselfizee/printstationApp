@@ -55,6 +55,8 @@ const photoAPI = {
   // Admin
   admin: {
     getDashboard: () => ipcRenderer.invoke('admin:dashboard'),
+    getPhotoStats: () => ipcRenderer.invoke('admin:photo-stats'),
+    getDisplayConfig: () => ipcRenderer.invoke('config:fetch-display'),
     searchPhotos: (filters) => ipcRenderer.invoke('admin:search-photos', filters),
     getParticipantPhotos: (participantId) =>
       ipcRenderer.invoke('admin:participant-photos', participantId),
@@ -85,8 +87,6 @@ const photoAPI = {
     updateDefaultLang: (lang) => ipcRenderer.invoke('admin:update-default-lang', lang),
     // Variante écran d'accueil (legacy)
     updateHomeVariant: (variant) => ipcRenderer.invoke('admin:update-home-variant', variant),
-    updateCartBonusPopup: (enabled) => ipcRenderer.invoke('admin:update-cart-bonus-popup', enabled),
-    updateBarPromo: (enabled) => ipcRenderer.invoke('admin:update-bar-promo', enabled),
     getHomeVariants: () => ipcRenderer.invoke('admin:get-home-variants'),
     getHomeVisuals: () => ipcRenderer.invoke('admin:get-home-visuals'),
     // Univers écran d'accueil
