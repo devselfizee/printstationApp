@@ -128,6 +128,7 @@ async function seedDefaultData() {
       await addUniverse('G', 'Colisée', '/assets/banniere-colisee.jpg');
       await addUniverse('H', 'The infinite', '/assets/banniere-theinfinite.jpg');
       await addUniverse('J', 'Everest', '/assets/banniere-everest.jpg');
+      await addUniverse('K', 'Notre dame', '/assets/banniere-notredame.jpg');
 
       console.log("[DB] ✅ 2 univers créés (A: L'horizon de kheops, B: Mondes Disparus)");
     } else {
@@ -136,6 +137,7 @@ async function seedDefaultData() {
       await addUniverse('G', 'Colisée', '/assets/banniere-colisee.jpg');
       await addUniverse('H', 'The infinite', '/assets/banniere-theinfinite.jpg');
       await addUniverse('J', 'Everest', '/assets/banniere-everest.jpg');
+      await addUniverse('K', 'Notre dame', '/assets/banniere-notredame.jpg');
       console.log(`[DB] ✓ ${universes.length} univers déjà présents`);
     }
   } catch (error) {
@@ -429,7 +431,8 @@ async function createTables() {
     { key: 'F', name: 'Titanic', enabled: 1 },
     { key: 'G', name: 'Colisée', enabled: 1 },
     { key: 'H', name: 'The infinite', enabled: 1 },
-    { key: 'J', name: 'Everest', enabled: 1 }
+    { key: 'J', name: 'Everest', enabled: 1 },
+    { key: 'K', name: 'Notre dame', enabled: 1 }
   ];
 
   for (const stmt of statements) {

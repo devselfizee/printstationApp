@@ -179,6 +179,24 @@ export const UNIVERSES = {
         image: './assets/porte-cle-disparu.png'
       }
     }
+  },
+  K: {
+    id: 'K',
+    name: 'Notre dame',
+    banner: './assets/banniere-notredame.jpg',
+    photos: [
+      { id: 'p22', title: '', src: './assets/disparu-photo1.jpg' },
+      { id: 'p23', title: '', src: './assets/disparu-photo2.jpg' },
+      { id: 'p24', title: '', src: './assets/disparu-photo3.jpg' }
+    ],
+    productVisuals: {
+      print: {
+        image: './assets/chevalet-disparu.png'
+      },
+      magnet: {
+        image: './assets/porte-cle-disparu.png'
+      }
+    }
   }
 };
 

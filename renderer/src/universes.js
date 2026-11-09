@@ -14,7 +14,7 @@ import { resolveUniverseCode } from './photosystem/universeAliases.js';
 // Réexporté pour que les pages n'aient qu'un seul module à connaître
 export { resolveUniverseCode, isUniverseAlias } from './photosystem/universeAliases.js';
 
-const FALLBACK_CODES = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J'];
+const FALLBACK_CODES = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K'];
 
 let universeCodes = [...FALLBACK_CODES];
 let loaded = false;
