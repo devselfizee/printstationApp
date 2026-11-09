@@ -231,6 +231,11 @@ async function verifyChecksum(filePath, expected) {
   });
 }
 
+/** Le changelog vient des titres de commits : affiché comme du texte, jamais comme du HTML */
+function escapeHtml(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 /**
  * HTML de la popup de mise à jour
  */
@@ -273,6 +278,8 @@ function getUpdateHTML(currentVersion, newVersion, changelog) {
     margin-bottom: 16px;
     max-height: 60px;
     overflow-y: auto;
+    white-space: pre-line;
+    -webkit-app-region: no-drag;
   }
   .buttons {
     display: flex;
@@ -342,7 +349,7 @@ function getUpdateHTML(currentVersion, newVersion, changelog) {
     <div class="versions">
       Version actuelle : <span>${currentVersion}</span> &rarr; Nouvelle version : <span>${newVersion}</span>
     </div>
-    ${changelog ? `<div class="changelog">${changelog}</div>` : ''}
+    ${changelog.trim() ? `<div class="changelog">${escapeHtml(changelog.trim())}</div>` : ''}
     <div class="buttons" id="buttons">
       <button class="btn-skip" onclick="window.updater.skip()">Plus tard</button>
       <button class="btn-update" onclick="startUpdate()">Mettre à jour</button>
