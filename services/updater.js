@@ -1,13 +1,121 @@
 // services/updater.js
-// Système de mise à jour automatique avec popup UI et HTTP Range Requests
-import { createWriteStream, createReadStream, existsSync, statSync, unlinkSync } from 'fs';
+// Système de mise à jour automatique avec popup UI et HTTP Range Requests.
+//
+// Avec la clé des bornes (RELEASES_KIOSK_KEY), la borne s'identifie auprès du Release Manager
+// (/api/v1/apps/printstation/update) : elle apparaît dans l'onglet Bornes, compte dans « Bornes »
+// de la liste des versions, et envoie un compte rendu de chaque mise à jour. Sans clé, ou si cette
+// route échoue, elle se rabat sur l'ancienne route anonyme /versions/latest/printstation.
+import { createWriteStream, createReadStream, existsSync, readFileSync, statSync, unlinkSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { createHash } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
 import { app, shell, BrowserWindow, ipcMain } from 'electron';
+
+const PLATFORM = 'windows-x64';
 
 function getUpdateApiUrl() {
   return process.env.UPDATE_API_URL || 'https://releases-api.orkessi.com/versions/latest/printstation';
+}
+
+/** Origine et nom de l'application, tirés de l'ancienne adresse (…/versions/latest/printstation) */
+function releaseManager() {
+  const url = new URL(getUpdateApiUrl());
+  return { origin: url.origin, slug: url.pathname.split('/').filter(Boolean).pop() };
+}
+
+function kioskKey() {
+  return (process.env.RELEASES_KIOSK_KEY || '').trim() || null;
+}
+
+const pendingFile = () => join(app.getPath('userData'), 'update-pending.json');
+
+/**
+ * Identifiant de la borne pour le Release Manager : son kiosk_id s'il est configuré, sinon un
+ * identifiant tiré au hasard une fois et gardé dans le dossier de l'application.
+ */
+function resolveBorneId(kioskId) {
+  if (kioskId) return String(kioskId).slice(0, 100);
+  const file = join(app.getPath('userData'), 'borne-id.txt');
+  try {
+    const saved = readFileSync(file, 'utf8').trim();
+    if (saved) return saved;
+  } catch { /* première fois */ }
+  const id = `printstation-${randomUUID()}`;
+  try { writeFileSync(file, id); } catch (err) { console.warn(`[Updater] borne-id non enregistré : ${err.message}`); }
+  return id;
+}
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = 10000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** Compte rendu au Release Manager (downloaded, installing, installed, failed). Ne lève jamais. */
+async function report(ctx, step, fromVersion, toVersion, message = '') {
+  if (!ctx.key) return false;
+  try {
+    const res = await fetchWithTimeout(`${ctx.origin}/api/v1/apps/${ctx.slug}/update-reports`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Kiosk-Key': ctx.key },
+      body: JSON.stringify({
+        borne_id: ctx.borneId, step, from_version: fromVersion, to_version: toVersion,
+        message: String(message).slice(0, 500), at: new Date().toISOString(),
+      }),
+    }, 5000);
+    if (!res.ok) console.warn(`[Updater] Compte rendu « ${step} » refusé : HTTP ${res.status}`);
+    return res.ok;
+  } catch (err) {
+    console.warn(`[Updater] Compte rendu « ${step} » non envoyé : ${err.message}`);
+    return false;
+  }
+}
+
+/**
+ * Au démarrage qui suit une installation : la version attendue est-elle bien là ?
+ * Le fichier n'est effacé qu'une fois le compte rendu reçu (sinon nouvel essai au démarrage suivant).
+ */
+async function reportPendingOutcome(ctx, localVersion) {
+  let pending;
+  try { pending = JSON.parse(readFileSync(pendingFile(), 'utf8')); } catch { return; }
+  const done = () => { try { unlinkSync(pendingFile()); } catch { /* déjà parti */ } };
+  if (!ctx.key) return done();
+  const sent = localVersion === pending.to
+    ? await report(ctx, 'installed', pending.from, pending.to)
+    : await report(ctx, 'failed', pending.from, pending.to, `Installation non aboutie : ${localVersion} toujours en place`);
+  if (sent) done();
+}
+
+/**
+ * Route des bornes. Renvoie la mise à jour à faire, null si la borne est à jour,
+ * ou lève une erreur (l'appelant se rabat alors sur l'ancienne route).
+ */
+async function askReleaseManager(ctx, localVersion) {
+  const query = new URLSearchParams({ borne_id: ctx.borneId, platform: PLATFORM, version: localVersion });
+  const res = await fetchWithTimeout(`${ctx.origin}/api/v1/apps/${ctx.slug}/update?${query}`, {
+    headers: { 'X-Kiosk-Key': ctx.key },
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const body = await res.json();
+  if (!body.update) return null;
+  return {
+    semver: body.version,
+    fileSize: body.size,
+    checksum: body.sha256,
+    changelog: body.notes_markdown || '',
+    downloadUrl: body.url,
+    reason: body.reason,
+  };
+}
+
+async function askLegacyRoute() {
+  const res = await fetchWithTimeout(getUpdateApiUrl());
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
 }
 
 /**
@@ -30,40 +138,54 @@ function compareSemver(a, b) {
  * Point d'entrée principal — appeler depuis main.js au démarrage.
  * Vérifie si une mise à jour est disponible, affiche une popup si oui.
  * Ne bloque jamais le démarrage en cas d'erreur réseau.
+ * @param {{ kioskId?: string|null }} options kiosk_id de la borne, s'il est configuré
  */
-export async function checkForUpdates() {
+export async function checkForUpdates({ kioskId = null } = {}) {
   try {
     // 1. Lire la version locale
     const localVersion = app.getVersion();
-    const updateApiUrl = getUpdateApiUrl();
+    const ctx = { ...releaseManager(), key: kioskKey(), borneId: resolveBorneId(kioskId) };
     console.log(`[Updater] Version locale : ${localVersion}`);
-    console.log(`[Updater] API : ${updateApiUrl}`);
+    console.log(`[Updater] Release Manager : ${ctx.origin} (${ctx.slug}), borne ${ctx.borneId}${ctx.key ? '' : ', sans clé des bornes'}`);
 
-    // 2. Appel API avec timeout 10s
-    let apiResponse;
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 10000);
-      const res = await fetch(updateApiUrl, { signal: controller.signal });
-      clearTimeout(timeout);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      apiResponse = await res.json();
-    } catch (err) {
-      console.warn(`[Updater] Serveur inaccessible : ${err.message}`);
-      return false;
+    // Résultat de la mise à jour précédente, s'il y en a une
+    await reportPendingOutcome(ctx, localVersion);
+
+    // 2. Route des bornes (identifiée), sinon ancienne route anonyme
+    let update;
+    let viaKioskRoute = false;
+    if (ctx.key) {
+      try {
+        update = await askReleaseManager(ctx, localVersion);
+        viaKioskRoute = true;
+      } catch (err) {
+        console.warn(`[Updater] Route des bornes en échec (${err.message}), ancienne route`);
+      }
+    }
+    if (!viaKioskRoute) {
+      try {
+        update = await askLegacyRoute();
+      } catch (err) {
+        console.warn(`[Updater] Serveur inaccessible : ${err.message}`);
+        return false;
+      }
     }
 
-    // 3. Comparer versions — ne mettre à jour QUE si la version distante est plus récente
-    const remoteVersion = apiResponse.semver;
-    console.log(`[Updater] Version distante : ${remoteVersion}`);
-    if (compareSemver(remoteVersion, localVersion) <= 0) {
+    // 3. La route des bornes a déjà décidé (une version imposée peut être plus ancienne) ;
+    //    l'ancienne route donne la version active : mise à jour seulement si elle est plus récente
+    if (!update || !update.semver) {
+      console.log('[Updater] Application à jour.');
+      return false;
+    }
+    console.log(`[Updater] Version distante : ${update.semver}${update.reason ? ` (${update.reason})` : ''}`);
+    if (viaKioskRoute ? update.semver === localVersion : compareSemver(update.semver, localVersion) <= 0) {
       console.log('[Updater] Application à jour.');
       return false;
     }
 
     // 4. Une mise à jour est disponible → afficher la popup
-    console.log(`[Updater] Mise à jour disponible : ${localVersion} → ${remoteVersion}`);
-    const installing = await showUpdatePopup(apiResponse, localVersion);
+    console.log(`[Updater] Mise à jour disponible : ${localVersion} → ${update.semver}`);
+    const installing = await showUpdatePopup(update, localVersion, ctx);
     return installing;
 
   } catch (err) {
@@ -75,7 +197,7 @@ export async function checkForUpdates() {
 /**
  * Affiche la fenêtre de mise à jour et gère le flow utilisateur
  */
-function showUpdatePopup(apiResponse, localVersion) {
+function showUpdatePopup(apiResponse, localVersion, ctx) {
   return new Promise((resolve) => {
     const updateWindow = new BrowserWindow({
       width: 480,
@@ -95,6 +217,18 @@ function showUpdatePopup(apiResponse, localVersion) {
     const changelog = apiResponse.changelog || '';
     const html = getUpdateHTML(localVersion, apiResponse.semver, changelog);
     updateWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
+
+    const target = apiResponse.semver;
+    const install = async (dest) => {
+      // Marque l'installation en cours : le prochain démarrage dira si elle a abouti
+      try {
+        writeFileSync(pendingFile(), JSON.stringify({ from: localVersion, to: target, at: new Date().toISOString() }));
+      } catch (err) {
+        console.warn(`[Updater] Suivi d'installation non enregistré : ${err.message}`);
+      }
+      await report(ctx, 'installing', localVersion, target);
+      await launchInstaller(dest, updateWindow, resolve);
+    };
 
     // L'utilisateur clique "Plus tard" → fermer la popup, démarrer l'app normalement
     ipcMain.once('update:skip', () => {
@@ -117,7 +251,8 @@ function showUpdatePopup(apiResponse, localVersion) {
           const valid = await verifyChecksum(dest, apiResponse.checksum);
           if (valid) {
             updateWindow.webContents.send('update:complete');
-            await launchInstaller(dest, updateWindow, resolve);
+            await report(ctx, 'downloaded', localVersion, target);
+            await install(dest);
             return;
           }
           unlinkSync(dest);
@@ -134,6 +269,7 @@ function showUpdatePopup(apiResponse, localVersion) {
         const isValid = await verifyChecksum(dest, apiResponse.checksum);
         if (!isValid) {
           unlinkSync(dest);
+          void report(ctx, 'failed', localVersion, target, 'SHA-256 du fichier téléchargé différent');
           if (!updateWindow.isDestroyed()) {
             updateWindow.webContents.send('update:error', 'Le fichier téléchargé est corrompu. Réessayez plus tard.');
           }
@@ -144,10 +280,12 @@ function showUpdatePopup(apiResponse, localVersion) {
         if (!updateWindow.isDestroyed()) {
           updateWindow.webContents.send('update:complete');
         }
-        await launchInstaller(dest, updateWindow, resolve);
+        await report(ctx, 'downloaded', localVersion, target);
+        await install(dest);
 
       } catch (err) {
         console.error(`[Updater] Erreur téléchargement : ${err.message}`);
+        void report(ctx, 'failed', localVersion, target, `Téléchargement : ${err.message}`);
         if (!updateWindow.isDestroyed()) {
           updateWindow.webContents.send('update:error', err.message);
         }

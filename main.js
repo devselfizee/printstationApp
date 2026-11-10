@@ -1523,7 +1523,9 @@ app.on('ready', async () => {
   }
 
   // ── Vérification mise à jour automatique ──
-  const isInstalling = await checkForUpdates();
+  // La borne s'identifie au Release Manager par son kiosk_id, s'il est configuré
+  const kioskId = API_SYNC_CONFIG.kioskId !== 'default-kiosk-uuid' ? API_SYNC_CONFIG.kioskId : null;
+  const isInstalling = await checkForUpdates({ kioskId });
   if (isInstalling) return; // Mise à jour en cours, ne pas ouvrir l'app
   // ─────────────────────────────────────────
 
