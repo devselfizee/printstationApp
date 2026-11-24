@@ -23,7 +23,8 @@
     "dist": "npm run build && electron-builder --win",
     "dist:dev": "copy .env.dev .env && npm run build && electron-builder --win",
     "dist:prod": "copy .env.prod .env && npm run build && electron-builder --win",
-    "postinstall": "electron-builder install-app-deps"
+    "postinstall": "electron-builder install-app-deps",
+	"release:publish": "node tools/publish-release.cjs"
   },
   "devDependencies": {
     "electron": "^31.0.0",
